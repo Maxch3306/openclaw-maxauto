@@ -60,6 +60,8 @@ interface ProviderDefaults {
   baseUrl: string;
   api: string;
   models: ProviderModelDef[];
+  /** Extra provider-level config fields (e.g. authHeader) written to openclaw.json */
+  extraConfig?: Record<string, unknown>;
 }
 
 const ZERO_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
@@ -75,30 +77,17 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
     api: "anthropic-messages",
     models: [],
   },
-  "amazon-bedrock": {
-    baseUrl: "https://bedrock-runtime.us-east-1.amazonaws.com",
-    api: "bedrock-converse-stream",
-    models: [],
-  },
   deepseek: {
     baseUrl: "https://api.deepseek.com/v1",
     api: "openai-completions",
     models: [],
   },
-  google: {
-    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
-    api: "google-generative-ai",
-    models: [],
-  },
-  "github-copilot": {
-    baseUrl: "https://api.githubcopilot.com",
-    api: "github-copilot",
-    models: [],
-  },
-  ollama: {
-    baseUrl: "http://localhost:11434/v1",
-    api: "ollama",
-    models: [],
+  "maxauto-crs-openai": {
+    baseUrl: "https://claude-proxy.bsoltest.com/openai",
+    api: "openai-responses",
+    models: [
+      { id: "gpt-5.4", name: "GPT-5.4", reasoning: true, input: ["text","image"], cost: ZERO_COST, contextWindow: 1050000, maxTokens: 272000 },
+    ],
   },
   "kimi-coding": {
     baseUrl: "https://api.kimi.com/coding/",
@@ -118,35 +107,30 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
   moonshot: {
     baseUrl: "https://api.moonshot.ai/v1",
     api: "openai-completions",
-    models: [],
+    models: [
+      { id: "kimi-k2.5", name: "Kimi K2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 256000, maxTokens: 8192 },
+    ],
   },
   minimax: {
     baseUrl: "https://api.minimax.io/anthropic",
     api: "anthropic-messages",
-    models: [],
+    extraConfig: { authHeader: true },
+    models: [
+      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+    ],
   },
   "minimax-cn": {
     baseUrl: "https://api.minimaxi.com/anthropic",
     api: "anthropic-messages",
-    models: [],
-  },
-  together: {
-    baseUrl: "https://api.together.xyz/v1",
-    api: "openai-completions",
-    models: [],
-  },
-  openrouter: {
-    baseUrl: "https://openrouter.ai/api/v1",
-    api: "openai-completions",
-    models: [],
-  },
-  nvidia: {
-    baseUrl: "https://integrate.api.nvidia.com/v1",
-    api: "openai-completions",
-    models: [],
+    extraConfig: { authHeader: true },
+    models: [
+      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+    ],
   },
   modelstudio: {
-    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    baseUrl: "https://coding.dashscope.aliyuncs.com/v1",
     api: "openai-completions",
     models: [
       { id: "qwen3.5-plus", name: "qwen3.5-plus", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536 },
@@ -155,39 +139,15 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
       { id: "qwen3-coder-plus", name: "qwen3-coder-plus", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536 },
       { id: "MiniMax-M2.5", name: "MiniMax-M2.5", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536 },
       { id: "glm-5", name: "glm-5", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 202752, maxTokens: 16384 },
-      { id: "glm-4.7", name: "glm-4.7", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 202752, maxTokens: 16384 },
       { id: "kimi-k2.5", name: "kimi-k2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 262144, maxTokens: 32768 },
     ],
   },
-  huggingface: {
-    baseUrl: "https://api-inference.huggingface.co/v1",
+  "aliyun-maxauto": {
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     api: "openai-completions",
-    models: [],
-  },
-  qianfan: {
-    baseUrl: "https://qianfan.baidubce.com/v2",
-    api: "openai-completions",
-    models: [],
-  },
-  venice: {
-    baseUrl: "https://api.venice.ai/api/v1",
-    api: "openai-completions",
-    models: [],
-  },
-  vllm: {
-    baseUrl: "http://localhost:8000/v1",
-    api: "openai-completions",
-    models: [],
-  },
-  volcengine: {
-    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    api: "openai-completions",
-    models: [],
-  },
-  byteplus: {
-    baseUrl: "https://ark.ap-southeast.bytepluses.com/api/v3",
-    api: "openai-completions",
-    models: [],
+    models: [
+      { id: "qwen3.5-plus", name: "qwen3.5-plus", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536 },
+      { id: "qwen3-coder-next", name: "qwen3-coder-next", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 262144, maxTokens: 65536 }    ],
   },
 };
 
@@ -345,6 +305,8 @@ interface ProviderConfig {
     maxTokens?: number;
     input?: string[];
     reasoning?: boolean;
+    cost?: { input: number; output: number; cacheRead: number; cacheWrite: number };
+    compat?: Record<string, unknown>;
   }>;
 }
 
@@ -375,6 +337,39 @@ function parseCustomProvidersOnly(
         input: m.input,
         reasoning: m.reasoning,
       });
+    }
+  }
+  return result;
+}
+
+/**
+ * Parse resolved model definitions for built-in providers from config.get.
+ * Returns a map of providerKey → ProviderModelDef[] for providers that exist
+ * in both PROVIDER_DEFAULTS and the config's models.providers section.
+ */
+function parseBuiltInProviderModels(
+  providers: Record<string, ProviderConfig> | undefined,
+): BuiltInProviderModels {
+  const result: BuiltInProviderModels = new Map();
+  if (!providers) {
+    return result;
+  }
+  for (const [key, provCfg] of Object.entries(providers)) {
+    if (!(key in PROVIDER_DEFAULTS)) {
+      continue;
+    }
+    const models: ProviderModelDef[] = (provCfg.models ?? []).map((m) => ({
+      id: m.id,
+      name: m.name ?? m.id,
+      reasoning: m.reasoning ?? false,
+      input: m.input ?? ["text"],
+      cost: m.cost ?? ZERO_COST,
+      contextWindow: m.contextWindow ?? 128000,
+      maxTokens: m.maxTokens ?? 8192,
+      compat: m.compat,
+    }));
+    if (models.length > 0) {
+      result.set(key, models);
     }
   }
   return result;
@@ -421,11 +416,16 @@ async function writeConfigAndRestart(config: Record<string, unknown>): Promise<v
   }
 }
 
+/** Resolved model definitions for built-in providers, keyed by provider key */
+export type BuiltInProviderModels = Map<string, ProviderModelDef[]>;
+
 interface SettingsState {
   activeSection: SettingsSection;
   models: ModelInfo[];
   customModels: CustomModel[];
   configuredProviders: Set<string>;
+  /** Actual model definitions resolved from config.get for built-in providers */
+  builtInProviderModels: BuiltInProviderModels;
   defaultModelId: string | null;
   configBaseHash: string | null;
   showAddModelDialog: boolean;
@@ -455,6 +455,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   models: [],
   customModels: [],
   configuredProviders: new Set<string>(),
+  builtInProviderModels: new Map(),
   defaultModelId: null,
   configBaseHash: null,
   showAddModelDialog: false,
@@ -497,7 +498,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const customModels = parseCustomProvidersOnly(cfg.models?.providers);
       const configuredProviders = new Set(Object.keys(cfg.models?.providers ?? {}));
       const defaultModelId = cfg.agents?.defaults?.model ?? null;
-      set({ customModels, configuredProviders, defaultModelId });
+
+      // Parse resolved model definitions for built-in providers from config.get
+      const builtInProviderModels = parseBuiltInProviderModels(cfg.models?.providers);
+
+      set({ customModels, configuredProviders, defaultModelId, builtInProviderModels });
     } catch {
       // Gateway not ready — fall back to reading file directly
       try {
@@ -509,7 +514,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         const customModels = parseCustomProvidersOnly(cfg.models?.providers);
         const configuredProviders = new Set(Object.keys(cfg.models?.providers ?? {}));
         const defaultModelId = cfg.agents?.defaults?.model ?? null;
-        set({ customModels, configuredProviders, defaultModelId });
+        const builtInProviderModels = parseBuiltInProviderModels(
+          cfg.models?.providers as Record<string, ProviderConfig> | undefined,
+        );
+        set({ customModels, configuredProviders, defaultModelId, builtInProviderModels });
       } catch {
         // Config file not available either
       }
@@ -698,6 +706,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       baseUrl: baseUrl?.trim() || defaults.baseUrl,
       api: defaults.api,
       apiKey,
+      ...defaults.extraConfig,
     };
 
     // Collect model IDs for agents.defaults.models

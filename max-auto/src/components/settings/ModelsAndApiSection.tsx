@@ -11,6 +11,7 @@ export function ModelsAndApiSection() {
   const models = useSettingsStore((s) => s.models);
   const customModels = useSettingsStore((s) => s.customModels);
   const configuredProviders = useSettingsStore((s) => s.configuredProviders);
+  const builtInProviderModels = useSettingsStore((s) => s.builtInProviderModels);
   const showAddDialog = useSettingsStore((s) => s.showAddModelDialog);
   const setShowAddDialog = useSettingsStore((s) => s.setShowAddModelDialog);
   const loadConfig = useSettingsStore((s) => s.loadConfig);
@@ -208,8 +209,12 @@ export function ModelsAndApiSection() {
                       {providerModels.map((m) => {
                         const qualifiedId = `${provKey}/${m.id}`;
                         const isDefault = defaultModelId === qualifiedId;
+                        // Prefer resolved models from config.get, fall back to hardcoded defaults
+                        const resolvedModels = builtInProviderModels.get(provKey);
+                        const resolvedDef = resolvedModels?.find((d) => d.id === m.id);
                         const provDef = PROVIDER_DEFAULTS[provKey];
-                        const modelDef = provDef?.models.find((d) => d.id === m.id);
+                        const hardcodedDef = provDef?.models.find((d) => d.id === m.id);
+                        const modelDef = resolvedDef ?? hardcodedDef;
                         const inputTypes = modelDef?.input ?? [];
                         return (
                           <div key={m.id} className="flex items-center justify-between py-1">

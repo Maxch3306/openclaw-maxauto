@@ -116,7 +116,11 @@ export function AddModelDialog() {
     setSaving(true);
     setError("");
     try {
-      await setProviderAuth(selectedProvider, apiKey.trim(), builtInBaseUrl.trim() || undefined);
+      await setProviderAuth(
+        selectedProvider,
+        apiKey.trim(),
+        selectedProvider === "modelstudio" ? builtInBaseUrl.trim() || undefined : undefined,
+      );
       setShowAddDialog(false);
     } catch (err) {
       setError(String(err));
