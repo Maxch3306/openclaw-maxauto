@@ -49,6 +49,7 @@ interface ChatState {
   loadSessions: () => Promise<void>;
   switchSession: (sessionKey: string) => void;
   newSession: () => void;
+  deleteSession: (sessionKey: string) => Promise<void>;
   abortGeneration: () => Promise<void>;
   setAgentModel: (agentId: string, modelId: string) => Promise<void>;
 }
@@ -305,6 +306,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const sessionKey = `${agentId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     set({ messages: [], sessionKey, streaming: false, currentRunId: null });
     console.log("[chat-store] newSession:", sessionKey);
+  },
+
+  deleteSession: async (sessionKey) => {
+    try {
+      await gateway.request("sessions.delete", { key: sessionKey });
+    } catch (err) {
+      console.warn("[chat-store] deleteSession gateway call failed, removing locally:", err);
+    }
+    // Remove from local list
+    set((s) => ({
+      sessions: s.sessions.filter((sess) => sess.key !== sessionKey),
+    }));
+    // If we deleted the active session, clear the chat
+    if (get().sessionKey === sessionKey) {
+      const { selectedAgentId } = get();
+      set({ messages: [], sessionKey: selectedAgentId, streaming: false, currentRunId: null });
+    }
   },
 
   abortGeneration: async () => {

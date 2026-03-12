@@ -55,11 +55,11 @@ function WelcomeScreen() {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6 px-4">
       {/* Branding */}
-      <div className="text-center">
+      <div className="flex flex-col items-center text-center">
         <Shell size={40} className="text-[var(--color-accent)] mb-3" />
-        <h1 className="text-xl font-semibold text-[var(--color-text)]">AutoClaw</h1>
+        <h1 className="text-xl font-semibold text-[var(--color-text)]">Max-Auto</h1>
         <p className="text-sm text-[var(--color-text-muted)] mt-2 max-w-md">
-          Describe your goal, and AutoClaw will execute step by step with real-time feedback
+          Describe your goal, and Max-Auto will execute step by step with real-time feedback
         </p>
       </div>
 

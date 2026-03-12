@@ -1,4 +1,4 @@
-import { Plus, Settings } from "lucide-react";
+import { Plus, Settings, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { gateway } from "../../api/gateway-client";
 import { useAppStore } from "../../stores/app-store";
@@ -51,6 +51,7 @@ export function Sidebar() {
   const sessions = useChatStore((s) => s.sessions);
   const sessionKey = useChatStore((s) => s.sessionKey);
   const switchSession = useChatStore((s) => s.switchSession);
+  const deleteSession = useChatStore((s) => s.deleteSession);
   const newSession = useChatStore((s) => s.newSession);
   const loadAgents = useChatStore((s) => s.loadAgents);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
@@ -81,22 +82,36 @@ export function Sidebar() {
       </div>
       <div className="flex-1 overflow-y-auto px-2">
         {sessions.map((s) => (
-          <button
+          <div
             key={s.key}
-            onClick={() => switchSession(s.key)}
-            className={`w-full text-left px-3 py-2 rounded-lg mb-0.5 transition-colors group ${
+            className={`relative flex items-center rounded-lg mb-0.5 transition-colors group ${
               sessionKey === s.key
                 ? "bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30"
                 : "hover:bg-[var(--color-surface-hover)]"
             }`}
           >
-            <div className="text-sm text-[var(--color-text)] truncate">{s.title}</div>
-            {s.updatedAt && (
-              <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
-                {formatTime(s.updatedAt)}
-              </div>
-            )}
-          </button>
+            <button
+              onClick={() => switchSession(s.key)}
+              className="flex-1 text-left px-3 py-2 min-w-0"
+            >
+              <div className="text-sm text-[var(--color-text)] truncate">{s.title}</div>
+              {s.updatedAt && (
+                <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
+                  {formatTime(s.updatedAt)}
+                </div>
+              )}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                void deleteSession(s.key);
+              }}
+              title="Delete chat"
+              className="hidden group-hover:flex items-center justify-center p-1.5 mr-1 rounded-md text-[var(--color-text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-colors"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         ))}
         {sessions.length === 0 && (
           <p className="text-xs text-[var(--color-text-muted)] px-3 py-2">No conversations yet</p>
