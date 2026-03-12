@@ -29,6 +29,10 @@ jobs:
             rust-targets: ""
     runs-on: ${{ matrix.platform }}
     steps:
+      - name: Disable symlinks (Windows)
+        if: runner.os == 'Windows'
+        run: git config --system core.symlinks false
+
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
