@@ -5,9 +5,11 @@ import { SettingsPage } from "../../pages/SettingsPage";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
+import { useUpdateStore } from "../../stores/update-store";
 import { ChatPanel } from "../chat/ChatPanel";
 import { Sidebar } from "../chat/Sidebar";
 import { GatewayStatus } from "../common/GatewayStatus";
+import { UpdateBanner } from "../common/UpdateBanner";
 import { QuickConfigModal } from "../settings/QuickConfigModal";
 
 export function AppShell() {
@@ -187,8 +189,17 @@ export function AppShell() {
     };
   }, [port]);
 
+  // Auto-check for updates 3s after mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void useUpdateStore.getState().checkForUpdate();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen">
+      <UpdateBanner />
       <div className="flex flex-1 overflow-hidden">
         {currentPage === "home" && <Sidebar />}
         <div className="flex-1 flex flex-col">

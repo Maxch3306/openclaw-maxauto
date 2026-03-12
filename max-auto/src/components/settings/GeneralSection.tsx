@@ -1,10 +1,11 @@
-import { RotateCw, Stethoscope } from "lucide-react";
+import { Download, RotateCw, Stethoscope } from "lucide-react";
 import { useState } from "react";
 import { gateway } from "../../api/gateway-client";
 import { stopGateway, startGateway, runDoctor } from "../../api/tauri-commands";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
+import { useUpdateStore } from "../../stores/update-store";
 
 export function GeneralSection() {
   const gatewayConnected = useAppStore((s) => s.gatewayConnected);
@@ -113,6 +114,56 @@ export function GeneralSection() {
           )}
         </div>
       </section>
+
+      <UpdateSection />
     </div>
+  );
+}
+
+function UpdateSection() {
+  const status = useUpdateStore((s) => s.status);
+  const availableVersion = useUpdateStore((s) => s.availableVersion);
+  const checkForUpdate = useUpdateStore((s) => s.checkForUpdate);
+  const downloadAndInstall = useUpdateStore((s) => s.downloadAndInstall);
+  const checking = status === "checking";
+
+  return (
+    <section className="mt-6">
+      <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">Updates</h2>
+      <div className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            {status === "available" ? (
+              <p className="text-sm text-[var(--color-text)]">
+                Update <strong>v{availableVersion}</strong> available
+              </p>
+            ) : status === "up-to-date" ? (
+              <p className="text-xs text-[var(--color-text-muted)]">You're on the latest version.</p>
+            ) : (
+              <p className="text-xs text-[var(--color-text-muted)]">Check if a newer version is available.</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {status === "available" && (
+              <button
+                onClick={() => void downloadAndInstall()}
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
+              >
+                <Download size={14} />
+                Install Update
+              </button>
+            )}
+            <button
+              onClick={() => void checkForUpdate()}
+              disabled={checking}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50"
+            >
+              <RotateCw size={14} className={checking ? "animate-spin" : ""} />
+              {checking ? "Checking..." : "Check for Updates"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

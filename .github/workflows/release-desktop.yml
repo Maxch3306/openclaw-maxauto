@@ -64,6 +64,6 @@ jobs:
           tagName: v${{ needs.version.outputs.version }}
           releaseName: "MaxAuto v${{ needs.version.outputs.version }}"
           releaseBody: "Desktop installer for MaxAuto v${{ needs.version.outputs.version }}"
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

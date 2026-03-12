@@ -31,6 +31,7 @@ interface ChatState {
   sessionKey: string | null;
   streaming: boolean;
   currentRunId: string | null;
+  sidebarTab: "agents" | "chats";
 
   setAgents: (agents: Agent[]) => void;
   selectAgent: (agentId: string) => void;
@@ -41,6 +42,7 @@ interface ChatState {
   setStreaming: (v: boolean) => void;
   setSessionKey: (key: string | null) => void;
   setCurrentRunId: (id: string | null) => void;
+  setSidebarTab: (tab: "agents" | "chats") => void;
 
   // Actions
   sendMessage: (text: string) => Promise<void>;
@@ -52,6 +54,9 @@ interface ChatState {
   deleteSession: (sessionKey: string) => Promise<void>;
   abortGeneration: () => Promise<void>;
   setAgentModel: (agentId: string, modelId: string) => Promise<void>;
+  createAgent: (params: { name: string; emoji?: string; workspace?: string }) => Promise<void>;
+  updateAgent: (params: { agentId: string; name?: string; emoji?: string; workspace?: string }) => Promise<void>;
+  deleteAgent: (agentId: string) => Promise<void>;
 }
 
 let idCounter = 0;
@@ -67,13 +72,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessionKey: null,
   streaming: false,
   currentRunId: null,
+  sidebarTab: "agents",
 
   setAgents: (agents) => set({ agents }),
   selectAgent: (agentId) => {
-    set({ selectedAgentId: agentId, messages: [], sessionKey: agentId });
+    set({ selectedAgentId: agentId, messages: [], sessionKey: agentId, sidebarTab: "chats" });
     // Load previous session history
     void get().loadHistory(agentId);
   },
+  setSidebarTab: (tab) => set({ sidebarTab: tab }),
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
   updateStreamingMessage: (content) =>
     set((s) => {
@@ -364,6 +371,44 @@ export const useChatStore = create<ChatState>((set, get) => ({
       console.log("[chat-store] setAgentModel: set agents.defaults.model =", modelId);
     } catch (err) {
       console.warn("[chat-store] setAgentModel failed:", err);
+    }
+  },
+
+  createAgent: async (params) => {
+    try {
+      await gateway.request("agents.create", params);
+      await get().loadAgents();
+    } catch (err) {
+      console.warn("[chat-store] createAgent failed:", err);
+      throw err;
+    }
+  },
+
+  updateAgent: async (params) => {
+    try {
+      await gateway.request("agents.update", params);
+      await get().loadAgents();
+    } catch (err) {
+      console.warn("[chat-store] updateAgent failed:", err);
+      throw err;
+    }
+  },
+
+  deleteAgent: async (agentId) => {
+    try {
+      await gateway.request("agents.delete", { agentId });
+      if (get().selectedAgentId === agentId) {
+        const remaining = get().agents.filter((a) => a.agentId !== agentId);
+        set({
+          selectedAgentId: remaining[0]?.agentId ?? null,
+          messages: [],
+          sessionKey: remaining[0]?.agentId ?? null,
+        });
+      }
+      await get().loadAgents();
+    } catch (err) {
+      console.warn("[chat-store] deleteAgent failed:", err);
+      throw err;
     }
   },
 }));

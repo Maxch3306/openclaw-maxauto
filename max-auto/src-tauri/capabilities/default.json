@@ -8,6 +8,8 @@
     "shell:allow-spawn",
     "shell:allow-kill",
     "shell:allow-stdin-write",
-    "shell:default"
+    "shell:default",
+    "updater:default",
+    "process:default"
   ]
 }

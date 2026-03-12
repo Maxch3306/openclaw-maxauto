@@ -1,32 +1,10 @@
-import { Plus, Settings, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Settings, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { gateway } from "../../api/gateway-client";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "../../stores/chat-store";
-
-export function ModelSelector() {
-  const agents = useChatStore((s) => s.agents);
-  const selectedAgentId = useChatStore((s) => s.selectedAgentId);
-  const selectAgent = useChatStore((s) => s.selectAgent);
-
-  return (
-    <div className="px-3 py-2 border-t border-[var(--color-border)]">
-      <select
-        value={selectedAgentId ?? ""}
-        onChange={(e) => selectAgent(e.target.value)}
-        className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg px-2 py-1.5 text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
-      >
-        {agents.map((a) => (
-          <option key={a.agentId} value={a.agentId}>
-            {a.emoji ? `${a.emoji} ` : ""}
-            {a.name}
-          </option>
-        ))}
-        {agents.length === 0 && <option value="">No agents</option>}
-      </select>
-    </div>
-  );
-}
+import { AgentList } from "./AgentList";
+import { SidebarTabs } from "./SidebarTabs";
 
 function formatTime(ts: number | null): string {
   if (!ts) {
@@ -47,31 +25,35 @@ function formatTime(ts: number | null): string {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-export function Sidebar() {
+function ChatsView() {
   const sessions = useChatStore((s) => s.sessions);
   const sessionKey = useChatStore((s) => s.sessionKey);
   const switchSession = useChatStore((s) => s.switchSession);
   const deleteSession = useChatStore((s) => s.deleteSession);
   const newSession = useChatStore((s) => s.newSession);
-  const loadAgents = useChatStore((s) => s.loadAgents);
-  const setCurrentPage = useAppStore((s) => s.setCurrentPage);
+  const agents = useChatStore((s) => s.agents);
+  const selectedAgentId = useChatStore((s) => s.selectedAgentId);
+  const setSidebarTab = useChatStore((s) => s.setSidebarTab);
 
-  useEffect(() => {
-    if (gateway.connected) {
-      void loadAgents();
-    }
-    const unsub = gateway.on("presence", () => {
-      void loadAgents();
-    });
-    return unsub;
-  }, []);
+  const selectedAgent = agents.find((a) => a.agentId === selectedAgentId);
 
   return (
-    <aside className="w-64 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col">
-      <div className="p-4 flex items-center justify-between">
-        <h2 className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wide">
-          Chats
-        </h2>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header showing selected agent */}
+      <div className="p-3 flex items-center gap-2">
+        <button
+          onClick={() => setSidebarTab("agents")}
+          title="Back to agents"
+          className="p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
+        >
+          <ArrowLeft size={16} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-medium text-[var(--color-text)] truncate">
+            {selectedAgent?.emoji ? `${selectedAgent.emoji} ` : ""}
+            {selectedAgent?.name || "Chats"}
+          </h2>
+        </div>
         <button
           onClick={newSession}
           title="New Chat"
@@ -80,6 +62,8 @@ export function Sidebar() {
           <Plus size={16} />
         </button>
       </div>
+
+      {/* Session list */}
       <div className="flex-1 overflow-y-auto px-2">
         {sessions.map((s) => (
           <div
@@ -117,7 +101,29 @@ export function Sidebar() {
           <p className="text-xs text-[var(--color-text-muted)] px-3 py-2">No conversations yet</p>
         )}
       </div>
-      <ModelSelector />
+    </div>
+  );
+}
+
+export function Sidebar() {
+  const sidebarTab = useChatStore((s) => s.sidebarTab);
+  const loadAgents = useChatStore((s) => s.loadAgents);
+  const setCurrentPage = useAppStore((s) => s.setCurrentPage);
+
+  useEffect(() => {
+    if (gateway.connected) {
+      void loadAgents();
+    }
+    const unsub = gateway.on("presence", () => {
+      void loadAgents();
+    });
+    return unsub;
+  }, []);
+
+  return (
+    <aside className="w-64 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col">
+      <SidebarTabs />
+      {sidebarTab === "agents" ? <AgentList /> : <ChatsView />}
       {/* Settings button */}
       <div className="px-3 py-2 border-t border-[var(--color-border)]">
         <button
