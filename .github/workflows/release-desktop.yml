@@ -29,6 +29,10 @@ jobs:
             rust-targets: ""
     runs-on: ${{ matrix.platform }}
     steps:
+      - name: Enable long paths (Windows)
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
+
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
