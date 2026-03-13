@@ -37,11 +37,11 @@ export function AgentList() {
         {/* Header */}
         <div className="p-3">
           <button
-            onClick={() => setShowCreate(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[var(--color-border)] text-sm text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] transition-colors"
+            disabled
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[var(--color-border)] text-sm text-[var(--color-text-muted)] opacity-60 cursor-not-allowed"
           >
             <Plus size={16} />
-            New Agent
+            New Agent (Coming Soon)
           </button>
         </div>
 
