@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { gateway } from "../api/gateway-client";
+import { getPlatformInfo } from "../api/tauri-commands";
 
 export interface ChatMessage {
   id: string;
@@ -379,7 +380,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   createAgent: async (params) => {
     try {
-      await gateway.request("agents.create", params);
+      // Normalize agent name to ID (matching OpenClaw's normalizeAgentId)
+      const agentId = params.name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "-")
+        .replace(/^-+/, "")
+        .replace(/-+$/, "")
+        .slice(0, 64) || "agent";
+
+      // Auto-generate workspace under maxauto dir
+      const platform = await getPlatformInfo();
+      const workspace = `${platform.maxauto_dir}/workspace-${agentId}`;
+
+      await gateway.request("agents.create", {
+        ...params,
+        workspace,
+      });
       await get().loadAgents();
     } catch (err) {
       console.warn("[chat-store] createAgent failed:", err);
