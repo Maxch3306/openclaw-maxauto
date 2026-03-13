@@ -1,6 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { gateway } from "../../api/gateway-client";
-import { getGatewayToken } from "../../api/tauri-commands";
+import {
+  getGatewayStatus,
+  getGatewayToken,
+  startGateway,
+} from "../../api/tauri-commands";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "../../stores/chat-store";
@@ -17,40 +22,75 @@ export function AppShell() {
   const currentPage = useAppStore((s) => s.currentPage);
   const setGatewayConnected = useAppStore((s) => s.setGatewayConnected);
   const loadAgents = useChatStore((s) => s.loadAgents);
-  const loadSessions = useChatStore((s) => s.loadSessions);
   const loadConfig = useSettingsStore((s) => s.loadConfig);
   const loadModels = useSettingsStore((s) => s.loadModels);
   const showQuickConfig = useSettingsStore((s) => s.showQuickConfig);
   const hasProvider = useSettingsStore((s) => s.configuredProviders.size > 0);
+
+  const [startupStatus, setStartupStatus] = useState("Starting gateway...");
+  const [ready, setReady] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  // Listen for gateway log events from the Rust backend
+  useEffect(() => {
+    const unlisten = listen<string>("gateway-log", (event) => {
+      setLogs((prev) => [...prev.slice(-100), event.payload]);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // Auto-scroll logs to bottom
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs]);
 
   useEffect(() => {
     // Connect to gateway WebSocket
     gateway.setStatusCallback((connected) => {
       setGatewayConnected(connected);
       if (connected) {
+        setReady(true);
+        // loadAgents internally triggers loadHistory + loadSessions for the selected agent
         void loadAgents();
-        void loadSessions();
         void loadConfig();
         void loadModels();
       }
     });
 
-    // Read token from config, then connect
-    getGatewayToken()
-      .then((token) => {
+    // Ensure the gateway is running, then connect
+    const ensureGatewayAndConnect = async () => {
+      try {
+        setStartupStatus("Checking gateway...");
+        const status = await getGatewayStatus();
+        if (!status.running) {
+          setStartupStatus("Starting gateway...");
+          await startGateway(port);
+        }
+      } catch {
+        setStartupStatus("Starting gateway...");
+        try {
+          await startGateway(port);
+        } catch {
+          setStartupStatus("Waiting for gateway...");
+        }
+      }
+
+      setStartupStatus("Connecting...");
+      try {
+        const token = await getGatewayToken();
         gateway.connect(port, token);
-      })
-      .catch(() => {
-        // No token available — connect without one
+      } catch {
         gateway.connect(port);
-      });
+      }
+    };
 
-    // Use health events to reload config/models and as fallback source for agents
+    void ensureGatewayAndConnect();
+
+    // Use health events only as fallback source for agents (if initial load missed them)
     const unsubHealth = gateway.on("health", (payload) => {
-      // Reload config & models on every health event (catches post-restart updates)
-      void loadConfig();
-      void loadModels();
-
       const data = payload as {
         agents?: Array<{ agentId: string; isDefault?: boolean }>;
         defaultAgentId?: string;
@@ -115,7 +155,12 @@ export function AppShell() {
           clearTimeout(errorFinalizeTimer);
           errorFinalizeTimer = null;
         }
-        store.finalizeStreaming();
+        // Use finalizeWithContent if the final event carries message content
+        if (data.state === "final" && data.message?.content) {
+          store.finalizeWithContent(data.message);
+        } else {
+          store.finalizeStreaming();
+        }
       } else if (data.state === "error") {
         // Don't finalize immediately — OpenClaw may retry.
         // Set a delayed finalization that gets cancelled if a retry starts.
@@ -133,7 +178,7 @@ export function AppShell() {
       }
     });
 
-    // Listen for agent events (lifecycle + streaming text from retries)
+    // Listen for agent events (lifecycle + streaming text from retries + tool use)
     const unsubAgent = gateway.on("agent", (payload) => {
       const data = payload as {
         runId?: string;
@@ -143,6 +188,11 @@ export function AppShell() {
           text?: string;
           delta?: string;
           error?: string;
+          name?: string;
+          toolCallId?: string;
+          args?: Record<string, unknown>;
+          meta?: string;
+          isError?: boolean;
         };
       };
 
@@ -163,17 +213,48 @@ export function AppShell() {
           if (data.runId) {
             store.setCurrentRunId(data.runId);
           }
+          // Show "working" indicator — agent is starting execution
+          store.setToolActivity({ name: "thinking", phase: "start" });
+        } else if (data.data?.phase === "end") {
+          // Agent finished — clear any working indicator
+          if (store.toolActivity) {
+            store.setToolActivity(null);
+          }
         } else if (data.data?.phase === "error") {
           // Agent attempt errored — don't finalize yet, OpenClaw may retry.
-          // A subsequent "start" phase means retry; if no retry comes,
-          // the chat event with state "error" will be the final signal.
-          // We use a delayed finalization that gets cancelled if a retry starts.
+        }
+      } else if (data.stream === "tool" && data.data) {
+        const phase = data.data.phase as "start" | "partial" | "result";
+        const toolName = data.data.name ?? "tool";
+        const toolCallId = data.data.toolCallId ?? "";
+
+        if (phase === "start") {
+          // Add tool card to the streaming message
+          store.addStreamingToolCall({
+            name: toolName,
+            toolCallId,
+            args: data.data.args,
+          });
+          store.setToolActivity({ name: toolName, phase: "start" });
+        } else if (phase === "result") {
+          // Update the tool card with result
+          const resultText = data.data.meta ?? "";
+          store.updateStreamingToolResult(toolCallId, resultText, data.data.isError ?? false);
+          // Show "thinking" again until next text or tool
+          store.setToolActivity({ name: "thinking", phase: "start" });
+        } else if (phase === "partial") {
+          store.setToolActivity({ name: toolName, phase: "partial" });
         }
       } else if (data.stream === "assistant" && data.data) {
-        // Streaming text from the agent (works for retries too)
+        // Streaming text from the agent
         const text = data.data.text ?? data.data.delta ?? "";
         if (text && store.streaming) {
-          store.updateStreamingMessage(text);
+          // Clear tool activity when text starts flowing
+          if (store.toolActivity) {
+            store.setToolActivity(null);
+          }
+          // Use appendStreamingText which handles content blocks properly
+          store.appendStreamingText(text);
         }
       }
     });
@@ -196,6 +277,48 @@ export function AppShell() {
     }, 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  if (!ready) {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center gap-4 px-8">
+        <h1 className="text-xl font-semibold text-[var(--color-text)]">MaxAuto</h1>
+        <div className="flex items-center gap-3">
+          <svg
+            className="animate-spin h-5 w-5 text-[var(--color-accent)]"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          <span className="text-sm text-[var(--color-text-muted)]">
+            {startupStatus}
+          </span>
+        </div>
+        {logs.length > 0 && (
+          <div className="w-full max-w-lg mt-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-xs text-[var(--color-text-muted)]">
+            {logs.map((line, i) => (
+              <div key={i} className="whitespace-pre-wrap break-all leading-relaxed">
+                {line}
+              </div>
+            ))}
+            <div ref={logEndRef} />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen">

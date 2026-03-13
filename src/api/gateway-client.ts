@@ -162,7 +162,7 @@ export class GatewayClient {
       });
 
       const payload = JSON.stringify(frame);
-      this.log(`SEND: ${payload.slice(0, 300)}`);
+      this.log(`SEND: ${payload}`);
       this.ws!.send(payload);
     });
   }
@@ -197,9 +197,11 @@ export class GatewayClient {
     });
 
     ws.addEventListener("message", (ev) => {
+      // Ignore messages from a replaced WebSocket
+      if (this.ws !== ws) return;
       try {
         const raw = typeof ev.data === "string" ? ev.data : String(ev.data);
-        this.log(`RECV: ${raw.slice(0, 300)}`);
+        this.log(`RECV: ${raw}`);
         const frame = JSON.parse(raw) as Frame | { type: string; [k: string]: unknown };
 
         // Phase 1: Server sends connect.challenge event with nonce
@@ -242,6 +244,8 @@ export class GatewayClient {
 
     ws.addEventListener("close", (ev) => {
       this.log(`WebSocket closed: code=${ev.code} reason="${ev.reason}"`);
+      // Ignore close from a replaced WebSocket (doConnect creates a new one)
+      if (this.ws !== ws) return;
       this.setConnected(false);
       this.rejectAllPending("Connection closed");
       if (!this._intentionalClose) {
@@ -250,6 +254,7 @@ export class GatewayClient {
     });
 
     ws.addEventListener("error", () => {
+      if (this.ws !== ws) return;
       this.log("WebSocket error");
     });
   }
@@ -296,6 +301,7 @@ export class GatewayClient {
             platform,
             mode: clientMode,
           },
+          caps: ["tool-events"],
           role,
           scopes,
           device: {
@@ -309,7 +315,7 @@ export class GatewayClient {
         },
       };
       const sent = JSON.stringify(connectFrame);
-      this.log(`SEND: ${sent.slice(0, 300)}`);
+      this.log(`SEND: ${sent}`);
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(sent);
       }
@@ -348,8 +354,9 @@ export class GatewayClient {
       for (const h of handlers) {
         try {
           h(frame.payload);
-        } catch {
-          // ignore handler errors
+        } catch (err) {
+          this.log(`Handler error for ${frame.event}: ${err instanceof Error ? err.message : String(err)}`);
+          console.error(`[gateway] Handler error for ${frame.event}:`, err);
         }
       }
     }

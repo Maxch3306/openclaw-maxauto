@@ -1,7 +1,7 @@
 use crate::state::GatewayProcess;
 use serde::Serialize;
 use std::path::PathBuf;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 #[derive(Debug, Serialize)]
 pub struct GatewayStatus {
@@ -72,6 +72,26 @@ fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str
         "dangerouslyDisableDeviceAuth": true
     });
 
+    // Default workspace under maxauto dir for environment isolation
+    let default_workspace = maxauto_dir().join("workspace");
+    let default_workspace_str = default_workspace.to_str().unwrap();
+
+    /// Ensure agents.defaults.workspace is set in an existing config
+    fn ensure_workspace_default(config: &mut serde_json::Value, workspace: &str) {
+        let root = config.as_object_mut().unwrap();
+        let agents = root
+            .entry("agents")
+            .or_insert_with(|| serde_json::json!({}));
+        let agents_obj = agents.as_object_mut().unwrap();
+        let defaults = agents_obj
+            .entry("defaults")
+            .or_insert_with(|| serde_json::json!({}));
+        let defaults_obj = defaults.as_object_mut().unwrap();
+        if !defaults_obj.contains_key("workspace") {
+            defaults_obj.insert("workspace".into(), serde_json::json!(workspace));
+        }
+    }
+
     if config_path.exists() {
         // Read existing config and extract token
         let raw = std::fs::read_to_string(config_path)
@@ -88,8 +108,9 @@ fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str
         {
             let token = token.to_string();
 
-            // Ensure gateway.mode and controlUi config are set
             let mut config = config;
+
+            // Ensure gateway.mode and controlUi config are set
             if let Some(gw) = config.get_mut("gateway").and_then(|g| g.as_object_mut()) {
                 if !gw.contains_key("mode") {
                     gw.insert("mode".into(), serde_json::json!("local"));
@@ -97,13 +118,16 @@ fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str
 
                 // Always update controlUi to ensure Tauri origins + insecure auth are present
                 gw.insert("controlUi".into(), control_ui.clone());
-
-                std::fs::write(
-                    config_path,
-                    serde_json::to_string_pretty(&config).unwrap(),
-                )
-                .map_err(|e| format!("Failed to write config: {}", e))?;
             }
+
+            // Ensure default workspace under maxauto dir
+            ensure_workspace_default(&mut config, default_workspace_str);
+
+            std::fs::write(
+                config_path,
+                serde_json::to_string_pretty(&config).unwrap(),
+            )
+            .map_err(|e| format!("Failed to write config: {}", e))?;
 
             return Ok(token);
         }
@@ -135,6 +159,9 @@ fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str
         auth_obj.insert("mode".into(), serde_json::json!("token"));
         auth_obj.insert("token".into(), serde_json::json!(token));
 
+        // Ensure default workspace under maxauto dir
+        ensure_workspace_default(&mut config, default_workspace_str);
+
         std::fs::write(
             config_path,
             serde_json::to_string_pretty(&config).unwrap(),
@@ -152,6 +179,11 @@ fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str
 
     let token = generate_token();
     let default_config = serde_json::json!({
+        "agents": {
+            "defaults": {
+                "workspace": default_workspace_str
+            }
+        },
         "gateway": {
             "mode": "local",
             "port": port,
@@ -232,6 +264,7 @@ async fn kill_process_on_port(port: u16) {
 
 #[tauri::command]
 pub async fn start_gateway(
+    app: AppHandle,
     state: State<'_, GatewayProcess>,
     port: Option<u16>,
     bind: Option<String>,
@@ -257,6 +290,12 @@ pub async fn start_gateway(
     // Ensure config exists with token auth
     let _token = ensure_config_with_token(&config_path, port, &bind)?;
 
+    // Pre-create the default workspace directory so the first message isn't delayed
+    let default_workspace = base_dir.join("workspace");
+    if !default_workspace.exists() {
+        let _ = std::fs::create_dir_all(&default_workspace);
+    }
+
     let node = node_binary();
     let entry = openclaw_js_entry();
 
@@ -278,24 +317,36 @@ pub async fn start_gateway(
         .spawn()
         .map_err(|e| format!("Failed to start gateway: {}", e))?;
 
+    // Take stdout/stderr before moving child into state, and stream them as events
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+
+    fn spawn_log_reader(app: AppHandle, reader: impl tokio::io::AsyncRead + Unpin + Send + 'static) {
+        use tokio::io::{AsyncBufReadExt, BufReader};
+        tokio::spawn(async move {
+            let mut lines = BufReader::new(reader).lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                let _ = app.emit("gateway-log", &line);
+            }
+        });
+    }
+
+    if let Some(out) = stdout {
+        spawn_log_reader(app.clone(), out);
+    }
+    if let Some(err) = stderr {
+        spawn_log_reader(app.clone(), err);
+    }
+
+    // Emit initial status
+    let _ = app.emit("gateway-log", "Gateway process started, waiting for ready...");
+
     // Wait briefly and check if the process crashed on startup
     tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
     match child.try_wait() {
         Ok(Some(status)) => {
-            // Process already exited — collect stderr for diagnostics
-            let stderr = if let Some(mut err) = child.stderr.take() {
-                let mut buf = String::new();
-                use tokio::io::AsyncReadExt;
-                let _ = err.read_to_string(&mut buf).await;
-                buf
-            } else {
-                String::new()
-            };
-            let msg = if stderr.trim().is_empty() {
-                format!("Gateway exited immediately with {}", status)
-            } else {
-                format!("Gateway exited with {}: {}", status, stderr.trim().chars().take(500).collect::<String>())
-            };
+            let msg = format!("Gateway exited immediately with {}", status);
+            let _ = app.emit("gateway-log", &msg);
             return Err(msg);
         }
         Ok(None) => { /* still running — good */ }

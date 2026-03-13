@@ -1,26 +1,89 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { gateway } from "../../api/gateway-client";
 import { useAppStore } from "../../stores/app-store";
 
+let debugWindow: Window | null = null;
+
+function openDebugWindow() {
+  // If already open and not closed, focus it
+  if (debugWindow && !debugWindow.closed) {
+    debugWindow.focus();
+    return;
+  }
+
+  const w = window.open("", "maxauto-debug", "width=800,height=600,menubar=no,toolbar=no,status=no");
+  if (!w) return;
+  debugWindow = w;
+
+  w.document.title = "MaxAuto — Gateway Debug Log";
+  w.document.head.innerHTML = `<style>
+    body { margin: 0; padding: 12px; background: #0a0a0a; color: #4ade80; font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; line-height: 1.5; }
+    #status { color: #facc15; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #333; }
+    #log { white-space: pre-wrap; word-break: break-all; }
+    .line-error { color: #f87171; }
+    .line-event { color: #22d3ee; }
+  </style>`;
+  w.document.body.innerHTML = `<div id="status"></div><div id="log"></div>`;
+
+  // Render current state + start polling
+  const render = () => {
+    if (!w || w.closed) {
+      debugWindow = null;
+      return;
+    }
+    const statusEl = w.document.getElementById("status");
+    const logEl = w.document.getElementById("log");
+    if (statusEl) {
+      statusEl.textContent = `URL: ${gateway.url || "(none)"} | WS: ${gateway.wsState} | Connected: ${String(gateway.connected)}`;
+    }
+    if (logEl) {
+      const html = gateway.debugLog.length === 0
+        ? '<span style="color:#6b7280">No messages yet...</span>'
+        : gateway.debugLog.map((line) => {
+            const cls = (line.includes("ERROR") || line.includes("error") || line.includes("FAILED"))
+              ? "line-error"
+              : (line.includes("EVENT chat") || line.includes("EVENT agent"))
+                ? "line-event"
+                : "";
+            const escaped = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return cls ? `<div class="${cls}">${escaped}</div>` : `<div>${escaped}</div>`;
+          }).join("");
+      logEl.innerHTML = html;
+      // Auto-scroll to bottom
+      w.scrollTo(0, w.document.body.scrollHeight);
+    }
+  };
+
+  render();
+  gateway.setDebugCallback(render);
+
+  // Restore default callback when window closes
+  w.addEventListener("beforeunload", () => {
+    debugWindow = null;
+    gateway.setDebugCallback(() => {});
+  });
+}
+
 export function GatewayStatus() {
   const connected = useAppStore((s) => s.gatewayConnected);
-  const [showDebug, setShowDebug] = useState(false);
-  const [, forceUpdate] = useState(0);
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const prevConnectedRef = useRef(connected);
 
-  const refresh = useCallback(() => forceUpdate((n) => n + 1), []);
-
-  useEffect(() => {
-    gateway.setDebugCallback(refresh);
-    return () => gateway.setDebugCallback(() => {});
-  }, [refresh]);
-
-  // Auto-scroll to bottom when debug log updates
-  useEffect(() => {
-    if (showDebug && logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: "smooth" });
+  // Update debug window status line when connection state changes
+  const updateDebugStatus = useCallback(() => {
+    if (debugWindow && !debugWindow.closed) {
+      const statusEl = debugWindow.document.getElementById("status");
+      if (statusEl) {
+        statusEl.textContent = `URL: ${gateway.url || "(none)"} | WS: ${gateway.wsState} | Connected: ${String(gateway.connected)}`;
+      }
     }
-  });
+  }, []);
+
+  useEffect(() => {
+    if (prevConnectedRef.current !== connected) {
+      prevConnectedRef.current = connected;
+      updateDebugStatus();
+    }
+  }, [connected, updateDebugStatus]);
 
   return (
     <div className="px-3 py-1">
@@ -37,38 +100,12 @@ export function GatewayStatus() {
           WS: {gateway.wsState}
         </span>
         <button
-          onClick={() => setShowDebug(!showDebug)}
+          onClick={openDebugWindow}
           className="text-xs text-[var(--color-accent)] ml-auto hover:underline"
         >
-          {showDebug ? "Hide Debug" : "Debug"}
+          Debug
         </button>
       </div>
-      {showDebug && (
-        <div className="mt-1 p-2 bg-black/50 rounded text-[10px] font-mono text-green-400 max-h-72 overflow-y-auto whitespace-pre-wrap">
-          <div className="mb-1 text-yellow-400">
-            URL: {gateway.url || "(none)"} | WS: {gateway.wsState} | Connected: {String(connected)}
-          </div>
-          {gateway.debugLog.length === 0 ? (
-            <div className="text-gray-500">No messages yet...</div>
-          ) : (
-            gateway.debugLog.map((line, i) => (
-              <div
-                key={i}
-                className={
-                  line.includes("ERROR") || line.includes("error") || line.includes("FAILED")
-                    ? "text-red-400"
-                    : line.includes("EVENT chat-event") || line.includes("EVENT agent-event")
-                      ? "text-cyan-400"
-                      : ""
-                }
-              >
-                {line}
-              </div>
-            ))
-          )}
-          <div ref={logEndRef} />
-        </div>
-      )}
     </div>
   );
 }
