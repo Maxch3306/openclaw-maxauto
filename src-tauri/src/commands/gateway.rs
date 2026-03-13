@@ -289,6 +289,12 @@ pub async fn start_gateway(
     // Ensure config exists with token auth
     let _token = ensure_config_with_token(&config_path, port, &bind)?;
 
+    // Pre-create the default workspace directory so the first message isn't delayed
+    let default_workspace = base_dir.join("workspace");
+    if !default_workspace.exists() {
+        let _ = std::fs::create_dir_all(&default_workspace);
+    }
+
     let node = node_binary();
     let entry = openclaw_js_entry();
 
