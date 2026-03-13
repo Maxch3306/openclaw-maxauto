@@ -209,14 +209,14 @@ export class GatewayClient {
               minProtocol: 3,
               maxProtocol: 3,
               client: {
-                id: "gateway-client",
+                id: "openclaw-control-ui",
                 displayName: "MaxAuto",
                 version: "0.1.0",
                 platform: navigator.platform.includes("Win") ? "win32" : "darwin",
-                mode: "backend",
+                mode: "ui",
               },
               role: "operator",
-              scopes: ["operator.admin"],
+              scopes: ["operator.admin", "operator.read", "operator.write", "operator.approvals", "operator.pairing"],
               auth: this._token ? { token: this._token } : {},
             },
           };

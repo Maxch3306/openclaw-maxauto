@@ -56,6 +56,22 @@ fn generate_token() -> String {
 }
 
 fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str) -> Result<String, String> {
+    // Origins that Tauri webviews may send depending on OS/version
+    let allowed_origins = serde_json::json!([
+        "tauri://localhost",
+        "https://tauri.localhost",
+        "http://tauri.localhost",
+        "http://localhost:5173"
+    ]);
+
+    // controlUi config: allow Tauri origins + disable device identity checks
+    // (safe for local-only loopback gateway)
+    let control_ui = serde_json::json!({
+        "allowedOrigins": allowed_origins,
+        "allowInsecureAuth": true,
+        "dangerouslyDisableDeviceAuth": true
+    });
+
     if config_path.exists() {
         // Read existing config and extract token
         let raw = std::fs::read_to_string(config_path)
@@ -72,21 +88,21 @@ fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str
         {
             let token = token.to_string();
 
-            // Ensure gateway.mode is set even if token exists
+            // Ensure gateway.mode and controlUi config are set
             let mut config = config;
-            let needs_write = {
-                let gw = config.get("gateway").and_then(|g| g.get("mode"));
-                gw.is_none()
-            };
-            if needs_write {
-                if let Some(gw) = config.get_mut("gateway").and_then(|g| g.as_object_mut()) {
+            if let Some(gw) = config.get_mut("gateway").and_then(|g| g.as_object_mut()) {
+                if !gw.contains_key("mode") {
                     gw.insert("mode".into(), serde_json::json!("local"));
-                    std::fs::write(
-                        config_path,
-                        serde_json::to_string_pretty(&config).unwrap(),
-                    )
-                    .map_err(|e| format!("Failed to write config: {}", e))?;
                 }
+
+                // Always update controlUi to ensure Tauri origins + insecure auth are present
+                gw.insert("controlUi".into(), control_ui.clone());
+
+                std::fs::write(
+                    config_path,
+                    serde_json::to_string_pretty(&config).unwrap(),
+                )
+                .map_err(|e| format!("Failed to write config: {}", e))?;
             }
 
             return Ok(token);
@@ -105,6 +121,9 @@ fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str
 
         // Ensure gateway.mode is set
         gw_obj.entry("mode").or_insert_with(|| serde_json::json!("local"));
+
+        // Ensure controlUi config
+        gw_obj.insert("controlUi".into(), control_ui.clone());
 
         let auth = gw_obj
             .entry("auth")
@@ -140,7 +159,8 @@ fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str
             "auth": {
                 "mode": "token",
                 "token": token
-            }
+            },
+            "controlUi": control_ui
         }
     });
     std::fs::write(

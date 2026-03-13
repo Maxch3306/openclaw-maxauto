@@ -178,6 +178,23 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
     let base_dir = maxauto_dir();
     let openclaw_prefix = base_dir.join("openclaw");
 
+    // Check that git is available — some OpenClaw dependencies require it
+    let git_cmd = if cfg!(windows) { "git.exe" } else { "git" };
+    let git_ok = tokio::process::Command::new(git_cmd)
+        .arg("--version")
+        .output()
+        .await
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if !git_ok {
+        return Err(
+            "Git is not installed. Some OpenClaw dependencies require Git.\n\
+             Please install Git from https://git-scm.com/downloads and restart MaxAuto."
+                .into(),
+        );
+    }
+
     let _ = app.emit("setup-progress", SetupProgress {
         step: "openclaw".into(),
         message: "Installing OpenClaw...".into(),
@@ -242,11 +259,16 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
         Err(_) => node_bin_dir.to_string_lossy().to_string(),
     };
 
+    // Use our own npm cache to avoid EACCES on root-owned ~/.npm
+    let npm_cache = base_dir.join("npm-cache");
+    std::fs::create_dir_all(&npm_cache).ok();
+
     let output = if use_system_npm {
         // Use system npm directly
         let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
         tokio::process::Command::new(npm_cmd)
             .env("PATH", &new_path)
+            .env("npm_config_cache", npm_cache.to_str().unwrap())
             .args([
                 "install",
                 "--prefix",
@@ -260,6 +282,7 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
         // Use local node + npm-cli.js
         tokio::process::Command::new(&node_cmd)
             .env("PATH", &new_path)
+            .env("npm_config_cache", npm_cache.to_str().unwrap())
             .arg(local_npm_cli.to_str().unwrap())
             .args([
                 "install",
