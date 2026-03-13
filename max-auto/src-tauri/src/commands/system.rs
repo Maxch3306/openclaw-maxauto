@@ -30,6 +30,8 @@ fn maxauto_dir() -> PathBuf {
         .join(".openclaw-maxauto")
 }
 
+const MIN_NODE_VERSION: (u32, u32, u32) = (24, 14, 0);
+
 fn local_node_path() -> PathBuf {
     if cfg!(windows) {
         maxauto_dir().join("node").join("node.exe")
@@ -52,6 +54,20 @@ async fn get_node_version(node_path: &str) -> Option<String> {
     }
 }
 
+fn version_meets_minimum(version: &str) -> bool {
+    let parts: Vec<u32> = version
+        .trim_start_matches('v')
+        .split('.')
+        .filter_map(|s| s.parse().ok())
+        .collect();
+    if parts.len() < 3 {
+        return false;
+    }
+    let (major, minor, patch) = (parts[0], parts[1], parts[2]);
+    let (req_major, req_minor, req_patch) = MIN_NODE_VERSION;
+    (major, minor, patch) >= (req_major, req_minor, req_patch)
+}
+
 #[tauri::command]
 pub async fn get_platform_info() -> Result<PlatformInfo, String> {
     let home = dirs::home_dir().ok_or("Could not determine home directory")?;
@@ -72,33 +88,29 @@ pub async fn check_node() -> Result<NodeStatus, String> {
     if local.exists() {
         let path_str = local.to_string_lossy().to_string();
         let version = get_node_version(&path_str).await;
-        return Ok(NodeStatus {
-            available: true,
-            version,
-            path: Some(path_str),
-            source: Some("local".into()),
-        });
+        let meets_min = version.as_ref().map_or(false, |v| version_meets_minimum(v));
+        if meets_min {
+            return Ok(NodeStatus {
+                available: true,
+                version,
+                path: Some(path_str),
+                source: Some("local".into()),
+            });
+        }
+        // Local node exists but is too old — fall through to system check,
+        // and if that also fails, report unavailable so setup re-installs.
     }
 
     // Check system node
     let system_node = if cfg!(windows) { "node.exe" } else { "node" };
     if let Some(version) = get_node_version(system_node).await {
-        // Parse version to check >= 22
-        let major: Option<u32> = version
-            .trim_start_matches('v')
-            .split('.')
-            .next()
-            .and_then(|s| s.parse().ok());
-
-        if let Some(major) = major {
-            if major >= 22 {
-                return Ok(NodeStatus {
-                    available: true,
-                    version: Some(version),
-                    path: Some(system_node.into()),
-                    source: Some("system".into()),
-                });
-            }
+        if version_meets_minimum(&version) {
+            return Ok(NodeStatus {
+                available: true,
+                version: Some(version),
+                path: Some(system_node.into()),
+                source: Some("system".into()),
+            });
         }
     }
 

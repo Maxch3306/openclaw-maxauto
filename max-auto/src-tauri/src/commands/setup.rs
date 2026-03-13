@@ -17,7 +17,7 @@ fn maxauto_dir() -> PathBuf {
 }
 
 fn node_download_url() -> (String, String) {
-    let version = "22.12.0";
+    let version = "24.14.0";
     let (os_name, arch_name, ext) = if cfg!(windows) {
         let arch = if cfg!(target_arch = "aarch64") {
             "arm64"
@@ -51,7 +51,41 @@ pub async fn install_node(app: tauri::AppHandle) -> Result<String, String> {
     };
 
     if node_bin.exists() {
-        return Ok("Node.js already installed".into());
+        // Check if the installed version meets the minimum requirement
+        let version_output = tokio::process::Command::new(&node_bin)
+            .arg("--version")
+            .output()
+            .await
+            .ok()
+            .and_then(|o| {
+                if o.status.success() {
+                    Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+                } else {
+                    None
+                }
+            });
+
+        let needs_upgrade = match &version_output {
+            Some(v) => {
+                let parts: Vec<u32> = v.trim_start_matches('v')
+                    .split('.')
+                    .filter_map(|s| s.parse().ok())
+                    .collect();
+                if parts.len() >= 3 {
+                    (parts[0], parts[1], parts[2]) < (24, 14, 0)
+                } else {
+                    true
+                }
+            }
+            None => true,
+        };
+
+        if !needs_upgrade {
+            return Ok("Node.js already installed".into());
+        }
+
+        // Remove outdated installation
+        let _ = std::fs::remove_dir_all(&node_dir);
     }
 
     let _ = app.emit("setup-progress", SetupProgress {
