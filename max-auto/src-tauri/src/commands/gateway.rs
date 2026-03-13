@@ -196,27 +196,38 @@ pub async fn get_gateway_token() -> Result<String, String> {
 
 /// Kill any process listening on the given port (handles orphaned gateway processes)
 async fn kill_process_on_port(port: u16) {
-    let output = if cfg!(windows) {
+    if cfg!(windows) {
         // Use PowerShell to find and kill process on port
         let script = format!(
             "Get-NetTCPConnection -LocalPort {} -State Listen -ErrorAction SilentlyContinue | ForEach-Object {{ Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }}",
             port
         );
-        tokio::process::Command::new("powershell")
+        let _ = tokio::process::Command::new("powershell")
             .args(["-NoProfile", "-Command", &script])
             .output()
-            .await
+            .await;
     } else {
-        tokio::process::Command::new("sh")
-            .args(["-c", &format!("lsof -ti :{port} | xargs -r kill -9")])
+        // macOS: lsof to find PIDs, then kill each one
+        // Note: macOS xargs doesn't support -r, so we check output first
+        if let Ok(output) = tokio::process::Command::new("lsof")
+            .args(["-ti", &format!(":{port}")])
             .output()
             .await
-    };
-
-    if output.is_ok() {
-        // Give the OS time to release the port
-        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        {
+            let pids = String::from_utf8_lossy(&output.stdout);
+            for pid in pids.split_whitespace() {
+                if !pid.is_empty() {
+                    let _ = tokio::process::Command::new("kill")
+                        .args(["-9", pid])
+                        .output()
+                        .await;
+                }
+            }
+        }
     }
+
+    // Give the OS time to release the port
+    tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
 }
 
 #[tauri::command]
