@@ -77,8 +77,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setAgents: (agents) => set({ agents }),
   selectAgent: (agentId) => {
     set({ selectedAgentId: agentId, messages: [], sessionKey: agentId, sidebarTab: "chats" });
-    // Load previous session history
+    // Load previous session history and sessions for this agent
     void get().loadHistory(agentId);
+    void get().loadSessions();
   },
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
@@ -245,6 +246,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   loadSessions: async () => {
     try {
+      const { selectedAgentId } = get();
       const result = await gateway.request<{
         sessions: Array<{
           key: string;
@@ -257,6 +259,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }>("sessions.list", {
         limit: 50,
         includeLastMessage: true,
+        ...(selectedAgentId ? { agentId: selectedAgentId } : {}),
       });
 
       const sessions: SessionItem[] = result.sessions

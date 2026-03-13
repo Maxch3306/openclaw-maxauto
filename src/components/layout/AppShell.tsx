@@ -1,6 +1,10 @@
 import { useEffect } from "react";
 import { gateway } from "../../api/gateway-client";
-import { getGatewayToken } from "../../api/tauri-commands";
+import {
+  getGatewayStatus,
+  getGatewayToken,
+  startGateway,
+} from "../../api/tauri-commands";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "../../stores/chat-store";
@@ -35,15 +39,31 @@ export function AppShell() {
       }
     });
 
-    // Read token from config, then connect
-    getGatewayToken()
-      .then((token) => {
+    // Ensure the gateway is running, then connect
+    const ensureGatewayAndConnect = async () => {
+      try {
+        const status = await getGatewayStatus();
+        if (!status.running) {
+          await startGateway(port);
+        }
+      } catch {
+        // Status check failed — try starting anyway
+        try {
+          await startGateway(port);
+        } catch {
+          // Will fail to connect below, which triggers retry in gateway client
+        }
+      }
+
+      try {
+        const token = await getGatewayToken();
         gateway.connect(port, token);
-      })
-      .catch(() => {
-        // No token available — connect without one
+      } catch {
         gateway.connect(port);
-      });
+      }
+    };
+
+    void ensureGatewayAndConnect();
 
     // Use health events to reload config/models and as fallback source for agents
     const unsubHealth = gateway.on("health", (payload) => {

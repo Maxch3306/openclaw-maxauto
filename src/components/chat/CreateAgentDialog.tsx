@@ -10,7 +10,6 @@ export function CreateAgentDialog({ onClose }: CreateAgentDialogProps) {
 
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("");
-  const [workspace, setWorkspace] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -28,7 +27,6 @@ export function CreateAgentDialog({ onClose }: CreateAgentDialogProps) {
       await createAgent({
         name: name.trim(),
         emoji: emoji.trim() || undefined,
-        workspace: workspace.trim() || undefined,
       });
       onClose();
     } catch (err) {
@@ -74,17 +72,6 @@ export function CreateAgentDialog({ onClose }: CreateAgentDialogProps) {
               placeholder="e.g. 🤖"
               className={inputClass}
               maxLength={4}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1">Workspace</label>
-            <input
-              type="text"
-              value={workspace}
-              onChange={(e) => setWorkspace(e.target.value)}
-              placeholder="Optional workspace name"
-              className={inputClass}
             />
           </div>
 
