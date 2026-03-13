@@ -256,7 +256,7 @@ pub async fn start_gateway(
         ));
     }
 
-    let child = tokio::process::Command::new(&node)
+    let mut child = tokio::process::Command::new(&node)
         .arg(&entry)
         .args(["gateway", "run", "--bind", &bind, "--port", &port.to_string()])
         .env("OPENCLAW_STATE_DIR", base_dir.to_str().unwrap())
@@ -266,6 +266,30 @@ pub async fn start_gateway(
         .kill_on_drop(true)
         .spawn()
         .map_err(|e| format!("Failed to start gateway: {}", e))?;
+
+    // Wait briefly and check if the process crashed on startup
+    tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
+    match child.try_wait() {
+        Ok(Some(status)) => {
+            // Process already exited — collect stderr for diagnostics
+            let stderr = if let Some(mut err) = child.stderr.take() {
+                let mut buf = String::new();
+                use tokio::io::AsyncReadExt;
+                let _ = err.read_to_string(&mut buf).await;
+                buf
+            } else {
+                String::new()
+            };
+            let msg = if stderr.trim().is_empty() {
+                format!("Gateway exited immediately with {}", status)
+            } else {
+                format!("Gateway exited with {}: {}", status, stderr.trim().chars().take(500).collect::<String>())
+            };
+            return Err(msg);
+        }
+        Ok(None) => { /* still running — good */ }
+        Err(e) => return Err(format!("Failed to check gateway status: {}", e)),
+    }
 
     let pid = child.id();
     {
