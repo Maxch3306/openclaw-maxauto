@@ -1,7 +1,7 @@
 use crate::state::GatewayProcess;
 use serde::Serialize;
 use std::path::PathBuf;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 #[derive(Debug, Serialize)]
 pub struct GatewayStatus {
@@ -264,6 +264,7 @@ async fn kill_process_on_port(port: u16) {
 
 #[tauri::command]
 pub async fn start_gateway(
+    app: AppHandle,
     state: State<'_, GatewayProcess>,
     port: Option<u16>,
     bind: Option<String>,
@@ -316,24 +317,36 @@ pub async fn start_gateway(
         .spawn()
         .map_err(|e| format!("Failed to start gateway: {}", e))?;
 
+    // Take stdout/stderr before moving child into state, and stream them as events
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+
+    fn spawn_log_reader(app: AppHandle, reader: impl tokio::io::AsyncRead + Unpin + Send + 'static) {
+        use tokio::io::{AsyncBufReadExt, BufReader};
+        tokio::spawn(async move {
+            let mut lines = BufReader::new(reader).lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                let _ = app.emit("gateway-log", &line);
+            }
+        });
+    }
+
+    if let Some(out) = stdout {
+        spawn_log_reader(app.clone(), out);
+    }
+    if let Some(err) = stderr {
+        spawn_log_reader(app.clone(), err);
+    }
+
+    // Emit initial status
+    let _ = app.emit("gateway-log", "Gateway process started, waiting for ready...");
+
     // Wait briefly and check if the process crashed on startup
     tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
     match child.try_wait() {
         Ok(Some(status)) => {
-            // Process already exited — collect stderr for diagnostics
-            let stderr = if let Some(mut err) = child.stderr.take() {
-                let mut buf = String::new();
-                use tokio::io::AsyncReadExt;
-                let _ = err.read_to_string(&mut buf).await;
-                buf
-            } else {
-                String::new()
-            };
-            let msg = if stderr.trim().is_empty() {
-                format!("Gateway exited immediately with {}", status)
-            } else {
-                format!("Gateway exited with {}: {}", status, stderr.trim().chars().take(500).collect::<String>())
-            };
+            let msg = format!("Gateway exited immediately with {}", status);
+            let _ = app.emit("gateway-log", &msg);
             return Err(msg);
         }
         Ok(None) => { /* still running — good */ }

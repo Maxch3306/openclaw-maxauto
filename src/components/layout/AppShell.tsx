@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { gateway } from "../../api/gateway-client";
 import {
   getGatewayStatus,
@@ -29,6 +30,23 @@ export function AppShell() {
 
   const [startupStatus, setStartupStatus] = useState("Starting gateway...");
   const [ready, setReady] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  // Listen for gateway log events from the Rust backend
+  useEffect(() => {
+    const unlisten = listen<string>("gateway-log", (event) => {
+      setLogs((prev) => [...prev.slice(-100), event.payload]);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // Auto-scroll logs to bottom
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs]);
 
   useEffect(() => {
     // Connect to gateway WebSocket
@@ -226,7 +244,8 @@ export function AppShell() {
 
   if (!ready) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center gap-4">
+      <div className="flex flex-col h-screen items-center justify-center gap-4 px-8">
+        <h1 className="text-xl font-semibold text-[var(--color-text)]">MaxAuto</h1>
         <div className="flex items-center gap-3">
           <svg
             className="animate-spin h-5 w-5 text-[var(--color-accent)]"
@@ -251,6 +270,16 @@ export function AppShell() {
             {startupStatus}
           </span>
         </div>
+        {logs.length > 0 && (
+          <div className="w-full max-w-lg mt-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-xs text-[var(--color-text-muted)]">
+            {logs.map((line, i) => (
+              <div key={i} className="whitespace-pre-wrap break-all leading-relaxed">
+                {line}
+              </div>
+            ))}
+            <div ref={logEndRef} />
+          </div>
+        )}
       </div>
     );
   }
