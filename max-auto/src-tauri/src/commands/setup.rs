@@ -230,10 +230,23 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
         error: None,
     });
 
+    // Build PATH with local node bin dir so post-install scripts can find `node`
+    let node_bin_dir = if cfg!(windows) {
+        base_dir.join("node")
+    } else {
+        base_dir.join("node").join("bin")
+    };
+    let path_sep = if cfg!(windows) { ";" } else { ":" };
+    let new_path = match std::env::var("PATH") {
+        Ok(existing) => format!("{}{}{}", node_bin_dir.display(), path_sep, existing),
+        Err(_) => node_bin_dir.to_string_lossy().to_string(),
+    };
+
     let output = if use_system_npm {
         // Use system npm directly
         let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
         tokio::process::Command::new(npm_cmd)
+            .env("PATH", &new_path)
             .args([
                 "install",
                 "--prefix",
@@ -246,6 +259,7 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
     } else {
         // Use local node + npm-cli.js
         tokio::process::Command::new(&node_cmd)
+            .env("PATH", &new_path)
             .arg(local_npm_cli.to_str().unwrap())
             .args([
                 "install",
