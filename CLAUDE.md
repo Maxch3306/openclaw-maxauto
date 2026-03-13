@@ -69,14 +69,16 @@ A vendor-free, open-source desktop app that wraps OpenClaw. No login, no credits
 └── bailian-coding.json           # Bailian Coding preset config (provider + models)
 ```
 
+**Note:** The `openclaw/` directory at root is a gitignored reference copy of the OpenClaw source for development reference only — it is not part of the build.
+
 ## Architecture
 
 1. **Setup flow:** `App.tsx` checks `setupComplete` → shows `SetupPage` (installs Node.js + OpenClaw, starts gateway) or `AppShell`.
-2. **Gateway lifecycle:** Rust spawns OpenClaw gateway as child process with isolated env under `~/.openclaw-maxauto/`. Default port: 51789.
+2. **Gateway lifecycle:** Rust spawns OpenClaw gateway as child process with isolated env under `~/.openclaw-maxauto/`. Default port: 51789. `AppShell` ensures the gateway is running on mount (checks status → starts if needed), so the gateway auto-recovers across app restarts, not just during first-run setup.
 3. **Device identity:** `device-identity.ts` generates an Ed25519 keypair per device, persisted in localStorage. Used for authenticated WebSocket handshake (v2 payload signing).
 4. **WebSocket protocol (v3):** `GatewayClient` connects, authenticates with device-signed token, sends request/response frames, subscribes to events (`chat-event`, `presence`).
-5. **Chat flow:** Select agent from Sidebar → send message via `gateway.request("chat.send")` → stream response via `chat-event` events.
-6. **Agent management:** Full CRUD — create, edit (name/emoji/workspace), delete, and set per-agent model via gateway calls.
+5. **Chat flow:** Select agent from Sidebar → send message via `gateway.request("chat.send")` → stream response via `chat-event` events. Sessions are filtered per agent via `agentId` param in `sessions.list`.
+6. **Agent management:** Full CRUD — create, edit (name/emoji), delete, and set per-agent model via gateway calls. Workspace defaults to `~/.openclaw-maxauto/workspace` (set in gateway config, not per-agent UI).
 7. **Settings:** 9 sections — General, Models & API, MCP Services, Skills, Channels, Workspace, Data & Privacy, Feedback, About. Implemented: General, Models & API, Channels, About. Others show "Coming Soon" placeholders.
 8. **Model providers:** `PROVIDER_DEFAULTS` in settings-store defines built-in providers:
    - `maxauto-crs-openai` — Claude proxy (openai-responses), GPT-5.4
@@ -91,7 +93,7 @@ A vendor-free, open-source desktop app that wraps OpenClaw. No login, no credits
 
 ## Environment Isolation
 
-All runtime files live under `~/.openclaw-maxauto/` (node/, openclaw/, config/, credentials/, sessions/) to avoid conflicts with global installs.
+All runtime files live under `~/.openclaw-maxauto/` (node/, openclaw/, config/, credentials/, sessions/, workspace/) to avoid conflicts with global installs. Default agent workspace is set to `~/.openclaw-maxauto/workspace` via `agents.defaults.workspace` in the gateway config.
 
 ## Scripts
 
