@@ -27,16 +27,11 @@ jobs:
         run: git config --system core.symlinks false
 
       - uses: actions/checkout@v5
-        with:
-          sparse-checkout: |
-            max-auto
-            .github
-          sparse-checkout-cone-mode: true
 
       - name: Read version
         id: pkg
         shell: bash
-        run: echo "version=$(node -p "require('./max-auto/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - uses: pnpm/action-setup@v4
 
@@ -53,7 +48,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: pnpm-${{ matrix.platform }}-${{ hashFiles('max-auto/pnpm-lock.yaml') }}
+          key: pnpm-${{ matrix.platform }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: pnpm-${{ matrix.platform }}-
 
       - uses: dtolnay/rust-toolchain@stable
@@ -67,13 +62,12 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
-            max-auto/src-tauri/target
-          key: rust-${{ matrix.platform }}-${{ hashFiles('max-auto/src-tauri/Cargo.lock') }}
+            src-tauri/target
+          key: rust-${{ matrix.platform }}-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: rust-${{ matrix.platform }}-
 
       - name: Install frontend deps
         run: pnpm install --frozen-lockfile
-        working-directory: max-auto
 
       - name: Install macOS DMG dependencies
         if: runner.os == 'macOS'
@@ -85,7 +79,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          projectPath: max-auto
           tagName: v${{ steps.pkg.outputs.version }}
           releaseName: "MaxAuto v${{ steps.pkg.outputs.version }}"
           releaseBody: "Desktop installer for MaxAuto v${{ steps.pkg.outputs.version }}"
@@ -105,12 +98,11 @@ jobs:
 
       - name: Bump patch version
         run: |
-          CURRENT=$(node -p "require('./max-auto/package.json').version")
+          CURRENT=$(node -p "require('./package.json').version")
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
           NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))"
           echo "Bumping version: ${CURRENT} -> ${NEXT}"
 
-          cd max-auto
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -129,7 +121,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add max-auto/package.json max-auto/src-tauri/tauri.conf.json
-          git commit -m "chore: bump version to $(node -p "require('./max-auto/package.json').version")"
+          git add package.json src-tauri/tauri.conf.json
+          git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
           git pull --rebase
           git push
