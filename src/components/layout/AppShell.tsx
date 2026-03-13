@@ -22,7 +22,6 @@ export function AppShell() {
   const currentPage = useAppStore((s) => s.currentPage);
   const setGatewayConnected = useAppStore((s) => s.setGatewayConnected);
   const loadAgents = useChatStore((s) => s.loadAgents);
-  const loadSessions = useChatStore((s) => s.loadSessions);
   const loadConfig = useSettingsStore((s) => s.loadConfig);
   const loadModels = useSettingsStore((s) => s.loadModels);
   const showQuickConfig = useSettingsStore((s) => s.showQuickConfig);
@@ -54,8 +53,8 @@ export function AppShell() {
       setGatewayConnected(connected);
       if (connected) {
         setReady(true);
+        // loadAgents internally triggers loadHistory + loadSessions for the selected agent
         void loadAgents();
-        void loadSessions();
         void loadConfig();
         void loadModels();
       }
@@ -90,12 +89,8 @@ export function AppShell() {
 
     void ensureGatewayAndConnect();
 
-    // Use health events to reload config/models and as fallback source for agents
+    // Use health events only as fallback source for agents (if initial load missed them)
     const unsubHealth = gateway.on("health", (payload) => {
-      // Reload config & models on every health event (catches post-restart updates)
-      void loadConfig();
-      void loadModels();
-
       const data = payload as {
         agents?: Array<{ agentId: string; isDefault?: boolean }>;
         defaultAgentId?: string;
@@ -160,7 +155,12 @@ export function AppShell() {
           clearTimeout(errorFinalizeTimer);
           errorFinalizeTimer = null;
         }
-        store.finalizeStreaming();
+        // Use finalizeWithContent if the final event carries message content
+        if (data.state === "final" && data.message?.content) {
+          store.finalizeWithContent(data.message);
+        } else {
+          store.finalizeStreaming();
+        }
       } else if (data.state === "error") {
         // Don't finalize immediately — OpenClaw may retry.
         // Set a delayed finalization that gets cancelled if a retry starts.
@@ -178,7 +178,7 @@ export function AppShell() {
       }
     });
 
-    // Listen for agent events (lifecycle + streaming text from retries)
+    // Listen for agent events (lifecycle + streaming text from retries + tool use)
     const unsubAgent = gateway.on("agent", (payload) => {
       const data = payload as {
         runId?: string;
@@ -188,6 +188,11 @@ export function AppShell() {
           text?: string;
           delta?: string;
           error?: string;
+          name?: string;
+          toolCallId?: string;
+          args?: Record<string, unknown>;
+          meta?: string;
+          isError?: boolean;
         };
       };
 
@@ -208,17 +213,48 @@ export function AppShell() {
           if (data.runId) {
             store.setCurrentRunId(data.runId);
           }
+          // Show "working" indicator — agent is starting execution
+          store.setToolActivity({ name: "thinking", phase: "start" });
+        } else if (data.data?.phase === "end") {
+          // Agent finished — clear any working indicator
+          if (store.toolActivity) {
+            store.setToolActivity(null);
+          }
         } else if (data.data?.phase === "error") {
           // Agent attempt errored — don't finalize yet, OpenClaw may retry.
-          // A subsequent "start" phase means retry; if no retry comes,
-          // the chat event with state "error" will be the final signal.
-          // We use a delayed finalization that gets cancelled if a retry starts.
+        }
+      } else if (data.stream === "tool" && data.data) {
+        const phase = data.data.phase as "start" | "partial" | "result";
+        const toolName = data.data.name ?? "tool";
+        const toolCallId = data.data.toolCallId ?? "";
+
+        if (phase === "start") {
+          // Add tool card to the streaming message
+          store.addStreamingToolCall({
+            name: toolName,
+            toolCallId,
+            args: data.data.args,
+          });
+          store.setToolActivity({ name: toolName, phase: "start" });
+        } else if (phase === "result") {
+          // Update the tool card with result
+          const resultText = data.data.meta ?? "";
+          store.updateStreamingToolResult(toolCallId, resultText, data.data.isError ?? false);
+          // Show "thinking" again until next text or tool
+          store.setToolActivity({ name: "thinking", phase: "start" });
+        } else if (phase === "partial") {
+          store.setToolActivity({ name: toolName, phase: "partial" });
         }
       } else if (data.stream === "assistant" && data.data) {
-        // Streaming text from the agent (works for retries too)
+        // Streaming text from the agent
         const text = data.data.text ?? data.data.delta ?? "";
         if (text && store.streaming) {
-          store.updateStreamingMessage(text);
+          // Clear tool activity when text starts flowing
+          if (store.toolActivity) {
+            store.setToolActivity(null);
+          }
+          // Use appendStreamingText which handles content blocks properly
+          store.appendStreamingText(text);
         }
       }
     });
