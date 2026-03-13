@@ -537,6 +537,9 @@ importers:
 
   max-auto:
     dependencies:
+      '@noble/ed25519':
+        specifier: 3.0.0
+        version: 3.0.0
       '@tauri-apps/api':
         specifier: ^2
         version: 2.10.1

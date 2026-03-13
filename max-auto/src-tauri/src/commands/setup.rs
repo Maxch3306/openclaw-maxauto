@@ -16,6 +16,26 @@ fn maxauto_dir() -> PathBuf {
         .join(".openclaw-maxauto")
 }
 
+fn git_download_url() -> (String, String) {
+    let version = "2.49.0";
+    if cfg!(windows) {
+        let arch = if cfg!(target_arch = "aarch64") {
+            "arm64"
+        } else {
+            "64-bit"
+        };
+        let filename = format!("MinGit-{}-{}.zip", version, arch);
+        let url = format!(
+            "https://github.com/git-for-windows/git/releases/download/v{}.windows.1/{}",
+            version, filename
+        );
+        (url, filename)
+    } else {
+        // macOS — not used, we install via xcode-select
+        ("".into(), "".into())
+    }
+}
+
 fn node_download_url() -> (String, String) {
     let version = "24.14.0";
     let (os_name, arch_name, ext) = if cfg!(windows) {
@@ -208,26 +228,164 @@ pub async fn install_node(app: tauri::AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
-    let base_dir = maxauto_dir();
-    let openclaw_prefix = base_dir.join("openclaw");
+pub async fn install_git(app: tauri::AppHandle) -> Result<String, String> {
+    // Check if git is already available
+    let system_git = if cfg!(windows) { "git.exe" } else { "git" };
+    let local_git = if cfg!(windows) {
+        maxauto_dir().join("git").join("cmd").join("git.exe")
+    } else {
+        maxauto_dir().join("git").join("bin").join("git")
+    };
 
-    // Check that git is available — some OpenClaw dependencies require it
-    let git_cmd = if cfg!(windows) { "git.exe" } else { "git" };
-    let git_ok = tokio::process::Command::new(git_cmd)
+    if local_git.exists() || tokio::process::Command::new(system_git)
         .arg("--version")
         .output()
         .await
         .map(|o| o.status.success())
-        .unwrap_or(false);
-
-    if !git_ok {
-        return Err(
-            "Git is not installed. Some OpenClaw dependencies require Git.\n\
-             Please install Git from https://git-scm.com/downloads and restart MaxAuto."
-                .into(),
-        );
+        .unwrap_or(false)
+    {
+        return Ok("Git already installed".into());
     }
+
+    if cfg!(windows) {
+        // Windows: download MinGit portable
+        let _ = app.emit("setup-progress", SetupProgress {
+            step: "git".into(),
+            message: "Downloading Git...".into(),
+            progress: Some(0.0),
+            error: None,
+        });
+
+        let (url, filename) = git_download_url();
+        let temp_dir = maxauto_dir().join("tmp");
+        std::fs::create_dir_all(&temp_dir)
+            .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+        let archive_path = temp_dir.join(&filename);
+
+        let response = reqwest::get(&url)
+            .await
+            .map_err(|e| format!("Git download failed: {}", e))?;
+
+        if !response.status().is_success() {
+            return Err(format!("Git download failed with status: {}", response.status()));
+        }
+
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| format!("Failed to read download: {}", e))?;
+
+        std::fs::write(&archive_path, &bytes)
+            .map_err(|e| format!("Failed to save archive: {}", e))?;
+
+        let _ = app.emit("setup-progress", SetupProgress {
+            step: "git".into(),
+            message: "Extracting Git...".into(),
+            progress: Some(0.5),
+            error: None,
+        });
+
+        let git_dir = maxauto_dir().join("git");
+        std::fs::create_dir_all(&git_dir)
+            .map_err(|e| format!("Failed to create git dir: {}", e))?;
+
+        // MinGit ZIP extracts flat (no top-level directory wrapper)
+        let file = std::fs::File::open(&archive_path)
+            .map_err(|e| format!("Failed to open archive: {}", e))?;
+        let mut archive = zip::ZipArchive::new(file)
+            .map_err(|e| format!("Failed to read zip: {}", e))?;
+
+        for i in 0..archive.len() {
+            let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
+            let name = entry.name().to_string();
+            let outpath = git_dir.join(&name);
+
+            if entry.is_dir() {
+                std::fs::create_dir_all(&outpath).ok();
+            } else {
+                if let Some(parent) = outpath.parent() {
+                    std::fs::create_dir_all(parent).ok();
+                }
+                let mut outfile = std::fs::File::create(&outpath)
+                    .map_err(|e| format!("Failed to create {}: {}", outpath.display(), e))?;
+                std::io::copy(&mut entry, &mut outfile)
+                    .map_err(|e| format!("Failed to extract {}: {}", name, e))?;
+            }
+        }
+
+        // Cleanup
+        let _ = std::fs::remove_file(&archive_path);
+        let _ = std::fs::remove_dir_all(&temp_dir);
+
+        let _ = app.emit("setup-progress", SetupProgress {
+            step: "git".into(),
+            message: "Git installed".into(),
+            progress: Some(1.0),
+            error: None,
+        });
+
+        Ok("Git installed successfully".into())
+    } else {
+        // macOS: trigger Xcode Command Line Tools install
+        let _ = app.emit("setup-progress", SetupProgress {
+            step: "git".into(),
+            message: "Installing Command Line Tools (please follow the system dialog)...".into(),
+            progress: Some(0.1),
+            error: None,
+        });
+
+        // Trigger the CLT installer dialog
+        let _ = tokio::process::Command::new("xcode-select")
+            .arg("--install")
+            .output()
+            .await;
+
+        // Poll for git availability (the user clicks through the system dialog)
+        let max_wait = std::time::Duration::from_secs(600); // 10 min timeout
+        let start = std::time::Instant::now();
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+            let git_ok = tokio::process::Command::new("git")
+                .arg("--version")
+                .output()
+                .await
+                .map(|o| o.status.success())
+                .unwrap_or(false);
+
+            if git_ok {
+                let _ = app.emit("setup-progress", SetupProgress {
+                    step: "git".into(),
+                    message: "Git installed".into(),
+                    progress: Some(1.0),
+                    error: None,
+                });
+                return Ok("Git installed successfully".into());
+            }
+
+            if start.elapsed() > max_wait {
+                return Err(
+                    "Timed out waiting for Git installation. \
+                     Please install Git manually from https://git-scm.com/downloads and restart MaxAuto."
+                        .into(),
+                );
+            }
+
+            let elapsed_pct = (start.elapsed().as_secs_f64() / max_wait.as_secs_f64()).min(0.9);
+            let _ = app.emit("setup-progress", SetupProgress {
+                step: "git".into(),
+                message: "Waiting for Command Line Tools installation...".into(),
+                progress: Some(0.1 + elapsed_pct * 0.9),
+                error: None,
+            });
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
+    let base_dir = maxauto_dir();
+    let openclaw_prefix = base_dir.join("openclaw");
 
     let _ = app.emit("setup-progress", SetupProgress {
         step: "openclaw".into(),
@@ -281,16 +439,27 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
         error: None,
     });
 
-    // Build PATH with local node bin dir so post-install scripts can find `node`
+    // Build PATH with local node and git bin dirs so post-install scripts can find them
     let node_bin_dir = if cfg!(windows) {
         base_dir.join("node")
     } else {
         base_dir.join("node").join("bin")
     };
+    let git_bin_dir = if cfg!(windows) {
+        base_dir.join("git").join("cmd")
+    } else {
+        base_dir.join("git").join("bin")
+    };
     let path_sep = if cfg!(windows) { ";" } else { ":" };
-    let new_path = match std::env::var("PATH") {
-        Ok(existing) => format!("{}{}{}", node_bin_dir.display(), path_sep, existing),
-        Err(_) => node_bin_dir.to_string_lossy().to_string(),
+    let new_path = {
+        let mut parts = vec![node_bin_dir.to_string_lossy().to_string()];
+        if git_bin_dir.exists() {
+            parts.push(git_bin_dir.to_string_lossy().to_string());
+        }
+        if let Ok(existing) = std::env::var("PATH") {
+            parts.push(existing);
+        }
+        parts.join(path_sep)
     };
 
     // Use our own npm cache to avoid EACCES on root-owned ~/.npm

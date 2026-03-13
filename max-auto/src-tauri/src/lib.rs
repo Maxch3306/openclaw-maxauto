@@ -21,9 +21,11 @@ pub fn run() {
             // System
             commands::system::get_platform_info,
             commands::system::check_node,
+            commands::system::check_git,
             commands::system::check_openclaw,
             // Setup
             commands::setup::install_node,
+            commands::setup::install_git,
             commands::setup::install_openclaw,
             // Config
             commands::config::read_config,

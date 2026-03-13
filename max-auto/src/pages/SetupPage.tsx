@@ -3,8 +3,10 @@ import { TitleBar } from "../components/layout/TitleBar";
 import { useAppStore } from "../stores/app-store";
 import {
   checkNode,
+  checkGit,
   checkOpenclaw,
   installNode,
+  installGit,
   installOpenclaw,
   startGateway,
 } from "../api/tauri-commands";
@@ -22,15 +24,27 @@ export function SetupPage() {
   async function runSetup() {
     try {
       setSetupStep("checking");
+      setStatusMessage("Checking Git...");
+      setProgress(5);
+
+      const gitStatus = await checkGit();
+
+      if (!gitStatus.available) {
+        setSetupStep("install-git");
+        setStatusMessage("Installing Git...");
+        setProgress(10);
+        await installGit();
+      }
+
+      setProgress(15);
       setStatusMessage("Checking Node.js...");
-      setProgress(10);
 
       const nodeStatus = await checkNode();
 
       if (!nodeStatus.available) {
         setSetupStep("install-node");
         setStatusMessage("Installing Node.js...");
-        setProgress(20);
+        setProgress(25);
         await installNode();
       }
 

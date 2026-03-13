@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type SetupStep = "checking" | "install-node" | "install-openclaw" | "ready" | "error";
+type SetupStep = "checking" | "install-git" | "install-node" | "install-openclaw" | "ready" | "error";
 
 interface AppState {
   setupComplete: boolean;

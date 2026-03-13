@@ -27,6 +27,13 @@ export interface OpenclawStatus {
   path: string | null;
 }
 
+export interface GitStatus {
+  available: boolean;
+  version: string | null;
+  path: string | null;
+  source: string | null;
+}
+
 export interface ConfigData {
   raw: string;
   path: string;
@@ -49,10 +56,14 @@ export const getPlatformInfo = () => invoke<PlatformInfo>("get_platform_info");
 
 export const checkNode = () => invoke<NodeStatus>("check_node");
 
+export const checkGit = () => invoke<GitStatus>("check_git");
+
 export const checkOpenclaw = () => invoke<OpenclawStatus>("check_openclaw");
 
 // Setup
 export const installNode = () => invoke<string>("install_node");
+
+export const installGit = () => invoke<string>("install_git");
 
 export const installOpenclaw = () => invoke<string>("install_openclaw");
 

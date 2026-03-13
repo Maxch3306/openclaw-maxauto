@@ -10,6 +10,14 @@ pub struct PlatformInfo {
 }
 
 #[derive(Debug, Serialize)]
+pub struct GitStatus {
+    pub available: bool,
+    pub version: Option<String>,
+    pub path: Option<String>,
+    pub source: Option<String>, // "local" or "system"
+}
+
+#[derive(Debug, Serialize)]
 pub struct NodeStatus {
     pub available: bool,
     pub version: Option<String>,
@@ -164,5 +172,62 @@ pub async fn check_openclaw() -> Result<OpenclawStatus, String> {
         installed: true,
         version,
         path: Some(entry.to_string_lossy().to_string()),
+    })
+}
+
+fn local_git_path() -> PathBuf {
+    if cfg!(windows) {
+        maxauto_dir().join("git").join("cmd").join("git.exe")
+    } else {
+        // On macOS/Linux we don't install a local git, we rely on system git
+        maxauto_dir().join("git").join("bin").join("git")
+    }
+}
+
+async fn get_git_version(git_path: &str) -> Option<String> {
+    let output = tokio::process::Command::new(git_path)
+        .arg("--version")
+        .output()
+        .await
+        .ok()?;
+
+    if output.status.success() {
+        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        None
+    }
+}
+
+#[tauri::command]
+pub async fn check_git() -> Result<GitStatus, String> {
+    // Check local git first (Windows MinGit)
+    let local = local_git_path();
+    if local.exists() {
+        let path_str = local.to_string_lossy().to_string();
+        let version = get_git_version(&path_str).await;
+        return Ok(GitStatus {
+            available: true,
+            version,
+            path: Some(path_str),
+            source: Some("local".into()),
+        });
+    }
+
+    // Check system git
+    let system_git = if cfg!(windows) { "git.exe" } else { "git" };
+    if let Some(version) = get_git_version(system_git).await {
+        return Ok(GitStatus {
+            available: true,
+            version: Some(version),
+            path: Some(system_git.into()),
+            source: Some("system".into()),
+        });
+    }
+
+    Ok(GitStatus {
+        available: false,
+        version: None,
+        path: None,
+        source: None,
     })
 }
