@@ -11,7 +11,7 @@ jobs:
     outputs:
       version: ${{ steps.pkg.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: pkg
         run: echo "version=$(node -p "require('./max-auto/package.json').version")" >> "$GITHUB_OUTPUT"
 
@@ -33,7 +33,7 @@ jobs:
         if: runner.os == 'Windows'
         run: git config --system core.symlinks false
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: |
             max-auto
@@ -42,9 +42,9 @@ jobs:
 
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -74,7 +74,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
