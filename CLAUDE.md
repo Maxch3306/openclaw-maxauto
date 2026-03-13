@@ -8,7 +8,7 @@ A vendor-free, open-source desktop app that wraps OpenClaw. No login, no credits
 
 - **Frontend:** React 19 + TypeScript, Tailwind CSS 3.4, Zustand 5 (state), Vite 6
 - **Backend:** Tauri v2 (Rust), tokio, reqwest, serde
-- **Communication:** WebSocket to OpenClaw gateway (`ws://127.0.0.1:18789`), Tauri IPC for Rust commands
+- **Communication:** WebSocket to OpenClaw gateway (`ws://127.0.0.1:51789`), Tauri IPC for Rust commands
 - **Platforms:** Windows (.msi) + macOS (.dmg)
 - **Package manager:** pnpm
 
