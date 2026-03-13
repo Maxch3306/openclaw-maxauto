@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { gateway } from "../../api/gateway-client";
 import {
   getGatewayStatus,
@@ -27,11 +27,15 @@ export function AppShell() {
   const showQuickConfig = useSettingsStore((s) => s.showQuickConfig);
   const hasProvider = useSettingsStore((s) => s.configuredProviders.size > 0);
 
+  const [startupStatus, setStartupStatus] = useState("Starting gateway...");
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
     // Connect to gateway WebSocket
     gateway.setStatusCallback((connected) => {
       setGatewayConnected(connected);
       if (connected) {
+        setReady(true);
         void loadAgents();
         void loadSessions();
         void loadConfig();
@@ -42,19 +46,22 @@ export function AppShell() {
     // Ensure the gateway is running, then connect
     const ensureGatewayAndConnect = async () => {
       try {
+        setStartupStatus("Checking gateway...");
         const status = await getGatewayStatus();
         if (!status.running) {
+          setStartupStatus("Starting gateway...");
           await startGateway(port);
         }
       } catch {
-        // Status check failed — try starting anyway
+        setStartupStatus("Starting gateway...");
         try {
           await startGateway(port);
         } catch {
-          // Will fail to connect below, which triggers retry in gateway client
+          setStartupStatus("Waiting for gateway...");
         }
       }
 
+      setStartupStatus("Connecting...");
       try {
         const token = await getGatewayToken();
         gateway.connect(port, token);
@@ -216,6 +223,37 @@ export function AppShell() {
     }, 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  if (!ready) {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center gap-4">
+        <div className="flex items-center gap-3">
+          <svg
+            className="animate-spin h-5 w-5 text-[var(--color-accent)]"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          <span className="text-sm text-[var(--color-text-muted)]">
+            {startupStatus}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen">
