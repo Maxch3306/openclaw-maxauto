@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Skills Control** - Users can toggle skills and configure their API keys (completed 2026-03-14)
 - [x] **Phase 4: Skills Installation** - Users can install missing skill dependencies from the UI (completed 2026-03-14)
 - [x] **Phase 5: Workspace Defaults** - Users can view, change, and open the default workspace directory (completed 2026-03-14)
-- [ ] **Phase 6: Per-Agent Workspace** - Users can assign different workspace directories to individual agents
+- [x] **Phase 6: Per-Agent Workspace** - Users can assign different workspace directories to individual agents (completed 2026-03-14)
 - [ ] **Phase 7: Telegram Bot Setup** - Users can enter a bot token and see its connection status
 - [ ] **Phase 8: Telegram Access Control** - Users can control which users and groups can interact with the bot
 - [ ] **Phase 9: Channel-Agent Binding** - Users can bind a Telegram bot to a specific agent
@@ -154,7 +154,7 @@ Note: Phases 2-4 (Skills) and Phases 5-6 (Workspace) and Phases 7-8 (Telegram) c
 | 3. Skills Control | 1/1 | Complete    | 2026-03-14 |
 | 4. Skills Installation | 0/1 | Complete    | 2026-03-14 |
 | 5. Workspace Defaults | 0/1 | Complete    | 2026-03-14 |
-| 6. Per-Agent Workspace | 0/1 | Not started | - |
+| 6. Per-Agent Workspace | 0/1 | Complete    | 2026-03-14 |
 | 7. Telegram Bot Setup | 0/? | Not started | - |
 | 8. Telegram Access Control | 0/? | Not started | - |
 | 9. Channel-Agent Binding | 0/? | Not started | - |
