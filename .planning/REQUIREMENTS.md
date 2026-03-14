@@ -1,67 +1,52 @@
-# Requirements: MaxAuto
+# Requirements: MaxAuto v1.1
 
 **Defined:** 2026-03-14
 **Core Value:** Users can install, configure, and use OpenClaw without touching a terminal — everything managed through a clean desktop UI.
 
-## v1 Requirements
+## v1.1 Requirements
 
-Requirements for this milestone. Each maps to roadmap phases.
+Requirements for multi-bot Telegram milestone. Each maps to roadmap phases.
 
-### Telegram Channel Management
+### Bot Account Management
 
-- [x] **TELE-01**: User can enter and validate a Telegram bot token in-app
-- [x] **TELE-02**: User can configure DM allow-list (which users can message the bot)
-- [x] **TELE-03**: User can configure group allow-list (which groups the bot serves)
-- [x] **TELE-04**: User can bind a Telegram bot to a specific agent (1:1 mapping)
-- [x] **TELE-05**: User can see connection status of the Telegram bot (connected/disconnected/error)
+- [ ] **MBOT-01**: User can add a new Telegram bot by entering its token (validated via getMe API)
+- [ ] **MBOT-02**: User can remove a Telegram bot account and its associated binding
+- [ ] **MBOT-03**: User can enable/disable individual bot accounts without removing them
+- [ ] **MBOT-04**: User can see per-bot connection status (connected/disconnected/error)
 
-### Skills Management
+### Binding & Routing
 
-- [x] **SKIL-01**: User can view a list of all available skills with their status (enabled/disabled/unavailable)
-- [x] **SKIL-02**: User can toggle skills on and off
-- [x] **SKIL-03**: User can enter API keys for skills that require them
-- [x] **SKIL-04**: User can see why a skill is unavailable (missing dependencies, requirements)
-- [x] **SKIL-05**: User can install skill dependencies from the UI
+- [ ] **MBOT-05**: User can bind each bot to a specific agent via per-bot dropdown with match.accountId
+- [ ] **MBOT-06**: UI enforces 1:1 binding — same agent cannot be bound to two bots, same bot cannot be bound to two agents
+- [ ] **MBOT-07**: Existing single-bot config migrates to accounts.default structure when adding a second bot
 
-### Workspace Configuration
+### Per-Bot Access Control
 
-- [x] **WORK-01**: User can view and change the default workspace directory via native folder picker
-- [x] **WORK-02**: User can set a different workspace directory per agent
-- [x] **WORK-03**: User can open the workspace folder in the system file manager
+- [ ] **MBOT-08**: Each bot has its own DM policy and allow-list configuration
+- [ ] **MBOT-09**: Each bot has its own group policy and allow-list configuration
 
-### Infrastructure
+## Future Requirements
 
-- [x] **INFR-01**: Config writes use `config.patch` (merge semantics) instead of full replace to prevent race conditions
+Deferred to future milestone.
 
-## v2 Requirements
-
-Deferred to future milestone. Tracked but not in current roadmap.
-
-### Telegram
-
-- **TELE-06**: User can manage multiple Telegram bot accounts
-- **TELE-07**: User can toggle streaming mode for Telegram responses
-
-### Skills
-
-- **SKIL-06**: User can filter/search skills by name or category
-- **SKIL-07**: User can configure per-agent skill allowlists
-
-### Channels
+### Multi-Channel
 
 - **CHAN-01**: User can manage WhatsApp channel connections
 - **CHAN-02**: User can manage Discord bot connections
-- **CHAN-03**: N:M channel-to-agent routing with rules
+
+### Advanced
+
+- **MBOT-10**: Bot nickname/label for easier identification
+- **MBOT-11**: Bulk enable/disable all bots
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| MCP service management | Defer until skills management is solid |
-| In-app file editing for workspace | Complexity, users have their own editors |
-| ClawHub skill marketplace integration | Large scope, future milestone |
-| Webhook-based Telegram integration | Polling is simpler for desktop app |
-| Multi-channel per agent (N:M binding) | Keep 1:1 for simplicity |
+| N:M agent-channel routing | 1:1 enforcement is the explicit design choice |
+| Webhook-based Telegram | Polling is simpler for desktop app |
+| Cross-bot message forwarding | Complexity, unclear value |
+| Auto-migration on app update | Lazy migration on first multi-bot add is safer |
 
 ## Traceability
 
@@ -69,26 +54,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFR-01 | Phase 1: Config Infrastructure | Complete |
-| SKIL-01 | Phase 2: Skills Discovery | Complete |
-| SKIL-04 | Phase 2: Skills Discovery | Complete |
-| SKIL-02 | Phase 3: Skills Control | Complete |
-| SKIL-03 | Phase 3: Skills Control | Complete |
-| SKIL-05 | Phase 4: Skills Installation | Complete |
-| WORK-01 | Phase 5: Workspace Defaults | Complete |
-| WORK-03 | Phase 5: Workspace Defaults | Complete |
-| WORK-02 | Phase 6: Per-Agent Workspace | Complete |
-| TELE-01 | Phase 7: Telegram Bot Setup | Complete |
-| TELE-05 | Phase 7: Telegram Bot Setup | Complete |
-| TELE-02 | Phase 8: Telegram Access Control | Complete |
-| TELE-03 | Phase 8: Telegram Access Control | Complete |
-| TELE-04 | Phase 9: Channel-Agent Binding | Complete |
+| MBOT-01 | — | Pending |
+| MBOT-02 | — | Pending |
+| MBOT-03 | — | Pending |
+| MBOT-04 | — | Pending |
+| MBOT-05 | — | Pending |
+| MBOT-06 | — | Pending |
+| MBOT-07 | — | Pending |
+| MBOT-08 | — | Pending |
+| MBOT-09 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 14 total
-- Mapped to phases: 14
-- Unmapped: 0
+- v1.1 requirements: 9 total
+- Mapped to phases: 0
+- Unmapped: 9
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-14 after roadmap creation*
+*Last updated: 2026-03-14 after initial definition*
