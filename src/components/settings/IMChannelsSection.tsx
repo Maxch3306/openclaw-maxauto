@@ -10,6 +10,7 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Loader2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -22,6 +23,7 @@ import {
   rejectPairingRequest,
   type PairingRequest,
 } from "../../api/tauri-commands";
+import { useChatStore } from "../../stores/chat-store";
 
 interface TelegramConfig {
   enabled?: boolean;
@@ -31,6 +33,13 @@ interface TelegramConfig {
   allowFrom?: Array<string | number>;
   groupAllowFrom?: Array<string | number>;
   groups?: Record<string, Record<string, unknown>>;
+}
+
+interface BindingEntry {
+  type?: string;
+  agentId: string;
+  comment?: string;
+  match: { channel: string; [key: string]: unknown };
 }
 
 interface ChannelAccountSnapshot {
@@ -75,6 +84,11 @@ export function IMChannelsSection() {
   const [savedMsg, setSavedMsg] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Agent binding state
+  const [boundAgentId, setBoundAgentId] = useState<string | null>(null);
+  const [allBindings, setAllBindings] = useState<BindingEntry[]>([]);
+  const agents = useChatStore((s) => s.agents);
+
   // Validation state
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
@@ -115,6 +129,7 @@ export function IMChannelsSection() {
       }>("config.get", {});
       const cfg = result.config as {
         channels?: { telegram?: TelegramConfig };
+        bindings?: BindingEntry[];
       };
       const tg = cfg.channels?.telegram ?? {};
       setTelegramCfg(tg);
@@ -125,6 +140,12 @@ export function IMChannelsSection() {
       setGroupIds(Object.keys(tg.groups ?? {}));
       setGroupAllowFromList((tg.groupAllowFrom ?? []).map(String));
       setLoadedGroupIds(Object.keys(tg.groups ?? {}));
+
+      // Read bindings for agent binding
+      const bindings = cfg.bindings ?? [];
+      const tgBinding = bindings.find((b) => b.match?.channel === "telegram");
+      setBoundAgentId(tgBinding?.agentId ?? null);
+      setAllBindings(bindings);
     } catch (err) {
       console.warn("[im-channels] loadTelegramConfig failed:", err);
     } finally {
@@ -251,8 +272,14 @@ export function IMChannelsSection() {
         groups: Object.keys(groupsRecord).length > 0 ? groupsRecord : undefined,
       };
 
+      const otherBindings = allBindings.filter((b) => b.match?.channel !== "telegram");
+      const updatedBindings = boundAgentId
+        ? [...otherBindings, { agentId: boundAgentId, match: { channel: "telegram" } }]
+        : otherBindings;
+
       await patchConfig({
         channels: { telegram: telegramConfig },
+        bindings: updatedBindings,
       });
 
       setSavedMsg("Saved! Restarting gateway...");
@@ -439,6 +466,38 @@ export function IMChannelsSection() {
                 <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
                   Get a bot token from <span className="text-[var(--color-accent)]">@BotFather</span>{" "}
                   on Telegram
+                </p>
+              )}
+            </div>
+
+            {/* Agent Binding */}
+            <div>
+              <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+                Agent
+              </label>
+              <select
+                value={boundAgentId ?? ""}
+                onChange={(e) => setBoundAgentId(e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+              >
+                <option value="">Select an agent...</option>
+                {agents.map((a) => (
+                  <option key={a.agentId} value={a.agentId}>
+                    {a.emoji ? `${a.emoji} ` : ""}{a.name}
+                  </option>
+                ))}
+              </select>
+              {boundAgentId && !agents.some((a) => a.agentId === boundAgentId) && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <AlertTriangle size={12} className="text-[var(--color-warning)]" />
+                  <span className="text-xs text-[var(--color-warning)]">
+                    Bound agent no longer exists. Please select a different agent.
+                  </span>
+                </div>
+              )}
+              {!boundAgentId && (
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                  Choose which agent handles messages from this Telegram bot
                 </p>
               )}
             </div>
