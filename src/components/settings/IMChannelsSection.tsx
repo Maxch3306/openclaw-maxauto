@@ -15,6 +15,7 @@ import {
 import { useEffect, useState } from "react";
 import { gateway } from "../../api/gateway-client";
 import { patchConfig, waitForReconnect } from "../../api/config-helpers";
+import { TagInput } from "./TagInput";
 import {
   listPairingRequests,
   approvePairingRequest,
@@ -27,8 +28,9 @@ interface TelegramConfig {
   botToken?: string;
   dmPolicy?: string;
   groupPolicy?: string;
-  allowFrom?: string[];
-  groupAllowFrom?: string[];
+  allowFrom?: Array<string | number>;
+  groupAllowFrom?: Array<string | number>;
+  groups?: Record<string, Record<string, unknown>>;
 }
 
 interface ChannelAccountSnapshot {
@@ -65,7 +67,10 @@ export function IMChannelsSection() {
   const [botToken, setBotToken] = useState("");
   const [dmPolicy, setDmPolicy] = useState("open");
   const [groupPolicy, setGroupPolicy] = useState("disabled");
-  const [allowFrom, setAllowFrom] = useState("");
+  const [allowFromList, setAllowFromList] = useState<string[]>([]);
+  const [groupIds, setGroupIds] = useState<string[]>([]);
+  const [groupAllowFromList, setGroupAllowFromList] = useState<string[]>([]);
+  const [loadedGroupIds, setLoadedGroupIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [loading, setLoading] = useState(true);
@@ -116,7 +121,10 @@ export function IMChannelsSection() {
       setBotToken(tg.botToken ?? "");
       setDmPolicy(tg.dmPolicy ?? "open");
       setGroupPolicy(tg.groupPolicy ?? "disabled");
-      setAllowFrom((tg.allowFrom ?? []).join(", "));
+      setAllowFromList((tg.allowFrom ?? []).map(String));
+      setGroupIds(Object.keys(tg.groups ?? {}));
+      setGroupAllowFromList((tg.groupAllowFrom ?? []).map(String));
+      setLoadedGroupIds(Object.keys(tg.groups ?? {}));
     } catch (err) {
       console.warn("[im-channels] loadTelegramConfig failed:", err);
     } finally {
@@ -226,17 +234,21 @@ export function IMChannelsSection() {
     }
 
     try {
-      const allowFromList = allowFrom
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+      // Build groups Record with merge-patch deletion support
+      const groupsRecord: Record<string, Record<string, unknown> | null> = {};
+      for (const id of groupIds) { groupsRecord[id] = {}; }
+      for (const id of loadedGroupIds) {
+        if (!groupIds.includes(id)) { groupsRecord[id] = null; }  // delete via merge-patch
+      }
 
-      const telegramConfig: TelegramConfig = {
+      const telegramConfig: Record<string, unknown> = {
         enabled: true,
         botToken: botToken.trim() || undefined,
         dmPolicy,
         groupPolicy,
-        ...(allowFromList.length > 0 ? { allowFrom: allowFromList } : {}),
+        allowFrom: allowFromList.length > 0 ? allowFromList : null,
+        groupAllowFrom: groupAllowFromList.length > 0 ? groupAllowFromList : null,
+        groups: Object.keys(groupsRecord).length > 0 ? groupsRecord : undefined,
       };
 
       await patchConfig({
@@ -245,6 +257,7 @@ export function IMChannelsSection() {
 
       setSavedMsg("Saved! Restarting gateway...");
       await waitForReconnect();
+      setLoadedGroupIds([...groupIds]);
       await loadTelegramConfig();
       await loadChannelStatus();
       setSavedMsg("Saved and reconnected.");
@@ -447,6 +460,23 @@ export function IMChannelsSection() {
               </select>
             </div>
 
+            {/* DM Allow-List (shown when dmPolicy is allowlist) */}
+            {dmPolicy === "allowlist" && (
+              <div>
+                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+                  DM Allow-List
+                </label>
+                <TagInput
+                  tags={allowFromList}
+                  onChange={setAllowFromList}
+                  placeholder="Enter user ID..."
+                />
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                  Telegram user IDs allowed to message the bot directly. Find your ID by messaging @userinfobot on Telegram.
+                </p>
+              </div>
+            )}
+
             {/* Group Policy */}
             <div>
               <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
@@ -463,21 +493,36 @@ export function IMChannelsSection() {
               </select>
             </div>
 
-            {/* Allow From (shown for allowlist policies) */}
-            {(dmPolicy === "allowlist" || groupPolicy === "allowlist") && (
+            {/* Allowed Groups (shown when groupPolicy is allowlist) */}
+            {groupPolicy === "allowlist" && (
               <div>
                 <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
-                  Allowed User/Group IDs
+                  Allowed Groups
                 </label>
-                <input
-                  type="text"
-                  value={allowFrom}
-                  onChange={(e) => setAllowFrom(e.target.value)}
-                  placeholder="123456789, 987654321"
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]"
+                <TagInput
+                  tags={groupIds}
+                  onChange={setGroupIds}
+                  placeholder="Enter group chat ID..."
                 />
                 <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
-                  Comma-separated Telegram user or group IDs
+                  Group chat IDs where the bot will respond. Group IDs are negative numbers (e.g. -1001234567890). Add the bot to the group first.
+                </p>
+              </div>
+            )}
+
+            {/* Group Sender Allow-List (shown when groupPolicy is allowlist) */}
+            {groupPolicy === "allowlist" && (
+              <div>
+                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+                  Group Sender Allow-List
+                </label>
+                <TagInput
+                  tags={groupAllowFromList}
+                  onChange={setGroupAllowFromList}
+                  placeholder="Enter user ID..."
+                />
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                  User IDs allowed to interact with the bot in group chats. Leave empty to allow all group members.
                 </p>
               </div>
             )}
