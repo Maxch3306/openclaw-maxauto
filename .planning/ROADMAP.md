@@ -12,7 +12,7 @@ This milestone transforms MaxAuto from a chat-only desktop wrapper into a full O
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Config Infrastructure** - Safe config writes via patch semantics to prevent race conditions
+- [x] **Phase 1: Config Infrastructure** - Safe config writes via patch semantics to prevent race conditions (completed 2026-03-14)
 - [ ] **Phase 2: Skills Discovery** - Users can see all available skills and understand their status
 - [ ] **Phase 3: Skills Control** - Users can toggle skills and configure their API keys
 - [ ] **Phase 4: Skills Installation** - Users can install missing skill dependencies from the UI
@@ -149,7 +149,7 @@ Note: Phases 2-4 (Skills) and Phases 5-6 (Workspace) and Phases 7-8 (Telegram) c
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Config Infrastructure | 1/2 | Gap closure planned | - |
+| 1. Config Infrastructure | 1/2 | Complete    | 2026-03-14 |
 | 2. Skills Discovery | 0/? | Not started | - |
 | 3. Skills Control | 0/? | Not started | - |
 | 4. Skills Installation | 0/? | Not started | - |
