@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-14T14:16:28.442Z"
-last_activity: 2026-03-14 -- Completed 03-01-PLAN.md (skills toggle + API key controls)
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-14T14:29:00.000Z"
+last_activity: 2026-03-14 -- Completed 04-01-PLAN.md (skill install button)
 progress:
   total_phases: 9
-  completed_phases: 3
-  total_plans: 4
-  completed_plans: 4
+  completed_phases: 4
+  total_plans: 5
+  completed_plans: 5
   percent: 100
 ---
 
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Users can install, configure, and use OpenClaw without touching a terminal -- everything managed through a clean desktop UI.
-**Current focus:** Phase 3: Skills Control
+**Current focus:** Phase 4: Skills Installation
 
 ## Current Position
 
-Phase: 3 of 9 (Skills Control)
+Phase: 4 of 9 (Skills Installation)
 Plan: 1 of 1 in current phase (COMPLETE)
-Status: Phase 3 Plan 1 complete
-Last activity: 2026-03-14 -- Completed 03-01-PLAN.md (skills toggle + API key controls)
+Status: Phase 4 Plan 1 complete
+Last activity: 2026-03-14 -- Completed 04-01-PLAN.md (skill install button)
 
 Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 3min
-- Total execution time: 0.22 hours
+- Total execution time: 0.25 hours
 
 **By Phase:**
 
@@ -46,9 +46,10 @@ Progress: [██████████] 100%
 | 01-config-infrastructure | 1 | 8min | 8min |
 | 02-skills-discovery | 1 | 2min | 2min |
 | 03-skills-control | 1 | 2min | 2min |
+| 04-skills-installation | 1 | 2min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 8min, 1min, 2min, 2min
+- Last 5 plans: 8min, 1min, 2min, 2min, 2min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -68,6 +69,7 @@ Recent decisions affecting current work:
 - Phase 1: Removed splitProviders() as merge-patch makes built-in/custom separation unnecessary at write time
 - [Phase 02]: ChevronDown rotation for expand/collapse; shortcode emoji fallback to BookOpen icon; max-w-4xl for 3-col grid
 - [Phase 03]: Combined toggle + API key tasks into single commit; useRef for timer cleanup; undefined vs empty string for edit state detection
+- [Phase 04]: Download icon for install button; tooltip for install label; 8s error auto-dismiss; removed static install options list
 
 ### Pending Todos
 
@@ -80,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T14:16:28.440Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-skills-installation/04-CONTEXT.md
+Last session: 2026-03-14T14:29:00.000Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: .planning/phases/04-skills-installation/04-01-SUMMARY.md
