@@ -69,26 +69,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TELE-01 | — | Pending |
-| TELE-02 | — | Pending |
-| TELE-03 | — | Pending |
-| TELE-04 | — | Pending |
-| TELE-05 | — | Pending |
-| SKIL-01 | — | Pending |
-| SKIL-02 | — | Pending |
-| SKIL-03 | — | Pending |
-| SKIL-04 | — | Pending |
-| SKIL-05 | — | Pending |
-| WORK-01 | — | Pending |
-| WORK-02 | — | Pending |
-| WORK-03 | — | Pending |
-| INFR-01 | — | Pending |
+| INFR-01 | Phase 1: Config Infrastructure | Pending |
+| SKIL-01 | Phase 2: Skills Discovery | Pending |
+| SKIL-04 | Phase 2: Skills Discovery | Pending |
+| SKIL-02 | Phase 3: Skills Control | Pending |
+| SKIL-03 | Phase 3: Skills Control | Pending |
+| SKIL-05 | Phase 4: Skills Installation | Pending |
+| WORK-01 | Phase 5: Workspace Defaults | Pending |
+| WORK-03 | Phase 5: Workspace Defaults | Pending |
+| WORK-02 | Phase 6: Per-Agent Workspace | Pending |
+| TELE-01 | Phase 7: Telegram Bot Setup | Pending |
+| TELE-05 | Phase 7: Telegram Bot Setup | Pending |
+| TELE-02 | Phase 8: Telegram Access Control | Pending |
+| TELE-03 | Phase 8: Telegram Access Control | Pending |
+| TELE-04 | Phase 9: Channel-Agent Binding | Pending |
 
 **Coverage:**
 - v1 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14 ⚠️
+- Mapped to phases: 14
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-14 after initial definition*
+*Last updated: 2026-03-14 after roadmap creation*
