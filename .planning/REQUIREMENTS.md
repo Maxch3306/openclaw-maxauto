@@ -26,7 +26,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Workspace Configuration
 
 - [x] **WORK-01**: User can view and change the default workspace directory via native folder picker
-- [ ] **WORK-02**: User can set a different workspace directory per agent
+- [x] **WORK-02**: User can set a different workspace directory per agent
 - [x] **WORK-03**: User can open the workspace folder in the system file manager
 
 ### Infrastructure
@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SKIL-05 | Phase 4: Skills Installation | Complete |
 | WORK-01 | Phase 5: Workspace Defaults | Complete |
 | WORK-03 | Phase 5: Workspace Defaults | Complete |
-| WORK-02 | Phase 6: Per-Agent Workspace | Pending |
+| WORK-02 | Phase 6: Per-Agent Workspace | Complete |
 | TELE-01 | Phase 7: Telegram Bot Setup | Pending |
 | TELE-05 | Phase 7: Telegram Bot Setup | Pending |
 | TELE-02 | Phase 8: Telegram Access Control | Pending |
