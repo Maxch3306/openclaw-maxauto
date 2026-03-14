@@ -139,7 +139,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 09-01: TBD
+- [ ] 09-01-PLAN.md — Agent binding dropdown with config persistence in Telegram settings
 
 ## Progress
 
@@ -157,4 +157,4 @@ Note: Phases 2-4 (Skills) and Phases 5-6 (Workspace) and Phases 7-8 (Telegram) c
 | 6. Per-Agent Workspace | 0/1 | Complete    | 2026-03-14 |
 | 7. Telegram Bot Setup | 1/1 | Complete    | 2026-03-14 |
 | 8. Telegram Access Control | 0/1 | Complete    | 2026-03-14 |
-| 9. Channel-Agent Binding | 0/? | Not started | - |
+| 9. Channel-Agent Binding | 0/1 | Not started | - |
