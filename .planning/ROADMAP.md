@@ -113,7 +113,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 07-01: TBD
+- [ ] 07-01-PLAN.md — Token validation via Telegram getMe API and rich connection status display
 
 ### Phase 8: Telegram Access Control
 **Goal**: Users can control which Telegram users and groups can interact with the bot
@@ -155,6 +155,6 @@ Note: Phases 2-4 (Skills) and Phases 5-6 (Workspace) and Phases 7-8 (Telegram) c
 | 4. Skills Installation | 0/1 | Complete    | 2026-03-14 |
 | 5. Workspace Defaults | 0/1 | Complete    | 2026-03-14 |
 | 6. Per-Agent Workspace | 0/1 | Complete    | 2026-03-14 |
-| 7. Telegram Bot Setup | 0/? | Not started | - |
+| 7. Telegram Bot Setup | 0/1 | Not started | - |
 | 8. Telegram Access Control | 0/? | Not started | - |
 | 9. Channel-Agent Binding | 0/? | Not started | - |
