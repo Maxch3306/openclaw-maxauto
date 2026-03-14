@@ -1,272 +1,262 @@
 # Technology Stack
 
-**Project:** MaxAuto - Telegram, Skills, and Workspace Features
-**Researched:** 2026-03-14
+**Project:** MaxAuto v1.1 - Multi-Bot Telegram Support
+**Researched:** 2026-03-15
+**Confidence:** HIGH (verified from OpenClaw source code)
 
-## Stack Assessment: No New Dependencies Required
+## Key Finding: No Stack Additions Needed
 
-The existing stack already contains everything needed for these features. The work is purely UI components + gateway API integration using established patterns.
+OpenClaw already has full multi-account Telegram support built into its config system and gateway protocol. The entire multi-bot feature is a **frontend-only refactor** of `IMChannelsSection.tsx` plus config shape changes. No new libraries, no new Rust commands, no new dependencies.
 
-**Rationale:** All three features (Telegram channel management, skills management, workspace configuration) operate through the same two communication channels already in place:
+## What OpenClaw Already Provides
 
-1. **OpenClaw Gateway WebSocket** -- `gateway.request()` for `config.get`, `config.set`, `config.patch`, `skills.status`, `skills.update`, `skills.install`, `channels.status`, `agents.update`
-2. **Tauri IPC** -- `readConfig()` / `writeConfig()` for direct file access as fallback
+### Multi-Account Config Structure (HIGH confidence - verified from source)
 
-No new protocols, libraries, or backend capabilities are needed.
+OpenClaw's `TelegramConfig` type (`src/config/types.telegram.ts:258-263`) is:
 
-## Existing Stack (Validated, No Changes)
+```typescript
+type TelegramConfig = {
+  accounts?: Record<string, TelegramAccountConfig>;  // <-- multi-account
+  defaultAccount?: string;                            // <-- default picker
+} & TelegramAccountConfig;                            // <-- base/channel-level
+```
 
-### Core Framework
+Each account in `accounts` is a full `TelegramAccountConfig` with its own `botToken`, `dmPolicy`, `groupPolicy`, `allowFrom`, `groups`, `enabled`, etc.
+
+**Config shape for multi-bot (openclaw.json):**
+
+```json
+{
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "accounts": {
+        "support-bot": {
+          "botToken": "123:AAA...",
+          "dmPolicy": "open",
+          "allowFrom": ["12345"]
+        },
+        "sales-bot": {
+          "botToken": "456:BBB...",
+          "dmPolicy": "pairing",
+          "groupPolicy": "disabled"
+        }
+      },
+      "defaultAccount": "support-bot"
+    }
+  },
+  "bindings": [
+    { "agentId": "agent-1", "match": { "channel": "telegram", "accountId": "support-bot" } },
+    { "agentId": "agent-2", "match": { "channel": "telegram", "accountId": "sales-bot" } }
+  ]
+}
+```
+
+### Account Resolution (`src/telegram/accounts.ts`) - HIGH confidence
+
+- `listTelegramAccountIds(cfg)` -- returns all configured account IDs
+- `resolveTelegramAccount({ cfg, accountId })` -- resolves token, enabled state, merged config
+- `listEnabledTelegramAccounts(cfg)` -- returns all enabled accounts
+- `mergeTelegramAccountConfig(cfg, accountId)` -- merges base telegram config with per-account overrides; **deliberately does NOT inherit channel-level `groups` in multi-account setups** (issue #30673)
+
+### Token Resolution (`src/telegram/token.ts`) - HIGH confidence
+
+Tokens resolve per-account via: `accounts.<id>.tokenFile` > `accounts.<id>.botToken` > channel-level `tokenFile` > channel-level `botToken` > `TELEGRAM_BOT_TOKEN` env (default account only).
+
+For MaxAuto, the relevant path is `accounts.<id>.botToken` in config JSON.
+
+### Bindings (`src/config/types.agents.ts`, `src/routing/bindings.ts`) - HIGH confidence
+
+Agent-to-channel binding uses `AgentRouteBinding`:
+
+```typescript
+type AgentRouteBinding = {
+  type?: "route";
+  agentId: string;
+  match: {
+    channel: string;       // "telegram"
+    accountId?: string;    // "support-bot" -- THIS is the multi-account key
+  };
+};
+```
+
+`listBoundAccountIds(cfg, "telegram")` returns all account IDs that appear in bindings. The binding `match.accountId` links a specific bot account to a specific agent.
+
+### Gateway Status API (`channels.status`) - HIGH confidence
+
+Response shape already returns **per-account arrays**:
+
+```typescript
+{
+  channelAccounts: {
+    telegram: ChannelAccountSnapshot[]  // one entry per account
+  },
+  channelDefaultAccountId: {
+    telegram: string  // the default account ID
+  }
+}
+```
+
+Each `ChannelAccountSnapshot` includes: `accountId`, `name`, `enabled`, `configured`, `connected`, `running`, `lastError`, `probe` (with bot username/id), `tokenSource`, `dmPolicy`, `allowFrom`, etc.
+
+## Recommended Stack (No Changes)
+
+### Existing Stack (Keep As-Is)
+
 | Technology | Version | Purpose | Status |
 |------------|---------|---------|--------|
-| React 19 | 19.0 | Frontend UI | Keep as-is |
-| TypeScript | 5.6 | Type safety | Keep as-is |
-| Zustand 5 | 5.0 | State management | Extend with new store slices |
-| Tailwind CSS | 3.4 | Styling | Keep as-is |
-| Vite | 6 | Build tool | Keep as-is |
-| Tauri v2 | 2.x | Desktop shell | Keep as-is |
-| lucide-react | 0.577 | Icons | Keep as-is |
+| React 19 | 19.x | Frontend framework | Keep |
+| TypeScript | 5.x | Type safety | Keep |
+| Tailwind CSS | 3.4 | Styling | Keep |
+| Zustand 5 | 5.x | State management | Keep |
+| Vite 6 | 6.x | Build tool | Keep |
+| Tauri v2 | 2.x | Desktop backend (Rust) | Keep |
+| lucide-react | latest | Icons | Keep |
 
-### Backend (Rust)
-| Technology | Version | Purpose | Status |
-|------------|---------|---------|--------|
-| tokio | 1 | Async runtime | Keep as-is |
-| reqwest | 0.12 | HTTP client | Keep as-is |
-| serde / serde_json | 1 | Config serialization | Keep as-is |
-| dirs | 6 | Path resolution | Keep as-is |
+### Libraries NOT Needed
 
-**Confidence: HIGH** -- These are all verified from the existing `package.json`, `Cargo.toml`, and working codebase.
+| Library | Why Not Needed |
+|---------|---------------|
+| Any Telegram SDK | Token validation uses raw `fetch` to Telegram getMe API -- already works |
+| Any form library | Existing pattern of useState + patchConfig is sufficient |
+| Any state machine lib | 1:1 binding enforcement is simple conditional logic |
+| UUID/nanoid | Account IDs are user-chosen strings (e.g., "support-bot") |
 
-## OpenClaw Gateway API Endpoints (Already Available)
+### Rust Backend: No Changes
 
-These are the gateway WebSocket methods that the new features will consume. All are already implemented in the OpenClaw gateway -- no backend changes needed.
+| Command | Status | Notes |
+|---------|--------|-------|
+| `config.rs` (read/write) | Keep as-is | Raw JSON pass-through; multi-account is just deeper nesting |
+| `pairing.rs` | Keep as-is | Pairing is per-gateway, not per-account (credentials stored centrally) |
+| `gateway.rs` | Keep as-is | Gateway handles multi-account internally |
 
-### Telegram Channel Management
-| Method | Purpose | Params | Notes |
-|--------|---------|--------|-------|
-| `config.get` | Read current Telegram config | `{}` | Returns `channels.telegram.*` with hash |
-| `config.set` | Write full config (replaces) | `{ baseHash, raw }` | Requires base hash for conflict detection |
-| `config.patch` | Merge patch config | `{ baseHash, raw }` | Better for incremental changes; auto-restarts gateway via SIGUSR1 |
-| `channels.status` | Get Telegram connection status | `{ probe?: boolean }` | Returns per-account snapshots with `configured`, `linked`, `status` |
-| `channels.logout` | Disconnect Telegram account | `{ channel: "telegram" }` | Clears session state |
+The Rust backend does not need changes because:
+1. `read_config` / `write_config` are raw JSON -- they pass through any shape
+2. `patchConfig()` on the frontend uses the gateway's `config.patch` method which handles deep merge
+3. The gateway process already starts all configured accounts automatically
 
-**Key finding:** The existing `IMChannelsSection.tsx` already uses `config.set` + manual gateway restart. The gateway supports `config.patch` which triggers automatic SIGUSR1 restart -- this is the preferred approach and should replace the current manual restart pattern.
+## What Must Change (Frontend Only)
 
-**Confidence: HIGH** -- Verified from `openclaw/src/gateway/server-methods/config.ts` and `channels.ts`.
+### 1. Config Shape in `IMChannelsSection.tsx`
 
-### Telegram Config Schema (from OpenClaw docs)
+**Current:** Reads/writes `channels.telegram.botToken`, `channels.telegram.dmPolicy`, etc. (single bot at channel level)
+
+**Needed:** Read/write `channels.telegram.accounts.<id>.botToken`, `channels.telegram.accounts.<id>.dmPolicy`, etc.
+
+### 2. Bindings Array
+
+**Current:** One binding with `match: { channel: "telegram" }` (no accountId)
+
+**Needed:** Per-account bindings with `match: { channel: "telegram", accountId: "<id>" }`
+
+### 3. Status Polling
+
+**Current:** `loadChannelStatus()` reads first entry from `channelAccounts.telegram`
+
+**Needed:** Map over all entries in `channelAccounts.telegram` array, keyed by `accountId`
+
+### 4. 1:1 Enforcement (Pure Frontend Logic)
+
+- When selecting an agent for a bot: filter out agents already bound to another bot
+- When a bot is bound to an agent: show that agent as unavailable in other bot dropdowns
+- Validation: prevent saving if duplicate agent-bot pairs exist
+
+## Config Patch Examples
+
+### Adding a new bot account
+
 ```typescript
-interface TelegramChannelConfig {
-  enabled: boolean;
-  botToken: string;
-  dmPolicy: "pairing" | "allowlist" | "open" | "disabled";
-  allowFrom?: string[];              // numeric Telegram user IDs
-  groupPolicy?: "open" | "allowlist" | "disabled";
-  groupAllowFrom?: string[];         // numeric Telegram user IDs
-  groups?: Record<string, {
-    requireMention?: boolean;
-    groupPolicy?: "open" | "allowlist" | "disabled";
-    allowFrom?: string[];
-    skills?: string[];
-    systemPrompt?: string;
-    enabled?: boolean;
-    topics?: Record<string, {
-      agentId?: string;
-      requireMention?: boolean;
-      // inherits group fields
-    }>;
-  }>;
-  streaming?: "off" | "partial" | "block" | "progress";
-  customCommands?: Array<{ command: string; description: string }>;
-  // Many more optional fields -- see OpenClaw docs
-}
+await patchConfig({
+  channels: {
+    telegram: {
+      enabled: true,
+      accounts: {
+        "my-new-bot": {
+          botToken: "123:AAA...",
+          enabled: true,
+          dmPolicy: "open",
+        }
+      }
+    }
+  },
+  bindings: [
+    ...existingBindings,
+    { agentId: "agent-1", match: { channel: "telegram", accountId: "my-new-bot" } }
+  ]
+});
 ```
 
-**Confidence: HIGH** -- Verified from `openclaw/docs/channels/telegram.md`.
+### Removing a bot account
 
-### Skills Management
-| Method | Purpose | Params | Notes |
-|--------|---------|--------|-------|
-| `skills.status` | List all skills with eligibility | `{ agentId?: string }` | Returns `SkillStatusReport` with per-skill metadata |
-| `skills.update` | Toggle skill / set API key | `{ skillKey, enabled?, apiKey?, env? }` | Writes to `skills.entries` in config |
-| `skills.install` | Install a skill dependency | `{ name, installId, timeoutMs? }` | Runs installer (brew/node/go/uv/download) |
-| `skills.bins` | List required binaries | `{}` | Returns binary names across all workspaces |
-
-**Confidence: HIGH** -- Verified from `openclaw/src/gateway/server-methods/skills.ts`.
-
-### Skills Status Report Shape
 ```typescript
-interface SkillStatusReport {
-  workspaceDir: string;
-  managedSkillsDir: string;
-  skills: SkillStatusEntry[];
-}
-
-interface SkillStatusEntry {
-  name: string;
-  description: string;
-  source: string;            // "bundled" | "managed" | "workspace"
-  bundled: boolean;
-  filePath: string;
-  baseDir: string;
-  skillKey: string;
-  primaryEnv?: string;       // env var name for API key
-  emoji?: string;
-  homepage?: string;
-  always: boolean;           // always-on skill
-  disabled: boolean;         // explicitly disabled in config
-  blockedByAllowlist: boolean;
-  eligible: boolean;         // passes all gating checks
-  requirements: Requirements;
-  missing: Requirements;     // what's missing (bins, env, config)
-  configChecks: Array<{ path: string; met: boolean }>;
-  install: Array<{
-    id: string;
-    kind: "brew" | "node" | "go" | "uv" | "download";
-    label: string;
-    bins: string[];
-  }>;
-}
+await patchConfig({
+  channels: {
+    telegram: {
+      accounts: {
+        "old-bot": null  // merge-patch deletion
+      }
+    }
+  },
+  bindings: existingBindings.filter(b =>
+    !(b.match.channel === "telegram" && b.match.accountId === "old-bot")
+  )
+});
 ```
 
-**Confidence: HIGH** -- Verified from `openclaw/src/agents/skills-status.ts`.
+### Migration: single-bot to multi-account
 
-### Workspace Configuration
-| Method | Purpose | Params | Notes |
-|--------|---------|--------|-------|
-| `agents.list` | Get all agents with workspace paths | `{}` | Returns agent entries with workspace dirs |
-| `agents.update` | Update agent workspace path | `{ agentId, workspace? }` | Also accepts `name`, `model`, `avatar` |
-| `agents.files.list` | List workspace files | `{ agentId }` | Returns IDENTITY.md, SOUL.md, TOOLS.md, etc. |
-| `agents.files.get` | Read workspace file content | `{ agentId, name }` | Safe path resolution with escape guards |
-| `agents.files.set` | Write workspace file | `{ agentId, name, content }` | Validates path stays within workspace |
+If user already has `channels.telegram.botToken` set (current single-bot setup), migration to `accounts` structure requires moving the token:
 
-**Confidence: HIGH** -- Verified from `openclaw/src/gateway/server-methods/agents.ts`.
+```typescript
+// Read current config
+const currentToken = cfg.channels.telegram.botToken;
+const currentBinding = bindings.find(b => b.match.channel === "telegram");
 
-## What to Add (Frontend Only)
-
-### New Zustand Store Slices
-
-No new stores needed. Extend existing stores:
-
-| Store | New State/Actions | Purpose |
-|-------|-------------------|---------|
-| `settings-store.ts` | `skillsReport`, `skillsLoading`, `loadSkills()`, `toggleSkill()`, `saveSkillApiKey()`, `installSkillDep()` | Skills management state |
-| `settings-store.ts` | `telegramStatus`, `loadTelegramStatus()` | Richer Telegram status |
-| `chat-store.ts` | Extend `agents` type with `workspace` field | Workspace path per agent |
-
-**Alternative approach (recommended):** Create a dedicated `skills-store.ts` to keep settings-store from growing unwieldy. The existing settings-store is already 850+ lines. Follow the OpenClaw UI pattern from `openclaw/ui/src/ui/controllers/skills.ts`.
-
-### New Components
-
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `SkillsSection.tsx` | `src/components/settings/` | Skills list with toggle switches, API key inputs, install buttons |
-| `SkillCard.tsx` | `src/components/settings/` | Individual skill with status, requirements, actions |
-| `WorkspaceSection.tsx` | `src/components/settings/` | Per-agent workspace directory picker + file browser |
-| Enhanced `IMChannelsSection.tsx` | `src/components/settings/` | Extend existing with channel-agent binding, better status display |
-
-### Tauri IPC Additions
-
-| Command | Purpose | Why Tauri (not WebSocket) |
-|---------|---------|--------------------------|
-| `select_directory` | Native folder picker for workspace | Requires native OS dialog |
-| `open_directory` | Open workspace in file explorer | Requires shell integration |
-
-These two new Rust commands are the **only backend additions** needed. Both use the existing `tauri-plugin-shell` and Tauri's dialog API.
-
-```rust
-// select_directory: Use tauri::dialog::FileDialogBuilder
-// open_directory: Use opener::open() or std::process::Command
+// Migrate to accounts structure
+await patchConfig({
+  channels: {
+    telegram: {
+      botToken: null,  // remove channel-level token
+      accounts: {
+        "default": {
+          botToken: currentToken,
+          dmPolicy: cfg.channels.telegram.dmPolicy,
+          // ... other per-account fields
+        }
+      },
+      defaultAccount: "default"
+    }
+  },
+  bindings: currentBinding
+    ? [{ ...currentBinding, match: { ...currentBinding.match, accountId: "default" } }]
+    : []
+});
 ```
-
-**Note:** Tauri v2 has `@tauri-apps/plugin-dialog` for native file/folder dialogs. This should be added:
-
-| Dependency | Version | Purpose | Confidence |
-|------------|---------|---------|------------|
-| `@tauri-apps/plugin-dialog` | 2.x | Native folder picker for workspace selection | HIGH |
-| `tauri-plugin-dialog` | 2.x | Rust side of dialog plugin | HIGH |
 
 ## Alternatives Considered
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| Config updates | `config.patch` (gateway WS) | `config.set` (full replace) | `config.patch` is safer (merge semantics), triggers auto-restart via SIGUSR1 instead of manual restart |
-| Config updates | `config.patch` (gateway WS) | Direct file write via Tauri IPC | Gateway validates config, handles restart. Direct write requires manual validation + restart |
-| Skills state | New `skills-store.ts` | Extend `settings-store.ts` | Settings store is already 850+ lines. Separation of concerns. Follow OpenClaw UI pattern |
-| Folder selection | `@tauri-apps/plugin-dialog` | Text input for path | Poor UX, error-prone, platform path differences |
-| Telegram restart | `config.patch` auto-restart | Manual stop/start cycle | Current `IMChannelsSection` does manual restart with hardcoded delays. `config.patch` handles this properly |
-
-## Config Update Strategy: Use `config.patch` Instead of `config.set`
-
-**Current pattern (in IMChannelsSection.tsx):**
-```typescript
-// BAD: Full config replace + manual gateway restart
-const fullConfig = await gateway.request("config.get", {});
-const newConfig = { ...fullConfig.config, channels };
-await gateway.request("config.set", { baseHash, raw: JSON.stringify(newConfig) });
-// Then manually: disconnect WS -> stop gateway -> wait 1.5s -> start gateway -> wait 2s -> reconnect
-```
-
-**Recommended pattern:**
-```typescript
-// GOOD: Merge patch + auto-restart
-const { hash } = await gateway.request("config.get", {});
-await gateway.request("config.patch", {
-  baseHash: hash,
-  raw: JSON.stringify({ channels: { telegram: telegramConfig } }),
-});
-// Gateway auto-restarts via SIGUSR1, frontend reconnects on WS close event
-```
-
-**Why:** `config.patch` does merge semantics (won't clobber unrelated config), validates the result, and triggers a graceful SIGUSR1 restart. The current manual restart pattern has arbitrary delays and is fragile.
-
-**Confidence: HIGH** -- Verified from `openclaw/src/gateway/server-methods/config.ts`. The `config.patch` handler calls `scheduleGatewaySigusr1Restart()` after writing.
-
-**Caveat for Windows:** SIGUSR1 is a Unix signal. On Windows, the gateway restart mechanism may work differently. Need to verify that `config.patch` auto-restart works on Windows, or fall back to the manual restart pattern if not. The existing `writeConfigAndRestart()` pattern in settings-store does manual restart and works on Windows -- keep this as fallback.
-
-**Confidence: MEDIUM** -- The SIGUSR1 restart path is verified in OpenClaw source, but Windows behavior needs runtime testing.
-
-## Installation
-
-No new npm packages needed beyond the dialog plugin:
-
-```bash
-# Only new dependency
-pnpm add @tauri-apps/plugin-dialog
-
-# Rust side (add to src-tauri/Cargo.toml)
-# tauri-plugin-dialog = "2"
-```
-
-Everything else is already installed.
-
-## Key Integration Points
-
-### 1. Gateway Client (`gateway.request`)
-All three features use the same `gateway.request<T>(method, params)` pattern already proven by chat and settings. No protocol changes.
-
-### 2. Config Read/Write Pattern
-The `readConfigFile()` -> modify -> `writeConfigAndRestart()` pattern in `settings-store.ts` is the proven approach. For the new features, prefer `config.patch` where possible, fall back to the existing Tauri IPC pattern for Windows compatibility.
-
-### 3. Reconnection Handling
-The `GatewayClient` already handles reconnection on WebSocket close. When using `config.patch`, the gateway restarts itself and the frontend will auto-reconnect. When using the manual pattern, the existing `writeConfigAndRestart()` helper handles the sequence.
+| Account ID scheme | User-chosen string | Auto-generated UUID | OpenClaw uses string IDs everywhere; user-friendly names like "support-bot" match the CLI UX |
+| Config storage | OpenClaw's openclaw.json | Separate MaxAuto DB | OpenClaw owns multi-account lifecycle; storing elsewhere creates sync issues |
+| Token validation | Direct fetch to Telegram API | Route through gateway | Current approach already works; gateway doesn't expose a token-test method |
+| Binding management | Frontend builds full `bindings` array | Per-binding gateway method | Gateway only supports full `config.patch`; no incremental binding API |
+| Account-level config | `channels.telegram.accounts.<id>.*` | Channel-level fields for "primary" bot | OpenClaw's `mergeTelegramAccountConfig` deliberately skips group inheritance in multi-account; using accounts is the intended path |
 
 ## Sources
 
-- `openclaw/src/gateway/server-methods/skills.ts` -- Skills gateway API implementation
-- `openclaw/src/gateway/server-methods/channels.ts` -- Channels gateway API implementation
-- `openclaw/src/gateway/server-methods/config.ts` -- Config gateway API with patch support
-- `openclaw/src/gateway/server-methods/agents.ts` -- Agents gateway API with workspace management
-- `openclaw/src/agents/skills-status.ts` -- SkillStatusReport type definition
-- `openclaw/docs/channels/telegram.md` -- Telegram config reference
-- `openclaw/docs/tools/skills.md` -- Skills format and gating docs
-- `openclaw/docs/tools/skills-config.md` -- Skills config schema
-- `openclaw/ui/src/ui/controllers/skills.ts` -- OpenClaw UI skills controller pattern
-- `src/stores/settings-store.ts` -- Existing config update patterns
-- `src/components/settings/IMChannelsSection.tsx` -- Existing Telegram UI (to extend)
-- `src/api/tauri-commands.ts` -- Existing Tauri IPC wrappers
-- `src/api/gateway-client.ts` -- WebSocket client
+All findings verified directly from OpenClaw source code at `openclaw/` reference directory:
+
+- `openclaw/src/config/types.telegram.ts` -- TelegramConfig, TelegramAccountConfig types
+- `openclaw/src/config/types.channels.ts` -- ChannelsConfig type
+- `openclaw/src/config/types.agents.ts` -- AgentRouteBinding, AgentBindingMatch types
+- `openclaw/src/config/bindings.ts` -- listConfiguredBindings, listRouteBindings
+- `openclaw/src/telegram/accounts.ts` -- listTelegramAccountIds, resolveTelegramAccount, mergeTelegramAccountConfig
+- `openclaw/src/telegram/token.ts` -- resolveTelegramToken per-account resolution
+- `openclaw/src/routing/bindings.ts` -- listBoundAccountIds, buildChannelAccountBindings
+- `openclaw/src/gateway/server-methods/channels.ts` -- channels.status handler (per-account snapshots)
+- `openclaw/src/gateway/protocol/schema/channels.ts` -- ChannelAccountSnapshotSchema, ChannelsStatusResultSchema
 
 ---
 
-*Stack analysis: 2026-03-14*
+*Stack analysis: 2026-03-15*
