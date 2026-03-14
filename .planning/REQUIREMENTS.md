@@ -31,7 +31,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFR-01**: Config writes use `config.patch` (merge semantics) instead of full replace to prevent race conditions
+- [x] **INFR-01**: Config writes use `config.patch` (merge semantics) instead of full replace to prevent race conditions
 
 ## v2 Requirements
 
@@ -69,7 +69,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFR-01 | Phase 1: Config Infrastructure | Pending |
+| INFR-01 | Phase 1: Config Infrastructure | Complete |
 | SKIL-01 | Phase 2: Skills Discovery | Pending |
 | SKIL-04 | Phase 2: Skills Discovery | Pending |
 | SKIL-02 | Phase 3: Skills Control | Pending |
