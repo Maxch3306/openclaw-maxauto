@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { gateway } from "../api/gateway-client";
-import { readConfig, writeConfig, stopGateway, startGateway } from "../api/tauri-commands";
+import { readConfig } from "../api/tauri-commands";
+import { patchConfig, waitForReconnect } from "../api/config-helpers";
 
 export type SettingsSection =
   | "general"
@@ -356,45 +357,9 @@ function parseBuiltInProviderModels(
   return result;
 }
 
-/** Split existing providers into built-in and custom entries */
-function splitProviders(providers: Record<string, unknown> | undefined): {
-  builtIn: Record<string, unknown>;
-  custom: Record<string, unknown>;
-} {
-  const builtIn: Record<string, unknown> = {};
-  const custom: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(providers ?? {})) {
-    if (key in PROVIDER_DEFAULTS) {
-      builtIn[key] = val;
-    } else {
-      custom[key] = val;
-    }
-  }
-  return { builtIn, custom };
-}
 async function readConfigFile(): Promise<Record<string, unknown>> {
   const { raw } = await readConfig();
   return JSON.parse(raw);
-}
-
-/** Write openclaw.json directly via Tauri, then restart gateway */
-async function writeConfigAndRestart(config: Record<string, unknown>): Promise<void> {
-  const raw = JSON.stringify(config, null, 2);
-  await writeConfig(raw);
-
-  // Restart gateway so it picks up the new config
-  try {
-    gateway.disconnect();
-    await stopGateway();
-    await new Promise((r) => setTimeout(r, 1500));
-    await startGateway();
-    await new Promise((r) => setTimeout(r, 3000));
-    gateway.reconnect();
-    // Wait for WS to establish, then reload
-    await new Promise((r) => setTimeout(r, 2000));
-  } catch (err) {
-    console.warn("[settings] restartGateway failed:", err);
-  }
 }
 
 /** Resolved model definitions for built-in providers, keyed by provider key */
@@ -511,7 +476,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       models?: { providers?: Record<string, unknown> };
       agents?: { defaults?: Record<string, unknown> };
     };
-    const { builtIn } = splitProviders(cfg.models?.providers);
 
     const currentCustomModels = parseCustomProvidersOnly(
       cfg.models?.providers as Record<string, ProviderConfig> | undefined,
@@ -519,23 +483,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const updated = [...currentCustomModels, model];
     const customProviders = buildProvidersPatch(updated, cfg.models?.providers as Record<string, unknown> | undefined);
 
-    const providers = { ...builtIn, ...customProviders };
-    const models = { ...cfg.models, providers };
-
-    // Sync agents.defaults.models with custom model entries
-    const existingDefaults = cfg.agents?.defaults ?? {};
-    const existingDefaultModels = (existingDefaults.models ?? {}) as Record<string, unknown>;
+    // Build model entries for agents.defaults.models
     const customDefaultModels = buildAgentsDefaultsModels(updated);
-    const agents = {
-      ...cfg.agents,
-      defaults: {
-        ...existingDefaults,
-        models: { ...existingDefaultModels, ...customDefaultModels },
-      },
-    };
 
-    const newConfig = { ...config, models, agents };
-    await writeConfigAndRestart(newConfig);
+    await patchConfig({
+      models: { providers: customProviders },
+      agents: { defaults: { models: customDefaultModels } },
+    });
+    await waitForReconnect();
     await get().loadConfig();
     await get().loadModels();
   },
@@ -546,7 +501,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       models?: { providers?: Record<string, unknown> };
       agents?: { defaults?: Record<string, unknown> };
     };
-    const { builtIn } = splitProviders(cfg.models?.providers);
 
     const currentCustomModels = parseCustomProvidersOnly(
       cfg.models?.providers as Record<string, ProviderConfig> | undefined,
@@ -554,73 +508,83 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const updated = currentCustomModels.map((m) => (m.id === oldId ? model : m));
     const customProviders = buildProvidersPatch(updated, cfg.models?.providers as Record<string, unknown> | undefined);
 
-    const providers = { ...builtIn, ...customProviders };
-    const models = { ...cfg.models, providers };
-
-    // Rebuild agents.defaults.models: remove old custom entries, add new ones
-    const existingDefaults = cfg.agents?.defaults ?? {};
-    const existingDefaultModels = { ...((existingDefaults.models ?? {}) as Record<string, unknown>) };
-    // Remove all custom model entries
+    // Null-out old custom model entries, then add updated ones
     const oldCustomDefaultKeys = Object.keys(buildAgentsDefaultsModels(currentCustomModels));
+    const modelsPatch: Record<string, unknown> = {};
     for (const k of oldCustomDefaultKeys) {
-      delete existingDefaultModels[k];
+      modelsPatch[k] = null; // delete old entries via merge-patch
     }
     const customDefaultModels = buildAgentsDefaultsModels(updated);
-    const agents = {
-      ...cfg.agents,
-      defaults: {
-        ...existingDefaults,
-        models: { ...existingDefaultModels, ...customDefaultModels },
-      },
-    };
+    Object.assign(modelsPatch, customDefaultModels);
 
-    const newConfig = { ...config, models, agents };
-    await writeConfigAndRestart(newConfig);
+    await patchConfig({
+      models: { providers: customProviders },
+      agents: { defaults: { models: modelsPatch } },
+    });
+    await waitForReconnect();
     await get().loadConfig();
     await get().loadModels();
   },
 
   removeCustomModel: async (modelId) => {
-    const config = await readConfigFile();
-    const cfg = config as {
+    // Need to read current config to know provider structure for the model being removed
+    const configResult = await gateway.request<{
+      config: Record<string, unknown>;
+      hash: string;
+    }>("config.get", {});
+    const cfg = configResult.config as {
       models?: { providers?: Record<string, unknown> };
       agents?: { defaults?: Record<string, unknown> };
     };
-    const { builtIn } = splitProviders(cfg.models?.providers);
 
     const currentCustomModels = parseCustomProvidersOnly(
       cfg.models?.providers as Record<string, ProviderConfig> | undefined,
     );
-    const updated = currentCustomModels.filter((m) => m.id !== modelId);
-    const customProviders = buildProvidersPatch(updated, cfg.models?.providers as Record<string, unknown> | undefined);
-
-    const providers = { ...builtIn, ...customProviders };
-    const models = { ...cfg.models, providers };
-
-    // Rebuild agents.defaults.models: remove old custom entries, add remaining
-    const existingDefaults = cfg.agents?.defaults ?? {};
-    const existingDefaultModels = { ...((existingDefaults.models ?? {}) as Record<string, unknown>) };
-    const oldCustomDefaultKeys = Object.keys(buildAgentsDefaultsModels(currentCustomModels));
-    for (const k of oldCustomDefaultKeys) {
-      delete existingDefaultModels[k];
-    }
-    const customDefaultModels = buildAgentsDefaultsModels(updated);
-    // Clear default model if it belonged to a removed model
-    const updatedDefaults: Record<string, unknown> = {
-      ...existingDefaults,
-      models: { ...existingDefaultModels, ...customDefaultModels },
-    };
     const removedModel = currentCustomModels.find((m) => m.id === modelId);
-    if (removedModel && typeof updatedDefaults.model === "string") {
-      const removedKey = `${providerKey(removedModel.provider)}/${removedModel.id}`;
-      if (updatedDefaults.model === removedKey) {
-        delete updatedDefaults.model;
+    const updated = currentCustomModels.filter((m) => m.id !== modelId);
+
+    // Build the patch for providers
+    const providersPatch: Record<string, unknown> = {};
+    if (removedModel) {
+      const key = providerKey(removedModel.provider);
+      // Check if this provider has other models remaining
+      const remainingForProvider = updated.filter((m) => providerKey(m.provider) === key);
+      if (remainingForProvider.length === 0) {
+        // No models left for this provider -- delete it
+        providersPatch[key] = null;
+      } else {
+        // Rebuild provider with remaining models
+        const providerPatch = buildProvidersPatch(remainingForProvider, cfg.models?.providers as Record<string, unknown> | undefined);
+        Object.assign(providersPatch, providerPatch);
       }
     }
-    const agents = { ...cfg.agents, defaults: updatedDefaults };
 
-    const newConfig = { ...config, models, agents };
-    await writeConfigAndRestart(newConfig);
+    // Build the patch for agents.defaults.models
+    const modelsPatch: Record<string, unknown> = {};
+    // Null-out old custom model entries
+    const oldCustomDefaultKeys = Object.keys(buildAgentsDefaultsModels(currentCustomModels));
+    for (const k of oldCustomDefaultKeys) {
+      modelsPatch[k] = null;
+    }
+    // Add back remaining entries
+    const customDefaultModels = buildAgentsDefaultsModels(updated);
+    Object.assign(modelsPatch, customDefaultModels);
+
+    // Clear default model if it belonged to the removed model
+    const defaultsPatch: Record<string, unknown> = { models: modelsPatch };
+    if (removedModel) {
+      const removedKey = `${providerKey(removedModel.provider)}/${removedModel.id}`;
+      const currentDefault = (cfg.agents?.defaults as Record<string, unknown> | undefined)?.model;
+      if (typeof currentDefault === "string" && currentDefault === removedKey) {
+        defaultsPatch.model = null;
+      }
+    }
+
+    await patchConfig({
+      models: { providers: providersPatch },
+      agents: { defaults: defaultsPatch },
+    });
+    await waitForReconnect();
     await get().loadConfig();
     await get().loadModels();
   },
@@ -631,7 +595,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       models?: { providers?: Record<string, unknown> };
       agents?: { defaults?: Record<string, unknown> };
     };
-    const { builtIn } = splitProviders(cfg.models?.providers);
 
     const currentCustomModels = parseCustomProvidersOnly(
       cfg.models?.providers as Record<string, ProviderConfig> | undefined,
@@ -642,27 +605,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const updated = [...filtered, ...newModels];
     const customProviders = buildProvidersPatch(updated, cfg.models?.providers as Record<string, unknown> | undefined);
 
-    const providers = { ...builtIn, ...customProviders };
-    const models = { ...cfg.models, providers };
-
-    // Rebuild agents.defaults.models
-    const existingDefaults = cfg.agents?.defaults ?? {};
-    const existingDefaultModels = { ...((existingDefaults.models ?? {}) as Record<string, unknown>) };
+    // Null-out old custom model entries, add updated ones
     const oldCustomDefaultKeys = Object.keys(buildAgentsDefaultsModels(currentCustomModels));
+    const modelsPatch: Record<string, unknown> = {};
     for (const k of oldCustomDefaultKeys) {
-      delete existingDefaultModels[k];
+      modelsPatch[k] = null;
     }
     const customDefaultModels = buildAgentsDefaultsModels(updated);
-    const agents = {
-      ...cfg.agents,
-      defaults: {
-        ...existingDefaults,
-        models: { ...existingDefaultModels, ...customDefaultModels },
-      },
-    };
+    Object.assign(modelsPatch, customDefaultModels);
 
-    const newConfig = { ...config, models, agents };
-    await writeConfigAndRestart(newConfig);
+    await patchConfig({
+      models: { providers: customProviders },
+      agents: { defaults: { models: modelsPatch } },
+    });
+    await waitForReconnect();
     await get().loadConfig();
     await get().loadModels();
   },
@@ -673,16 +629,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       throw new Error(`Unknown provider "${key}". Use Custom Model to configure manually.`);
     }
 
-    const config = await readConfigFile();
-    const cfg = config as {
-      models?: { providers?: Record<string, unknown> };
-      agents?: { defaults?: Record<string, unknown> };
-    };
-    const existingProviders = cfg.models?.providers ?? {};
-
     // Write full provider config (baseUrl, api, models) to openclaw.json.
-    // OpenClaw's implicit loaders only work via environment variables,
-    // so explicit JSON config must include the complete provider definition.
     const providerEntry: Record<string, unknown> = {
       baseUrl: baseUrl?.trim() || defaults.baseUrl,
       api: defaults.api,
@@ -693,7 +640,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     // Collect model IDs for agents.defaults.models
     let modelIds: string[] = [];
 
-    // Use built-in model definitions if available; otherwise try models.list
     if (defaults.models.length > 0) {
       providerEntry.models = defaults.models;
       modelIds = defaults.models.map((m) => m.id);
@@ -717,137 +663,119 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       }
     }
 
-    const providers = { ...existingProviders, [key]: providerEntry };
-    const models = { ...cfg.models, providers };
-
-    // Also register models in agents.defaults.models
-    const existingDefaults = cfg.agents?.defaults ?? {};
-    const existingDefaultModels = (existingDefaults.models ?? {}) as Record<string, unknown>;
-    const updatedDefaultModels = { ...existingDefaultModels };
+    const modelEntries: Record<string, unknown> = {};
     for (const modelId of modelIds) {
-      updatedDefaultModels[`${key}/${modelId}`] = {};
+      modelEntries[`${key}/${modelId}`] = {};
     }
-    const agents = {
-      ...cfg.agents,
-      defaults: {
-        ...existingDefaults,
-        models: updatedDefaultModels,
-      },
-    };
 
-    const newConfig = { ...config, models, agents };
-    await writeConfigAndRestart(newConfig);
+    await patchConfig({
+      models: { providers: { [key]: providerEntry } },
+      agents: { defaults: { models: modelEntries } },
+    });
+    await waitForReconnect();
     await get().loadConfig();
     await get().loadModels();
   },
 
   removeProvider: async (key) => {
-    const config = await readConfigFile();
-    const cfg = config as {
+    // Read current config to find model keys that need removal
+    const configResult = await gateway.request<{
+      config: Record<string, unknown>;
+      hash: string;
+    }>("config.get", {});
+    const cfg = configResult.config as {
       models?: { providers?: Record<string, unknown> };
-      agents?: { defaults?: Record<string, unknown> };
+      agents?: { defaults?: { model?: unknown; models?: Record<string, unknown> } };
     };
-    const existingProviders = { ...cfg.models?.providers } as Record<string, unknown>;
-    delete existingProviders[key];
 
-    const models = { ...cfg.models, providers: existingProviders };
+    // Null-out the provider key (merge-patch delete)
+    const providersPatch: Record<string, unknown> = { [key]: null };
 
-    // Also clean up agents.defaults: remove model entries and default model if it belongs to this provider
-    const existingDefaults = cfg.agents?.defaults ?? {};
-    const existingDefaultModels = { ...((existingDefaults.models ?? {}) as Record<string, unknown>) };
+    // Null-out model entries belonging to this provider
+    const existingDefaultModels = cfg.agents?.defaults?.models ?? {};
+    const modelsPatch: Record<string, unknown> = {};
     for (const modelKey of Object.keys(existingDefaultModels)) {
       if (modelKey.startsWith(`${key}/`)) {
-        delete existingDefaultModels[modelKey];
+        modelsPatch[modelKey] = null;
       }
     }
-    const updatedDefaults: Record<string, unknown> = {
-      ...existingDefaults,
-      models: existingDefaultModels,
-    };
-    // Clear default model if it belongs to the removed provider
-    if (typeof updatedDefaults.model === "string" && (updatedDefaults.model as string).startsWith(`${key}/`)) {
-      delete updatedDefaults.model;
-    }
-    const agents = { ...cfg.agents, defaults: updatedDefaults };
 
-    const newConfig = { ...config, models, agents };
-    await writeConfigAndRestart(newConfig);
+    // Clear default model if it belongs to the removed provider
+    const defaultsPatch: Record<string, unknown> = { models: modelsPatch };
+    const currentDefault = cfg.agents?.defaults?.model;
+    if (typeof currentDefault === "string" && currentDefault.startsWith(`${key}/`)) {
+      defaultsPatch.model = null;
+    }
+
+    await patchConfig({
+      models: { providers: providersPatch },
+      agents: { defaults: defaultsPatch },
+    });
+    await waitForReconnect();
     await get().loadConfig();
     await get().loadModels();
   },
 
   addQuickProvider: async (apiKey, baseUrl) => {
-    const config = await readConfigFile();
-    const cfg = config as {
-      models?: { providers?: Record<string, unknown> };
-      agents?: { defaults?: Record<string, unknown> };
-    };
-    const existingProviders = cfg.models?.providers ?? {};
-    const providers = {
-      ...existingProviders,
-      [BAILIAN_CODING_PROVIDER_KEY]: {
-        ...BAILIAN_CODING_PRESET,
-        ...(baseUrl ? { baseUrl } : {}),
-        apiKey,
-      },
-    };
-    const models = { ...cfg.models, providers };
-
-    // Merge agents.defaults
-    const existingDefaults = cfg.agents?.defaults ?? {};
-    const existingModelsMap = (existingDefaults.models ?? {}) as Record<string, unknown>;
-    const agents = {
-      ...cfg.agents,
-      defaults: {
-        ...existingDefaults,
-        model: BAILIAN_CODING_AGENTS_DEFAULTS.model,
-        models: { ...existingModelsMap, ...BAILIAN_CODING_AGENTS_DEFAULTS.models },
-      },
+    const providerEntry = {
+      ...BAILIAN_CODING_PRESET,
+      ...(baseUrl ? { baseUrl } : {}),
+      apiKey,
     };
 
-    const newConfig = { ...config, models, agents };
-    await writeConfigAndRestart(newConfig);
+    await patchConfig({
+      models: { providers: { [BAILIAN_CODING_PROVIDER_KEY]: providerEntry } },
+      agents: {
+        defaults: {
+          model: BAILIAN_CODING_AGENTS_DEFAULTS.model,
+          models: { ...BAILIAN_CODING_AGENTS_DEFAULTS.models },
+        },
+      },
+    });
+    await waitForReconnect();
     await get().loadConfig();
     await get().loadModels();
   },
 
   removeQuickProvider: async () => {
-    const config = await readConfigFile();
-    const cfg = config as {
-      models?: { providers?: Record<string, unknown> };
+    // Read config to find which model keys to null-out
+    const configResult = await gateway.request<{
+      config: Record<string, unknown>;
+      hash: string;
+    }>("config.get", {});
+    const cfg = configResult.config as {
       agents?: { defaults?: { model?: unknown; models?: Record<string, unknown> } };
     };
 
-    // Remove provider
-    const existingProviders = { ...cfg.models?.providers } as Record<string, unknown>;
-    delete existingProviders[BAILIAN_CODING_PROVIDER_KEY];
-    const models = { ...cfg.models, providers: existingProviders };
-
-    // Clean agents.defaults: remove keys starting with provider key
+    // Null-out the provider key
     const prefix = `${BAILIAN_CODING_PROVIDER_KEY}/`;
-    const existingDefaults = { ...cfg.agents?.defaults };
-    const existingModelsMap = { ...(existingDefaults.models ?? {}) } as Record<string, unknown>;
+
+    // Null-out model entries belonging to this provider
+    const existingModelsMap = cfg.agents?.defaults?.models ?? {};
+    const modelsPatch: Record<string, unknown> = {};
     for (const key of Object.keys(existingModelsMap)) {
       if (key.startsWith(prefix)) {
-        delete existingModelsMap[key];
+        modelsPatch[key] = null;
       }
     }
-    existingDefaults.models = existingModelsMap;
 
-    // If the default model was from this provider, clear it
-    const primaryModel = existingDefaults.model;
+    // Clear default model if it belongs to this provider
+    const defaultsPatch: Record<string, unknown> = { models: modelsPatch };
+    const primaryModel = cfg.agents?.defaults?.model;
     if (typeof primaryModel === "object" && primaryModel !== null) {
       const pm = primaryModel as { primary?: string };
       if (pm.primary?.startsWith(prefix)) {
-        delete existingDefaults.model;
+        defaultsPatch.model = null;
       }
     } else if (typeof primaryModel === "string" && primaryModel.startsWith(prefix)) {
-      delete existingDefaults.model;
+      defaultsPatch.model = null;
     }
 
-    const agents = { ...cfg.agents, defaults: existingDefaults };
-    const newConfig = { ...config, models, agents };
-    await writeConfigAndRestart(newConfig);
+    await patchConfig({
+      models: { providers: { [BAILIAN_CODING_PROVIDER_KEY]: null } },
+      agents: { defaults: defaultsPatch },
+    });
+    await waitForReconnect();
     await get().loadConfig();
     await get().loadModels();
   },

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { gateway } from "../api/gateway-client";
 import { getPlatformInfo } from "../api/tauri-commands";
+import { patchConfig, waitForReconnect } from "../api/config-helpers";
 
 export interface ContentBlock {
   type: "text" | "toolCall" | "toolResult";
@@ -606,27 +607,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setAgentModel: async (_agentId, modelId) => {
     try {
-      // Set the default model for all agents via config
-      const fullConfig = await gateway.request<{
-        config: Record<string, unknown>;
-        hash: string;
-      }>("config.get", {});
-      const cfg = fullConfig.config as {
-        agents?: { defaults?: Record<string, unknown>; [k: string]: unknown };
-        [k: string]: unknown;
-      };
-      const agents = {
-        ...cfg.agents,
-        defaults: {
-          ...cfg.agents?.defaults,
-          model: modelId,
-        },
-      };
-      const newConfig = { ...fullConfig.config, agents };
-      await gateway.request("config.set", {
-        baseHash: fullConfig.hash,
-        raw: JSON.stringify(newConfig, null, 2),
+      await patchConfig({
+        agents: { defaults: { model: modelId } },
       });
+      await waitForReconnect();
       console.log("[chat-store] setAgentModel: set agents.defaults.model =", modelId);
     } catch (err) {
       console.warn("[chat-store] setAgentModel failed:", err);

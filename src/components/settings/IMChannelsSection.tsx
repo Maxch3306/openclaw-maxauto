@@ -11,9 +11,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { gateway } from "../../api/gateway-client";
+import { patchConfig, waitForReconnect } from "../../api/config-helpers";
 import {
-  stopGateway,
-  startGateway,
   listPairingRequests,
   approvePairingRequest,
   rejectPairingRequest,
@@ -68,19 +67,6 @@ export function IMChannelsSection() {
     const interval = setInterval(loadPairingRequests, 10000);
     return () => clearInterval(interval);
   }, [dmPolicy]);
-
-  async function restartGateway() {
-    try {
-      gateway.disconnect();
-      await stopGateway();
-      await new Promise((r) => setTimeout(r, 1500));
-      await startGateway();
-      await new Promise((r) => setTimeout(r, 2000));
-      gateway.reconnect();
-    } catch (err) {
-      console.warn("[im-channels] restartGateway failed:", err);
-    }
-  }
 
   async function loadTelegramConfig() {
     try {
@@ -158,15 +144,6 @@ export function IMChannelsSection() {
     setSaving(true);
     setSavedMsg("");
     try {
-      const fullConfig = await gateway.request<{
-        config: Record<string, unknown>;
-        hash: string;
-      }>("config.get", {});
-
-      const cfg = fullConfig.config as {
-        channels?: Record<string, unknown>;
-      };
-
       const allowFromList = allowFrom
         .split(",")
         .map((s) => s.trim())
@@ -180,19 +157,12 @@ export function IMChannelsSection() {
         ...(allowFromList.length > 0 ? { allowFrom: allowFromList } : {}),
       };
 
-      const channels = {
-        ...cfg.channels,
-        telegram: telegramConfig,
-      };
-
-      const newConfig = { ...fullConfig.config, channels };
-      await gateway.request("config.set", {
-        baseHash: fullConfig.hash,
-        raw: JSON.stringify(newConfig, null, 2),
+      await patchConfig({
+        channels: { telegram: telegramConfig },
       });
 
       setSavedMsg("Saved! Restarting gateway...");
-      await restartGateway();
+      await waitForReconnect();
       await loadTelegramConfig();
       await loadChannelStatus();
       setSavedMsg("Saved and reconnected.");
@@ -206,28 +176,12 @@ export function IMChannelsSection() {
   async function disableTelegram() {
     setSaving(true);
     try {
-      const fullConfig = await gateway.request<{
-        config: Record<string, unknown>;
-        hash: string;
-      }>("config.get", {});
-
-      const cfg = fullConfig.config as {
-        channels?: Record<string, unknown>;
-      };
-
-      const channels = {
-        ...cfg.channels,
-        telegram: { ...telegramCfg, enabled: false },
-      };
-
-      const newConfig = { ...fullConfig.config, channels };
-      await gateway.request("config.set", {
-        baseHash: fullConfig.hash,
-        raw: JSON.stringify(newConfig, null, 2),
+      await patchConfig({
+        channels: { telegram: { enabled: false } },
       });
 
       setSavedMsg("Telegram disabled. Restarting gateway...");
-      await restartGateway();
+      await waitForReconnect();
       await loadTelegramConfig();
       setSavedMsg("Telegram disabled and reconnected.");
     } catch (err) {
