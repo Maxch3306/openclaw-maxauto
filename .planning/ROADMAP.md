@@ -126,7 +126,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 08-01: TBD
+- [ ] 08-01-PLAN.md — Tag/chip allow-list inputs for DM users, groups, and group senders
 
 ### Phase 9: Channel-Agent Binding
 **Goal**: Users can bind a Telegram bot to a specific agent so messages route to the correct agent
@@ -156,5 +156,5 @@ Note: Phases 2-4 (Skills) and Phases 5-6 (Workspace) and Phases 7-8 (Telegram) c
 | 5. Workspace Defaults | 0/1 | Complete    | 2026-03-14 |
 | 6. Per-Agent Workspace | 0/1 | Complete    | 2026-03-14 |
 | 7. Telegram Bot Setup | 1/1 | Complete    | 2026-03-14 |
-| 8. Telegram Access Control | 0/? | Not started | - |
+| 8. Telegram Access Control | 0/1 | Not started | - |
 | 9. Channel-Agent Binding | 0/? | Not started | - |
