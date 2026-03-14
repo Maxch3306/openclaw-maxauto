@@ -1,7 +1,7 @@
 # Requirements: MaxAuto v1.1
 
 **Defined:** 2026-03-14
-**Core Value:** Users can install, configure, and use OpenClaw without touching a terminal — everything managed through a clean desktop UI.
+**Core Value:** Users can install, configure, and use OpenClaw without touching a terminal -- everything managed through a clean desktop UI.
 
 ## v1.1 Requirements
 
@@ -17,7 +17,7 @@ Requirements for multi-bot Telegram milestone. Each maps to roadmap phases.
 ### Binding & Routing
 
 - [ ] **MBOT-05**: User can bind each bot to a specific agent via per-bot dropdown with match.accountId
-- [ ] **MBOT-06**: UI enforces 1:1 binding — same agent cannot be bound to two bots, same bot cannot be bound to two agents
+- [ ] **MBOT-06**: UI enforces 1:1 binding -- same agent cannot be bound to two bots, same bot cannot be bound to two agents
 - [ ] **MBOT-07**: Existing single-bot config migrates to accounts.default structure when adding a second bot
 
 ### Per-Bot Access Control
@@ -54,21 +54,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MBOT-01 | — | Pending |
-| MBOT-02 | — | Pending |
-| MBOT-03 | — | Pending |
-| MBOT-04 | — | Pending |
-| MBOT-05 | — | Pending |
-| MBOT-06 | — | Pending |
-| MBOT-07 | — | Pending |
-| MBOT-08 | — | Pending |
-| MBOT-09 | — | Pending |
+| MBOT-01 | Phase 11 | Pending |
+| MBOT-02 | Phase 11 | Pending |
+| MBOT-03 | Phase 11 | Pending |
+| MBOT-04 | Phase 11 | Pending |
+| MBOT-05 | Phase 10 | Pending |
+| MBOT-06 | Phase 11 | Pending |
+| MBOT-07 | Phase 10 | Pending |
+| MBOT-08 | Phase 12 | Pending |
+| MBOT-09 | Phase 12 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9
+- Mapped to phases: 9
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-14 after initial definition*
+*Last updated: 2026-03-15 after roadmap creation*

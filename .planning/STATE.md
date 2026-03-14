@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: multi-bot-telegram
-status: defining
-stopped_at: Defining requirements for v1.1
-last_updated: "2026-03-14T17:45:00.000Z"
-last_activity: 2026-03-14 -- Milestone v1.1 started
+status: roadmapped
+stopped_at: Roadmap created for v1.1
+last_updated: "2026-03-15T02:00:00.000Z"
+last_activity: 2026-03-15 -- Roadmap created for v1.1 Multi-Bot Telegram
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,22 +21,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Users can install, configure, and use OpenClaw without touching a terminal -- everything managed through a clean desktop UI.
-**Current focus:** Defining v1.1 Multi-Bot Telegram
+**Current focus:** v1.1 Multi-Bot Telegram -- Phase 10 (Multi-Bot Config Foundation)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-14 — Milestone v1.1 started
-Last activity: 2026-03-14 -- Completed 07-01-PLAN.md (telegram bot setup)
+Phase: 10 of 12 (Multi-Bot Config Foundation) -- first phase of v1.1
+Plan: --
+Status: Ready to plan
+Last activity: 2026-03-15 -- Roadmap created for v1.1 (3 phases, 9 requirements mapped)
 
-Progress: [████████░░] 88%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 8 (from v1.0)
 - Average duration: 3min
 - Total execution time: 0.35 hours
 
@@ -50,37 +49,22 @@ Progress: [████████░░] 88%
 | 04-skills-installation | 1 | 2min | 2min |
 | 05-workspace-defaults | 1 | 3min | 3min |
 | 07-telegram-bot-setup | 1 | 3min | 3min |
+| 08-telegram-access-control | 1 | 2min | 2min |
+| 09-channel-agent-binding | 1 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 2min, 2min, 2min, 3min, 3min
+- Last 5 plans: 2min, 2min, 3min, 2min, 3min
 - Trend: stable
-
-*Updated after each plan completion*
-| Phase 01 P02 | 1min | 1 tasks | 1 files |
-| Phase 06 P01 | 2min | 2 tasks | 2 files |
-| Phase 08 P01 | 2min | 2 tasks | 2 files |
-| Phase 09 P01 | 3min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- Roadmap: Skills before Workspace before Telegram (research-informed ordering)
-- Roadmap: Phase 1 (config.patch) is prerequisite for all feature phases to prevent write races
-- Roadmap: Phase 9 (binding) depends on both per-agent workspace and Telegram access control
-- Phase 1: Used gateway config.patch with optimistic locking (baseHash) for all config writes
-- Phase 1: Removed splitProviders() as merge-patch makes built-in/custom separation unnecessary at write time
-- [Phase 02]: ChevronDown rotation for expand/collapse; shortcode emoji fallback to BookOpen icon; max-w-4xl for 3-col grid
-- [Phase 03]: Combined toggle + API key tasks into single commit; useRef for timer cleanup; undefined vs empty string for edit state detection
-- [Phase 04]: Download icon for install button; tooltip for install label; 8s error auto-dismiss; removed static install options list
-- [Phase 05]: Used @tauri-apps/plugin-fs exists() for dir check; inline amber confirmation for non-existent dirs; navigator.platform for OS label
-- [Phase 06]: Used patchConfig with null for workspace reset (merge-patch delete semantics)
-- [Phase 07]: Direct fetch to Telegram getMe for token validation; probe: true for rich status; fixed channelAccounts array type
-- [Phase 08]: Separate TagInput component for reusability across future settings fields
-- [Phase 09]: Agent binding dropdown placed after bot token, before access control; bindings at config root level
+- v1.0: Config.patch with merge semantics is foundation for all settings writes
+- v1.0: Agent binding at config root level via bindings array
+- v1.1: 3-phase structure -- config foundation, bot management UI, per-bot access control
+- v1.1: Lazy migration only (single-bot to multi-bot on first second-bot add)
+- v1.1: Binding filter must use accountId scope (critical bug fix from research)
 
 ### Pending Todos
 
@@ -88,10 +72,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- config.patch auto-restart behavior on Windows -- SIGUSR1 is Unix-only, may need fallback (Phase 1)
+- Binding array corruption: existing filter pattern removes ALL telegram bindings -- must fix in Phase 10
+- Pairing backend not account-scoped: approve_pairing_request writes to shared file -- needs account_id threading
+- groups config not inherited in multi-account mode (OpenClaw issue #30673) -- migration must preserve carefully
 
 ## Session Continuity
 
-Last session: 2026-03-14T17:28:43.173Z
-Stopped at: Completed 09-01-PLAN.md (channel-agent binding)
+Last session: 2026-03-15
+Stopped at: Roadmap created for v1.1 Multi-Bot Telegram
 Resume file: None
