@@ -35,8 +35,28 @@ interface ChannelAccountSnapshot {
   enabled?: boolean;
   configured?: boolean;
   linked?: boolean;
+  connected?: boolean;
+  running?: boolean;
   status?: string;
   label?: string;
+  lastConnectedAt?: number;
+  lastError?: string;
+  lastStartAt?: number;
+  lastStopAt?: number;
+  lastInboundAt?: number;
+  lastOutboundAt?: number;
+  botTokenSource?: string;
+  probe?: {
+    ok: boolean;
+    error?: string | null;
+    elapsedMs: number;
+    bot?: {
+      id?: number | null;
+      username?: string | null;
+      canJoinGroups?: boolean | null;
+      canReadAllGroupMessages?: boolean | null;
+    };
+  };
 }
 
 export function IMChannelsSection() {
@@ -62,6 +82,9 @@ export function IMChannelsSection() {
   const [pairingRequests, setPairingRequests] = useState<PairingRequest[]>([]);
   const [pairingLoading, setPairingLoading] = useState(false);
   const [pairingAction, setPairingAction] = useState<string | null>(null);
+
+  // Status refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // Load config + status + pairing on mount
   useEffect(() => {
@@ -105,12 +128,11 @@ export function IMChannelsSection() {
     try {
       const result = await gateway.request<{
         channels?: Record<string, unknown>;
-        channelAccounts?: Record<string, Record<string, ChannelAccountSnapshot>>;
-      }>("channels.status", { probe: false });
+        channelAccounts?: Record<string, ChannelAccountSnapshot[]>;
+      }>("channels.status", { probe: true });
       const tgAccounts = result.channelAccounts?.telegram;
-      if (tgAccounts) {
-        const firstAccount = Object.values(tgAccounts)[0];
-        setChannelStatus(firstAccount ?? null);
+      if (tgAccounts && tgAccounts.length > 0) {
+        setChannelStatus(tgAccounts[0] ?? null);
       }
     } catch (err) {
       console.warn("[im-channels] loadChannelStatus failed:", err);
@@ -255,6 +277,37 @@ export function IMChannelsSection() {
   const isEnabled = telegramCfg.enabled !== false && isConfigured;
   const isPairingMode = dmPolicy === "pairing";
 
+  function getStatusDisplay(status: ChannelAccountSnapshot | null) {
+    if (!isConfigured) {
+      return { label: "Not Set Up", colorClass: "text-[var(--color-text-muted)]", dotClass: "bg-[var(--color-text-muted)]" };
+    }
+    if (!isEnabled) {
+      return { label: "Disabled", colorClass: "text-[var(--color-text-muted)]", dotClass: "bg-[var(--color-text-muted)]" };
+    }
+    if (status?.lastError) {
+      return { label: "Error", colorClass: "text-[var(--color-error)]", dotClass: "bg-[var(--color-error)]" };
+    }
+    if (status?.connected || status?.linked) {
+      return { label: "Connected", colorClass: "text-[var(--color-success)]", dotClass: "bg-[var(--color-success)]" };
+    }
+    if (isConfigured && isEnabled) {
+      return { label: "Disconnected", colorClass: "text-[var(--color-warning)]", dotClass: "bg-[var(--color-warning)]" };
+    }
+    return { label: "Unknown", colorClass: "text-[var(--color-text-muted)]", dotClass: "bg-[var(--color-text-muted)]" };
+  }
+
+  async function handleRefreshStatus() {
+    setRefreshing(true);
+    try {
+      await loadChannelStatus();
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  const statusDisplay = getStatusDisplay(channelStatus);
+  const probeBotUsername = channelStatus?.probe?.bot?.username;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
@@ -284,23 +337,47 @@ export function IMChannelsSection() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {channelStatus?.linked && (
-                <span className="text-xs px-2 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
-                  Connected
+              <div className="flex items-center gap-1.5">
+                <span className={`inline-block w-2 h-2 rounded-full ${statusDisplay.dotClass}`} />
+                <span className={`text-xs font-medium ${statusDisplay.colorClass}`}>
+                  {statusDisplay.label}
+                </span>
+              </div>
+              {probeBotUsername && (
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  @{probeBotUsername}
                 </span>
               )}
-              {isEnabled && !channelStatus?.linked && (
-                <span className="text-xs px-2 py-0.5 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)]">
-                  Configured
-                </span>
-              )}
-              {!isConfigured && (
-                <span className="text-xs px-2 py-0.5 rounded bg-[var(--color-text-muted)]/20 text-[var(--color-text-muted)]">
-                  Not Set Up
-                </span>
-              )}
+              <button
+                onClick={handleRefreshStatus}
+                disabled={refreshing}
+                className="p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50"
+                title="Refresh status"
+              >
+                <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+              </button>
             </div>
           </div>
+
+          {/* Status Detail */}
+          {isConfigured && channelStatus && (
+            <div className="px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-bg)]/50">
+              <div className="flex items-center gap-4 text-xs text-[var(--color-text-muted)]">
+                {probeBotUsername && (
+                  <span>Bot: <span className="text-[var(--color-text)] font-medium">@{probeBotUsername}</span></span>
+                )}
+                {channelStatus.lastConnectedAt && (
+                  <span>Connected since: {new Date(channelStatus.lastConnectedAt).toLocaleString()}</span>
+                )}
+                {channelStatus.lastInboundAt && (
+                  <span>Last message: {new Date(channelStatus.lastInboundAt).toLocaleString()}</span>
+                )}
+              </div>
+              {channelStatus.lastError && (
+                <p className="text-xs text-[var(--color-error)] mt-1">{channelStatus.lastError}</p>
+              )}
+            </div>
+          )}
 
           {/* Config Form */}
           <div className="px-4 py-4 space-y-4">
