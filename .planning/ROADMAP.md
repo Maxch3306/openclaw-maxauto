@@ -45,10 +45,10 @@ Plans:
   1. User can open the Skills settings section and see a list of all skills with enabled/disabled/unavailable status
   2. User can see a clear explanation for why any unavailable skill cannot be used (missing dependency, missing API key, etc.)
   3. Skills list reflects the live state from the running gateway without requiring an app restart
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md -- Skills discovery UI with grouped card grid and status badges
 
 ### Phase 3: Skills Control
 **Goal**: Users can enable/disable skills and provide API keys for skills that require them
@@ -58,7 +58,7 @@ Plans:
   1. User can toggle a skill on or off and the change takes effect immediately without restarting the gateway
   2. User can enter an API key for a skill that requires one, and the skill becomes available after saving
   3. Toggling or configuring one skill does not affect the state of other skills
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 03-01: TBD
@@ -71,7 +71,7 @@ Plans:
   1. User can click an install action on an unavailable skill and its dependencies are installed
   2. User can see installation progress (not a frozen UI)
   3. After installation completes, the skill status updates to reflect it is now available
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 04-01: TBD
@@ -84,7 +84,7 @@ Plans:
   1. User can see the current default workspace path in the Workspace settings section
   2. User can change the default workspace directory using a native folder picker dialog
   3. User can click a button to open the workspace folder in the system file manager (Explorer/Finder)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 05-01: TBD
@@ -97,7 +97,7 @@ Plans:
   1. User can set a workspace directory override for a specific agent via folder picker
   2. User can see which agents use the default workspace vs. a custom workspace
   3. Per-agent workspace setting persists across gateway restarts
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 06-01: TBD
@@ -110,7 +110,7 @@ Plans:
   1. User can enter a Telegram bot token in the Channels settings section and save it
   2. User can see whether the Telegram bot is connected, disconnected, or in an error state
   3. Invalid bot tokens are rejected with a clear error message before saving
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 07-01: TBD
@@ -123,7 +123,7 @@ Plans:
   1. User can configure a DM allow-list specifying which Telegram users can message the bot directly
   2. User can configure a group allow-list specifying which Telegram groups the bot serves
   3. Changes to allow-lists take effect without restarting the gateway
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 08-01: TBD
@@ -136,7 +136,7 @@ Plans:
   1. User can select which agent handles messages from a specific Telegram bot
   2. User can see the current binding (which agent is assigned to which Telegram bot)
   3. Changing the binding takes effect for new incoming messages without restarting the gateway
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 09-01: TBD
