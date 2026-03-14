@@ -8,33 +8,66 @@ import {
   UserX,
   RefreshCw,
   Clock,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { gateway } from "../../api/gateway-client";
+import { patchConfig, waitForReconnect } from "../../api/config-helpers";
+import { TagInput } from "./TagInput";
 import {
-  stopGateway,
-  startGateway,
   listPairingRequests,
   approvePairingRequest,
   rejectPairingRequest,
   type PairingRequest,
 } from "../../api/tauri-commands";
+import { useChatStore } from "../../stores/chat-store";
 
 interface TelegramConfig {
   enabled?: boolean;
   botToken?: string;
   dmPolicy?: string;
   groupPolicy?: string;
-  allowFrom?: string[];
-  groupAllowFrom?: string[];
+  allowFrom?: Array<string | number>;
+  groupAllowFrom?: Array<string | number>;
+  groups?: Record<string, Record<string, unknown>>;
+}
+
+interface BindingEntry {
+  type?: string;
+  agentId: string;
+  comment?: string;
+  match: { channel: string; [key: string]: unknown };
 }
 
 interface ChannelAccountSnapshot {
   enabled?: boolean;
   configured?: boolean;
   linked?: boolean;
+  connected?: boolean;
+  running?: boolean;
   status?: string;
   label?: string;
+  lastConnectedAt?: number;
+  lastError?: string;
+  lastStartAt?: number;
+  lastStopAt?: number;
+  lastInboundAt?: number;
+  lastOutboundAt?: number;
+  botTokenSource?: string;
+  probe?: {
+    ok: boolean;
+    error?: string | null;
+    elapsedMs: number;
+    bot?: {
+      id?: number | null;
+      username?: string | null;
+      canJoinGroups?: boolean | null;
+      canReadAllGroupMessages?: boolean | null;
+    };
+  };
 }
 
 export function IMChannelsSection() {
@@ -43,15 +76,34 @@ export function IMChannelsSection() {
   const [botToken, setBotToken] = useState("");
   const [dmPolicy, setDmPolicy] = useState("open");
   const [groupPolicy, setGroupPolicy] = useState("disabled");
-  const [allowFrom, setAllowFrom] = useState("");
+  const [allowFromList, setAllowFromList] = useState<string[]>([]);
+  const [groupIds, setGroupIds] = useState<string[]>([]);
+  const [groupAllowFromList, setGroupAllowFromList] = useState<string[]>([]);
+  const [loadedGroupIds, setLoadedGroupIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Agent binding state
+  const [boundAgentId, setBoundAgentId] = useState<string | null>(null);
+  const [allBindings, setAllBindings] = useState<BindingEntry[]>([]);
+  const agents = useChatStore((s) => s.agents);
+
+  // Validation state
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<{
+    valid: boolean;
+    botUsername?: string;
+    error?: string;
+  } | null>(null);
 
   // Pairing state
   const [pairingRequests, setPairingRequests] = useState<PairingRequest[]>([]);
   const [pairingLoading, setPairingLoading] = useState(false);
   const [pairingAction, setPairingAction] = useState<string | null>(null);
+
+  // Status refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // Load config + status + pairing on mount
   useEffect(() => {
@@ -69,19 +121,6 @@ export function IMChannelsSection() {
     return () => clearInterval(interval);
   }, [dmPolicy]);
 
-  async function restartGateway() {
-    try {
-      gateway.disconnect();
-      await stopGateway();
-      await new Promise((r) => setTimeout(r, 1500));
-      await startGateway();
-      await new Promise((r) => setTimeout(r, 2000));
-      gateway.reconnect();
-    } catch (err) {
-      console.warn("[im-channels] restartGateway failed:", err);
-    }
-  }
-
   async function loadTelegramConfig() {
     try {
       const result = await gateway.request<{
@@ -90,13 +129,23 @@ export function IMChannelsSection() {
       }>("config.get", {});
       const cfg = result.config as {
         channels?: { telegram?: TelegramConfig };
+        bindings?: BindingEntry[];
       };
       const tg = cfg.channels?.telegram ?? {};
       setTelegramCfg(tg);
       setBotToken(tg.botToken ?? "");
       setDmPolicy(tg.dmPolicy ?? "open");
       setGroupPolicy(tg.groupPolicy ?? "disabled");
-      setAllowFrom((tg.allowFrom ?? []).join(", "));
+      setAllowFromList((tg.allowFrom ?? []).map(String));
+      setGroupIds(Object.keys(tg.groups ?? {}));
+      setGroupAllowFromList((tg.groupAllowFrom ?? []).map(String));
+      setLoadedGroupIds(Object.keys(tg.groups ?? {}));
+
+      // Read bindings for agent binding
+      const bindings = cfg.bindings ?? [];
+      const tgBinding = bindings.find((b) => b.match?.channel === "telegram");
+      setBoundAgentId(tgBinding?.agentId ?? null);
+      setAllBindings(bindings);
     } catch (err) {
       console.warn("[im-channels] loadTelegramConfig failed:", err);
     } finally {
@@ -107,13 +156,24 @@ export function IMChannelsSection() {
   async function loadChannelStatus() {
     try {
       const result = await gateway.request<{
-        channels?: Record<string, unknown>;
-        channelAccounts?: Record<string, Record<string, ChannelAccountSnapshot>>;
-      }>("channels.status", { probe: false });
+        channels?: Record<string, ChannelAccountSnapshot>;
+        channelAccounts?: Record<string, ChannelAccountSnapshot[] | Record<string, ChannelAccountSnapshot>>;
+      }>("channels.status", { probe: true });
+
+      // Try channelAccounts first (per-account detail), fall back to channels (single snapshot)
       const tgAccounts = result.channelAccounts?.telegram;
       if (tgAccounts) {
-        const firstAccount = Object.values(tgAccounts)[0];
-        setChannelStatus(firstAccount ?? null);
+        // Handle both array and Record shapes from gateway
+        const first = Array.isArray(tgAccounts) ? tgAccounts[0] : Object.values(tgAccounts)[0];
+        if (first) {
+          setChannelStatus(first);
+          return;
+        }
+      }
+      // Fallback: channels.telegram has a single snapshot
+      const tgChannel = result.channels?.telegram;
+      if (tgChannel) {
+        setChannelStatus(tgChannel);
       }
     } catch (err) {
       console.warn("[im-channels] loadChannelStatus failed:", err);
@@ -154,45 +214,89 @@ export function IMChannelsSection() {
     }
   }
 
+  async function validateBotToken(
+    token: string
+  ): Promise<{ valid: boolean; botUsername?: string; error?: string }> {
+    const trimmed = token.trim();
+    if (!/^\d+:[A-Za-z0-9_-]{30,}$/.test(trimmed)) {
+      return {
+        valid: false,
+        error: "Invalid token format. Expected: 123456789:ABCdef...",
+      };
+    }
+    try {
+      const res = await fetch(
+        `https://api.telegram.org/bot${trimmed}/getMe`
+      );
+      const data = (await res.json()) as {
+        ok?: boolean;
+        description?: string;
+        result?: { username?: string };
+      };
+      if (res.ok && data.ok) {
+        return { valid: true, botUsername: data.result?.username };
+      }
+      return {
+        valid: false,
+        error: data.description ?? "Invalid bot token",
+      };
+    } catch {
+      return {
+        valid: false,
+        error: "Could not reach Telegram API. Check your network.",
+      };
+    }
+  }
+
   async function saveTelegramConfig() {
     setSaving(true);
     setSavedMsg("");
+
+    // Validate token if it changed (skip if unchanged — already validated)
+    const tokenChanged = botToken.trim() !== (telegramCfg.botToken ?? "");
+    if (tokenChanged && botToken.trim()) {
+      setValidating(true);
+      setValidationResult(null);
+      const result = await validateBotToken(botToken);
+      setValidationResult(result);
+      setValidating(false);
+      if (!result.valid) {
+        setSaving(false);
+        return; // Do NOT save invalid token
+      }
+    }
+
     try {
-      const fullConfig = await gateway.request<{
-        config: Record<string, unknown>;
-        hash: string;
-      }>("config.get", {});
+      // Build groups Record with merge-patch deletion support
+      const groupsRecord: Record<string, Record<string, unknown> | null> = {};
+      for (const id of groupIds) { groupsRecord[id] = {}; }
+      for (const id of loadedGroupIds) {
+        if (!groupIds.includes(id)) { groupsRecord[id] = null; }  // delete via merge-patch
+      }
 
-      const cfg = fullConfig.config as {
-        channels?: Record<string, unknown>;
-      };
-
-      const allowFromList = allowFrom
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-
-      const telegramConfig: TelegramConfig = {
+      const telegramConfig: Record<string, unknown> = {
         enabled: true,
         botToken: botToken.trim() || undefined,
         dmPolicy,
         groupPolicy,
-        ...(allowFromList.length > 0 ? { allowFrom: allowFromList } : {}),
+        allowFrom: allowFromList.length > 0 ? allowFromList : null,
+        groupAllowFrom: groupAllowFromList.length > 0 ? groupAllowFromList : null,
+        groups: Object.keys(groupsRecord).length > 0 ? groupsRecord : undefined,
       };
 
-      const channels = {
-        ...cfg.channels,
-        telegram: telegramConfig,
-      };
+      const otherBindings = allBindings.filter((b) => b.match?.channel !== "telegram");
+      const updatedBindings = boundAgentId
+        ? [...otherBindings, { agentId: boundAgentId, match: { channel: "telegram" } }]
+        : otherBindings;
 
-      const newConfig = { ...fullConfig.config, channels };
-      await gateway.request("config.set", {
-        baseHash: fullConfig.hash,
-        raw: JSON.stringify(newConfig, null, 2),
+      await patchConfig({
+        channels: { telegram: telegramConfig },
+        bindings: updatedBindings,
       });
 
       setSavedMsg("Saved! Restarting gateway...");
-      await restartGateway();
+      await waitForReconnect();
+      setLoadedGroupIds([...groupIds]);
       await loadTelegramConfig();
       await loadChannelStatus();
       setSavedMsg("Saved and reconnected.");
@@ -206,28 +310,12 @@ export function IMChannelsSection() {
   async function disableTelegram() {
     setSaving(true);
     try {
-      const fullConfig = await gateway.request<{
-        config: Record<string, unknown>;
-        hash: string;
-      }>("config.get", {});
-
-      const cfg = fullConfig.config as {
-        channels?: Record<string, unknown>;
-      };
-
-      const channels = {
-        ...cfg.channels,
-        telegram: { ...telegramCfg, enabled: false },
-      };
-
-      const newConfig = { ...fullConfig.config, channels };
-      await gateway.request("config.set", {
-        baseHash: fullConfig.hash,
-        raw: JSON.stringify(newConfig, null, 2),
+      await patchConfig({
+        channels: { telegram: { enabled: false } },
       });
 
       setSavedMsg("Telegram disabled. Restarting gateway...");
-      await restartGateway();
+      await waitForReconnect();
       await loadTelegramConfig();
       setSavedMsg("Telegram disabled and reconnected.");
     } catch (err) {
@@ -240,6 +328,37 @@ export function IMChannelsSection() {
   const isConfigured = !!telegramCfg.botToken;
   const isEnabled = telegramCfg.enabled !== false && isConfigured;
   const isPairingMode = dmPolicy === "pairing";
+
+  function getStatusDisplay(status: ChannelAccountSnapshot | null) {
+    if (!isConfigured) {
+      return { label: "Not Set Up", colorClass: "text-[var(--color-text-muted)]", dotClass: "bg-[var(--color-text-muted)]" };
+    }
+    if (!isEnabled) {
+      return { label: "Disabled", colorClass: "text-[var(--color-text-muted)]", dotClass: "bg-[var(--color-text-muted)]" };
+    }
+    if (status?.lastError) {
+      return { label: "Error", colorClass: "text-[var(--color-error)]", dotClass: "bg-[var(--color-error)]" };
+    }
+    if (status?.connected || status?.linked || status?.running) {
+      return { label: "Connected", colorClass: "text-[var(--color-success)]", dotClass: "bg-[var(--color-success)]" };
+    }
+    if (isConfigured && isEnabled) {
+      return { label: "Disconnected", colorClass: "text-[var(--color-warning)]", dotClass: "bg-[var(--color-warning)]" };
+    }
+    return { label: "Unknown", colorClass: "text-[var(--color-text-muted)]", dotClass: "bg-[var(--color-text-muted)]" };
+  }
+
+  async function handleRefreshStatus() {
+    setRefreshing(true);
+    try {
+      await loadChannelStatus();
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  const statusDisplay = getStatusDisplay(channelStatus);
+  const probeBotUsername = channelStatus?.probe?.bot?.username;
 
   if (loading) {
     return (
@@ -270,23 +389,47 @@ export function IMChannelsSection() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {channelStatus?.linked && (
-                <span className="text-xs px-2 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
-                  Connected
+              <div className="flex items-center gap-1.5">
+                <span className={`inline-block w-2 h-2 rounded-full ${statusDisplay.dotClass}`} />
+                <span className={`text-xs font-medium ${statusDisplay.colorClass}`}>
+                  {statusDisplay.label}
+                </span>
+              </div>
+              {probeBotUsername && (
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  @{probeBotUsername}
                 </span>
               )}
-              {isEnabled && !channelStatus?.linked && (
-                <span className="text-xs px-2 py-0.5 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)]">
-                  Configured
-                </span>
-              )}
-              {!isConfigured && (
-                <span className="text-xs px-2 py-0.5 rounded bg-[var(--color-text-muted)]/20 text-[var(--color-text-muted)]">
-                  Not Set Up
-                </span>
-              )}
+              <button
+                onClick={handleRefreshStatus}
+                disabled={refreshing}
+                className="p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50"
+                title="Refresh status"
+              >
+                <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+              </button>
             </div>
           </div>
+
+          {/* Status Detail */}
+          {isConfigured && channelStatus && (
+            <div className="px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-bg)]/50">
+              <div className="flex items-center gap-4 text-xs text-[var(--color-text-muted)]">
+                {probeBotUsername && (
+                  <span>Bot: <span className="text-[var(--color-text)] font-medium">@{probeBotUsername}</span></span>
+                )}
+                {channelStatus.lastConnectedAt && (
+                  <span>Connected since: {new Date(channelStatus.lastConnectedAt).toLocaleString()}</span>
+                )}
+                {channelStatus.lastInboundAt && (
+                  <span>Last message: {new Date(channelStatus.lastInboundAt).toLocaleString()}</span>
+                )}
+              </div>
+              {channelStatus.lastError && (
+                <p className="text-xs text-[var(--color-error)] mt-1">{channelStatus.lastError}</p>
+              )}
+            </div>
+          )}
 
           {/* Config Form */}
           <div className="px-4 py-4 space-y-4">
@@ -298,14 +441,77 @@ export function IMChannelsSection() {
               <input
                 type="password"
                 value={botToken}
-                onChange={(e) => setBotToken(e.target.value)}
+                onChange={(e) => {
+                  setBotToken(e.target.value);
+                  setValidationResult(null);
+                }}
                 placeholder="123456789:ABCdefGhIjKlMnOpQrStUvWxYz..."
                 className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]"
               />
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
-                Get a bot token from <span className="text-[var(--color-accent)]">@BotFather</span>{" "}
-                on Telegram
-              </p>
+              {/* Validation feedback */}
+              {validating && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <Loader2 size={12} className="animate-spin text-[var(--color-accent)]" />
+                  <span className="text-xs text-[var(--color-text-muted)]">Validating token...</span>
+                </div>
+              )}
+              {validationResult && !validating && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  {validationResult.valid ? (
+                    <>
+                      <CheckCircle2 size={12} className="text-[var(--color-success)]" />
+                      <span className="text-xs text-[var(--color-success)]">
+                        Connected as @{validationResult.botUsername}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={12} className="text-[var(--color-error)]" />
+                      <span className="text-xs text-[var(--color-error)]">
+                        {validationResult.error}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+              {!validating && !validationResult && (
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                  Get a bot token from <span className="text-[var(--color-accent)]">@BotFather</span>{" "}
+                  on Telegram
+                </p>
+              )}
+            </div>
+
+            {/* Agent Binding */}
+            <div>
+              <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+                Agent
+              </label>
+              <select
+                value={boundAgentId ?? ""}
+                onChange={(e) => setBoundAgentId(e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+              >
+                <option value="">Select an agent...</option>
+                {agents.map((a) => (
+                  <option key={a.agentId} value={a.agentId}>
+                    {a.emoji ? `${a.emoji} ` : ""}{a.name}
+                  </option>
+                ))}
+              </select>
+              {boundAgentId && !agents.some((a) => a.agentId === boundAgentId) && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <AlertTriangle size={12} className="text-[var(--color-warning)]" />
+                  <span className="text-xs text-[var(--color-warning)]">
+                    Bound agent no longer exists. Please select a different agent.
+                  </span>
+                </div>
+              )}
+              {!boundAgentId && (
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                  Choose which agent handles messages from this Telegram bot
+                </p>
+              )}
             </div>
 
             {/* DM Policy */}
@@ -325,6 +531,23 @@ export function IMChannelsSection() {
               </select>
             </div>
 
+            {/* DM Allow-List (shown when dmPolicy is allowlist) */}
+            {dmPolicy === "allowlist" && (
+              <div>
+                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+                  DM Allow-List
+                </label>
+                <TagInput
+                  tags={allowFromList}
+                  onChange={setAllowFromList}
+                  placeholder="Enter user ID..."
+                />
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                  Telegram user IDs allowed to message the bot directly. Find your ID by messaging @userinfobot on Telegram.
+                </p>
+              </div>
+            )}
+
             {/* Group Policy */}
             <div>
               <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
@@ -341,21 +564,36 @@ export function IMChannelsSection() {
               </select>
             </div>
 
-            {/* Allow From (shown for allowlist policies) */}
-            {(dmPolicy === "allowlist" || groupPolicy === "allowlist") && (
+            {/* Allowed Groups (shown when groupPolicy is allowlist) */}
+            {groupPolicy === "allowlist" && (
               <div>
                 <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
-                  Allowed User/Group IDs
+                  Allowed Groups
                 </label>
-                <input
-                  type="text"
-                  value={allowFrom}
-                  onChange={(e) => setAllowFrom(e.target.value)}
-                  placeholder="123456789, 987654321"
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]"
+                <TagInput
+                  tags={groupIds}
+                  onChange={setGroupIds}
+                  placeholder="Enter group chat ID..."
                 />
                 <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
-                  Comma-separated Telegram user or group IDs
+                  Group chat IDs where the bot will respond. Group IDs are negative numbers (e.g. -1001234567890). Add the bot to the group first.
+                </p>
+              </div>
+            )}
+
+            {/* Group Sender Allow-List (shown when groupPolicy is allowlist) */}
+            {groupPolicy === "allowlist" && (
+              <div>
+                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+                  Group Sender Allow-List
+                </label>
+                <TagInput
+                  tags={groupAllowFromList}
+                  onChange={setGroupAllowFromList}
+                  placeholder="Enter user ID..."
+                />
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                  User IDs allowed to interact with the bot in group chats. Leave empty to allow all group members.
                 </p>
               </div>
             )}
@@ -367,7 +605,13 @@ export function IMChannelsSection() {
                 disabled={saving || !botToken.trim()}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--color-accent)] hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                {saving ? "Saving..." : isConfigured ? "Update" : "Enable Telegram"}
+                {saving
+                  ? validating
+                    ? "Validating..."
+                    : "Saving..."
+                  : isConfigured
+                    ? "Validate & Update"
+                    : "Validate & Save"}
               </button>
               {isEnabled && (
                 <button

@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { FolderOpen, RotateCcw } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { Agent } from "../../stores/chat-store";
 import { useChatStore } from "../../stores/chat-store";
+import { gateway } from "../../api/gateway-client";
+import { patchConfig, waitForReconnect } from "../../api/config-helpers";
 
 interface EditAgentDialogProps {
   agent: Agent;
@@ -10,16 +14,30 @@ interface EditAgentDialogProps {
 export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
   const updateAgent = useChatStore((s) => s.updateAgent);
   const deleteAgent = useChatStore((s) => s.deleteAgent);
+  const loadAgents = useChatStore((s) => s.loadAgents);
 
   const [name, setName] = useState(agent.name || "");
   const [emoji, setEmoji] = useState(agent.emoji || "");
   const [workspace, setWorkspace] = useState(agent.workspace || "");
+  const [resetWorkspace, setResetWorkspace] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const inputClass =
     "w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]";
+
+  async function handleBrowse() {
+    const selected = await open({ directory: true, title: "Select Agent Workspace" });
+    if (!selected) return;
+    setWorkspace(selected);
+    setResetWorkspace(false);
+  }
+
+  function handleReset() {
+    setWorkspace("");
+    setResetWorkspace(true);
+  }
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -29,12 +47,39 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
     setSaving(true);
     setError("");
     try {
-      await updateAgent({
-        agentId: agent.agentId,
-        name: name.trim(),
-        emoji: emoji.trim() || undefined,
-        workspace: workspace.trim() || undefined,
-      });
+      // If resetting workspace, use patchConfig to null out the per-agent workspace
+      if (resetWorkspace) {
+        // First update name/emoji via agents.update
+        await updateAgent({
+          agentId: agent.agentId,
+          name: name.trim(),
+          emoji: emoji.trim() || undefined,
+        });
+        // Then null out workspace via config patch (merge-patch delete semantics)
+        const { config } = await gateway.request<{
+          config: {
+            agents?: {
+              list?: Array<{ id: string; workspace?: string; [key: string]: unknown }>;
+            };
+          };
+          hash: string;
+        }>("config.get", {});
+        const currentList = config?.agents?.list ?? [];
+        const updatedList = currentList.map((entry) =>
+          entry.id === agent.agentId ? { ...entry, workspace: null } : entry
+        );
+        await patchConfig({ agents: { list: updatedList } });
+        await waitForReconnect();
+        await loadAgents();
+      } else {
+        // Normal save -- include workspace only if set
+        await updateAgent({
+          agentId: agent.agentId,
+          name: name.trim(),
+          emoji: emoji.trim() || undefined,
+          workspace: workspace.trim() || undefined,
+        });
+      }
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -100,14 +145,40 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
           </div>
 
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1">Workspace</label>
-            <input
-              type="text"
-              value={workspace}
-              onChange={(e) => setWorkspace(e.target.value)}
-              placeholder="Optional workspace name"
-              className={inputClass}
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm text-[var(--color-text-muted)]">Workspace</label>
+              {(workspace || agent.workspace) && !resetWorkspace && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                >
+                  <RotateCcw size={10} />
+                  Reset
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2">
+                {workspace && !resetWorkspace ? (
+                  <span className="block font-mono text-sm text-[var(--color-text)] truncate">
+                    {workspace}
+                  </span>
+                ) : (
+                  <span className="block text-sm text-[var(--color-text-muted)]/50 truncate">
+                    Using default workspace
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleBrowse()}
+                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors shrink-0"
+              >
+                <FolderOpen size={14} />
+                Browse
+              </button>
+            </div>
           </div>
 
           {error && <p className="text-xs text-[var(--color-error)]">{error}</p>}
