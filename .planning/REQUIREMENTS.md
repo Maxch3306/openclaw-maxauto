@@ -16,9 +16,9 @@ Requirements for multi-bot Telegram milestone. Each maps to roadmap phases.
 
 ### Binding & Routing
 
-- [ ] **MBOT-05**: User can bind each bot to a specific agent via per-bot dropdown with match.accountId
+- [x] **MBOT-05**: User can bind each bot to a specific agent via per-bot dropdown with match.accountId
 - [ ] **MBOT-06**: UI enforces 1:1 binding -- same agent cannot be bound to two bots, same bot cannot be bound to two agents
-- [ ] **MBOT-07**: Existing single-bot config migrates to accounts.default structure when adding a second bot
+- [x] **MBOT-07**: Existing single-bot config migrates to accounts.default structure when adding a second bot
 
 ### Per-Bot Access Control
 
@@ -58,9 +58,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MBOT-02 | Phase 11 | Pending |
 | MBOT-03 | Phase 11 | Pending |
 | MBOT-04 | Phase 11 | Pending |
-| MBOT-05 | Phase 10 | Pending |
+| MBOT-05 | Phase 10 | Complete |
 | MBOT-06 | Phase 11 | Pending |
-| MBOT-07 | Phase 10 | Pending |
+| MBOT-07 | Phase 10 | Complete |
 | MBOT-08 | Phase 12 | Pending |
 | MBOT-09 | Phase 12 | Pending |
 
