@@ -10,6 +10,8 @@
     "shell:allow-stdin-write",
     "shell:default",
     "updater:default",
-    "process:default"
+    "process:default",
+    "dialog:default",
+    "fs:default"
   ]
 }
