@@ -61,7 +61,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md — Add toggle switch and API key input to skill cards
 
 ### Phase 4: Skills Installation
 **Goal**: Users can install missing skill dependencies directly from the UI
@@ -151,7 +151,7 @@ Note: Phases 2-4 (Skills) and Phases 5-6 (Workspace) and Phases 7-8 (Telegram) c
 |-------|----------------|--------|-----------|
 | 1. Config Infrastructure | 1/2 | Complete    | 2026-03-14 |
 | 2. Skills Discovery | 1/1 | Complete    | 2026-03-14 |
-| 3. Skills Control | 0/? | Not started | - |
+| 3. Skills Control | 0/1 | Not started | - |
 | 4. Skills Installation | 0/? | Not started | - |
 | 5. Workspace Defaults | 0/? | Not started | - |
 | 6. Per-Agent Workspace | 0/? | Not started | - |
