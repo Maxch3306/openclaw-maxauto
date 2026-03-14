@@ -191,7 +191,7 @@ function SkillCard({
           {skill.description}
         </p>
         {skillError && (
-          <p className="text-[10px] text-[var(--color-error)] mt-1">
+          <p className="text-xs text-[var(--color-error)] mt-1 font-medium">
             {skillError}
           </p>
         )}
@@ -269,6 +269,18 @@ function SkillCard({
                   {skillMessage.message}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Install error in expanded view */}
+          {skillError && (
+            <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded px-3 py-2">
+              <p className="text-xs text-[var(--color-error)] font-medium">
+                Install failed
+              </p>
+              <p className="text-[10px] text-[var(--color-error)]/80 mt-0.5">
+                {skillError}
+              </p>
             </div>
           )}
 
@@ -462,7 +474,7 @@ export function SkillsSection() {
         const msg = err instanceof Error ? err.message : String(err);
         setSkillErrors((prev) => ({ ...prev, [key]: msg }));
 
-        // Auto-dismiss error after 8 seconds
+        // Auto-dismiss error after 30 seconds
         if (errorTimers.current[key]) clearTimeout(errorTimers.current[key]);
         errorTimers.current[key] = setTimeout(() => {
           setSkillErrors((prev) => {
@@ -470,7 +482,7 @@ export function SkillsSection() {
             delete next[key];
             return next;
           });
-        }, 8000);
+        }, 30000);
       } finally {
         setInstallingSkill(null);
       }
