@@ -16,6 +16,7 @@ import { IMChannelsSection } from "../components/settings/IMChannelsSection";
 import { ModelsAndApiSection } from "../components/settings/ModelsAndApiSection";
 import { AboutSection } from "../components/settings/AboutSection";
 import { SkillsSection } from "../components/settings/SkillsSection";
+import { WorkspaceSection } from "../components/settings/WorkspaceSection";
 import { useAppStore } from "../stores/app-store";
 import { useSettingsStore, type SettingsSection } from "../stores/settings-store";
 
@@ -49,6 +50,8 @@ function renderSection(section: SettingsSection) {
       return <IMChannelsSection />;
     case "skills":
       return <SkillsSection />;
+    case "workspace":
+      return <WorkspaceSection />;
     case "about":
       return <AboutSection />;
     default: {
