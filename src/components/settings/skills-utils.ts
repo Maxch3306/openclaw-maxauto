@@ -130,6 +130,14 @@ export function isToggleDisabled(skill: SkillStatusEntry): boolean {
   return !skill.disabled && !skill.eligible;
 }
 
+/**
+ * Returns true if the skill has install options and is missing required binaries.
+ * Used to decide whether to show an install button on the compact card.
+ */
+export function canInstallSkill(skill: SkillStatusEntry): boolean {
+  return skill.install.length > 0 && skill.missing.bins.length > 0;
+}
+
 export function computeSkillMissing(skill: SkillStatusEntry): string[] {
   const items: string[] = [];
 

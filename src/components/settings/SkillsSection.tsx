@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Eye,
   EyeOff,
+  Download,
 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { gateway } from "../../api/gateway-client";
@@ -20,6 +21,7 @@ import {
   skillNeedsApiKey,
   hasApiKeySet,
   isToggleDisabled,
+  canInstallSkill,
 } from "./skills-utils";
 
 const STATUS_BADGE: Record<
@@ -104,6 +106,8 @@ function SkillCard({
   onApiKeyRevealToggle,
   onSaveApiKey,
   onStartEdit,
+  installingSkill,
+  onInstall,
 }: {
   skill: SkillStatusEntry;
   expanded: boolean;
@@ -119,6 +123,8 @@ function SkillCard({
   onApiKeyRevealToggle: (skillKey: string) => void;
   onSaveApiKey: (skillKey: string) => void;
   onStartEdit: (skillKey: string) => void;
+  installingSkill: string | null;
+  onInstall: (skill: SkillStatusEntry) => void;
 }) {
   const status = getSkillDisplayStatus(skill);
   const badge = STATUS_BADGE[status];
@@ -148,6 +154,26 @@ function SkillCard({
           >
             {badge.label}
           </span>
+          {canInstallSkill(skill) && (
+            installingSkill === skill.skillKey ? (
+              <span className="inline-flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]">
+                <Loader2 size={12} className="animate-spin" />
+                Installing...
+              </span>
+            ) : (
+              <button
+                title={skill.install[0].label}
+                disabled={installingSkill !== null}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInstall(skill);
+                }}
+                className="p-1 text-[var(--color-accent)] hover:text-[var(--color-accent)]/80 transition-colors disabled:opacity-40"
+              >
+                <Download size={14} />
+              </button>
+            )
+          )}
           <ToggleSwitch
             checked={isChecked}
             disabled={toggleDisabled}
@@ -265,25 +291,6 @@ function SkillCard({
             </div>
           )}
 
-          {/* Install options */}
-          {skill.install.length > 0 && (
-            <div>
-              <p className="text-[10px] font-medium text-[var(--color-text-muted)] mb-1">
-                Install options
-              </p>
-              <div className="space-y-0.5">
-                {skill.install.map((opt) => (
-                  <p
-                    key={opt.id}
-                    className="text-[10px] text-[var(--color-text-muted)]"
-                  >
-                    {opt.label}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Homepage link */}
           {skill.homepage && (
             <a
@@ -316,6 +323,9 @@ export function SkillsSection() {
 
   // Task 2 state: API key editing
   const [apiKeyEdits, setApiKeyEdits] = useState<Record<string, string>>({});
+
+  // Install state
+  const [installingSkill, setInstallingSkill] = useState<string | null>(null);
   const [apiKeyRevealed, setApiKeyRevealed] = useState<Record<string, boolean>>(
     {},
   );
@@ -424,6 +434,45 @@ export function SkillsSection() {
           next.delete(key);
           return next;
         });
+      }
+    },
+    [loadSkills],
+  );
+
+  const handleInstall = useCallback(
+    async (skill: SkillStatusEntry) => {
+      const key = skill.skillKey;
+      setInstallingSkill(key);
+
+      // Clear any previous error for this skill
+      setSkillErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+
+      try {
+        await gateway.request("skills.install", {
+          name: skill.name,
+          installId: skill.install[0].id,
+          timeoutMs: 120000,
+        });
+        await loadSkills();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setSkillErrors((prev) => ({ ...prev, [key]: msg }));
+
+        // Auto-dismiss error after 8 seconds
+        if (errorTimers.current[key]) clearTimeout(errorTimers.current[key]);
+        errorTimers.current[key] = setTimeout(() => {
+          setSkillErrors((prev) => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+          });
+        }, 8000);
+      } finally {
+        setInstallingSkill(null);
       }
     },
     [loadSkills],
@@ -571,6 +620,8 @@ export function SkillsSection() {
                   onStartEdit={(key) =>
                     setApiKeyEdits((prev) => ({ ...prev, [key]: "" }))
                   }
+                  installingSkill={installingSkill}
+                  onInstall={handleInstall}
                 />
               ))}
             </div>
