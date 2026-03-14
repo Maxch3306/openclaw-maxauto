@@ -157,11 +157,15 @@ export function IMChannelsSection() {
     try {
       const result = await gateway.request<{
         channels?: Record<string, unknown>;
-        channelAccounts?: Record<string, ChannelAccountSnapshot[]>;
+        channelAccounts?: Record<string, Record<string, ChannelAccountSnapshot>>;
       }>("channels.status", { probe: true });
       const tgAccounts = result.channelAccounts?.telegram;
-      if (tgAccounts && tgAccounts.length > 0) {
-        setChannelStatus(tgAccounts[0] ?? null);
+      if (tgAccounts) {
+        // channelAccounts is Record<accountId, snapshot> — get first account (usually "default")
+        const firstAccount = Object.values(tgAccounts)[0];
+        if (firstAccount) {
+          setChannelStatus(firstAccount);
+        }
       }
     } catch (err) {
       console.warn("[im-channels] loadChannelStatus failed:", err);
