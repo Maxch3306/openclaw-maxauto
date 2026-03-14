@@ -339,7 +339,7 @@ export function IMChannelsSection() {
     if (status?.lastError) {
       return { label: "Error", colorClass: "text-[var(--color-error)]", dotClass: "bg-[var(--color-error)]" };
     }
-    if (status?.connected || status?.linked) {
+    if (status?.connected || status?.linked || status?.running) {
       return { label: "Connected", colorClass: "text-[var(--color-success)]", dotClass: "bg-[var(--color-success)]" };
     }
     if (isConfigured && isEnabled) {
