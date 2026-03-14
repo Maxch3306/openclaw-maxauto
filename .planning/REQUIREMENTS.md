@@ -12,7 +12,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **TELE-01**: User can enter and validate a Telegram bot token in-app
 - [x] **TELE-02**: User can configure DM allow-list (which users can message the bot)
 - [x] **TELE-03**: User can configure group allow-list (which groups the bot serves)
-- [ ] **TELE-04**: User can bind a Telegram bot to a specific agent (1:1 mapping)
+- [x] **TELE-04**: User can bind a Telegram bot to a specific agent (1:1 mapping)
 - [x] **TELE-05**: User can see connection status of the Telegram bot (connected/disconnected/error)
 
 ### Skills Management
@@ -82,7 +82,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TELE-05 | Phase 7: Telegram Bot Setup | Complete |
 | TELE-02 | Phase 8: Telegram Access Control | Complete |
 | TELE-03 | Phase 8: Telegram Access Control | Complete |
-| TELE-04 | Phase 9: Channel-Agent Binding | Pending |
+| TELE-04 | Phase 9: Channel-Agent Binding | Complete |
 
 **Coverage:**
 - v1 requirements: 14 total
