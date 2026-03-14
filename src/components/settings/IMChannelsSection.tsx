@@ -8,6 +8,9 @@ import {
   UserX,
   RefreshCw,
   Clock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { gateway } from "../../api/gateway-client";
@@ -46,6 +49,14 @@ export function IMChannelsSection() {
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Validation state
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<{
+    valid: boolean;
+    botUsername?: string;
+    error?: string;
+  } | null>(null);
 
   // Pairing state
   const [pairingRequests, setPairingRequests] = useState<PairingRequest[]>([]);
@@ -140,9 +151,58 @@ export function IMChannelsSection() {
     }
   }
 
+  async function validateBotToken(
+    token: string
+  ): Promise<{ valid: boolean; botUsername?: string; error?: string }> {
+    const trimmed = token.trim();
+    if (!/^\d+:[A-Za-z0-9_-]{30,}$/.test(trimmed)) {
+      return {
+        valid: false,
+        error: "Invalid token format. Expected: 123456789:ABCdef...",
+      };
+    }
+    try {
+      const res = await fetch(
+        `https://api.telegram.org/bot${trimmed}/getMe`
+      );
+      const data = (await res.json()) as {
+        ok?: boolean;
+        description?: string;
+        result?: { username?: string };
+      };
+      if (res.ok && data.ok) {
+        return { valid: true, botUsername: data.result?.username };
+      }
+      return {
+        valid: false,
+        error: data.description ?? "Invalid bot token",
+      };
+    } catch {
+      return {
+        valid: false,
+        error: "Could not reach Telegram API. Check your network.",
+      };
+    }
+  }
+
   async function saveTelegramConfig() {
     setSaving(true);
     setSavedMsg("");
+
+    // Validate token if it changed (skip if unchanged — already validated)
+    const tokenChanged = botToken.trim() !== (telegramCfg.botToken ?? "");
+    if (tokenChanged && botToken.trim()) {
+      setValidating(true);
+      setValidationResult(null);
+      const result = await validateBotToken(botToken);
+      setValidationResult(result);
+      setValidating(false);
+      if (!result.valid) {
+        setSaving(false);
+        return; // Do NOT save invalid token
+      }
+    }
+
     try {
       const allowFromList = allowFrom
         .split(",")
@@ -252,14 +312,45 @@ export function IMChannelsSection() {
               <input
                 type="password"
                 value={botToken}
-                onChange={(e) => setBotToken(e.target.value)}
+                onChange={(e) => {
+                  setBotToken(e.target.value);
+                  setValidationResult(null);
+                }}
                 placeholder="123456789:ABCdefGhIjKlMnOpQrStUvWxYz..."
                 className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]"
               />
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
-                Get a bot token from <span className="text-[var(--color-accent)]">@BotFather</span>{" "}
-                on Telegram
-              </p>
+              {/* Validation feedback */}
+              {validating && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <Loader2 size={12} className="animate-spin text-[var(--color-accent)]" />
+                  <span className="text-xs text-[var(--color-text-muted)]">Validating token...</span>
+                </div>
+              )}
+              {validationResult && !validating && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  {validationResult.valid ? (
+                    <>
+                      <CheckCircle2 size={12} className="text-[var(--color-success)]" />
+                      <span className="text-xs text-[var(--color-success)]">
+                        Connected as @{validationResult.botUsername}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={12} className="text-[var(--color-error)]" />
+                      <span className="text-xs text-[var(--color-error)]">
+                        {validationResult.error}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+              {!validating && !validationResult && (
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                  Get a bot token from <span className="text-[var(--color-accent)]">@BotFather</span>{" "}
+                  on Telegram
+                </p>
+              )}
             </div>
 
             {/* DM Policy */}
@@ -321,7 +412,13 @@ export function IMChannelsSection() {
                 disabled={saving || !botToken.trim()}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--color-accent)] hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                {saving ? "Saving..." : isConfigured ? "Update" : "Enable Telegram"}
+                {saving
+                  ? validating
+                    ? "Validating..."
+                    : "Saving..."
+                  : isConfigured
+                    ? "Validate & Update"
+                    : "Validate & Save"}
               </button>
               {isEnabled && (
                 <button
