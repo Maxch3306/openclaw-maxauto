@@ -31,10 +31,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Success Criteria** (what must be TRUE):
   1. Config writes from any settings section merge into existing config rather than replacing the entire file
   2. Two settings sections modified in quick succession do not clobber each other's changes
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 01-01: TBD
+- [ ] 01-01-PLAN.md — Migrate all config writes to config.patch with merge semantics
 
 ### Phase 2: Skills Discovery
 **Goal**: Users can browse all available skills and understand why any skill is unavailable
@@ -148,7 +148,7 @@ Note: Phases 2-4 (Skills) and Phases 5-6 (Workspace) and Phases 7-8 (Telegram) c
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Config Infrastructure | 0/? | Not started | - |
+| 1. Config Infrastructure | 0/1 | Planning complete | - |
 | 2. Skills Discovery | 0/? | Not started | - |
 | 3. Skills Control | 0/? | Not started | - |
 | 4. Skills Installation | 0/? | Not started | - |
