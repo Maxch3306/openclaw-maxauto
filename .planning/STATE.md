@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: completed
-stopped_at: Completed 09-01-PLAN.md (channel-agent binding)
-last_updated: "2026-03-14T17:31:00.057Z"
-last_activity: 2026-03-14 -- Completed 07-01-PLAN.md (telegram bot setup)
+milestone: v1.1
+milestone_name: multi-bot-telegram
+status: defining
+stopped_at: Defining requirements for v1.1
+last_updated: "2026-03-14T17:45:00.000Z"
+last_activity: 2026-03-14 -- Milestone v1.1 started
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 10
-  completed_plans: 10
-  percent: 88
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,13 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Users can install, configure, and use OpenClaw without touching a terminal -- everything managed through a clean desktop UI.
-**Current focus:** Phase 7: Telegram Bot Setup
+**Current focus:** Defining v1.1 Multi-Bot Telegram
 
 ## Current Position
 
-Phase: 7 of 9 (Telegram Bot Setup)
-Plan: 1 of 1 in current phase (COMPLETE)
-Status: Phase 7 Plan 1 complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-14 — Milestone v1.1 started
 Last activity: 2026-03-14 -- Completed 07-01-PLAN.md (telegram bot setup)
 
 Progress: [████████░░] 88%
