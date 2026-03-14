@@ -41,11 +41,10 @@
   2. Saving one bot's agent binding does not destroy or modify other bots' bindings in the config
   3. Agent bindings use match.accountId to route messages to the correct bot-agent pair
   4. Account IDs are normalized consistently (lowercase alphanumeric + hyphen) matching OpenClaw's internal normalization
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 10-01: TBD
-- [ ] 10-02: TBD
+- [ ] 10-01-PLAN.md — Account-scoped config helpers and IMChannelsSection refactor with binding fix
 
 ### Phase 11: Bot Account Management
 **Goal**: Users can manage multiple Telegram bots through a card-based UI with full lifecycle control and strict 1:1 binding
@@ -93,6 +92,6 @@ Phase 10 is mandatory before 11 and 12 (config correctness foundation). Phase 12
 | 7. Telegram Bot Setup | v1.0 | 1/1 | Complete | 2026-03-14 |
 | 8. Telegram Access Control | v1.0 | 0/1 | Complete | 2026-03-14 |
 | 9. Channel-Agent Binding | v1.0 | 1/1 | Complete | 2026-03-14 |
-| 10. Multi-Bot Config Foundation | v1.1 | 0/? | Not started | - |
+| 10. Multi-Bot Config Foundation | v1.1 | 0/1 | Not started | - |
 | 11. Bot Account Management | v1.1 | 0/? | Not started | - |
 | 12. Per-Bot Access Control | v1.1 | 0/? | Not started | - |
