@@ -105,6 +105,31 @@ export function getSkillDisplayStatus(
  * Returns a human-readable list of missing items for a skill.
  * Each item is prefixed with its category (bin, env, config, os).
  */
+/**
+ * Returns true if the skill requires an API key (has a primaryEnv field).
+ */
+export function skillNeedsApiKey(skill: SkillStatusEntry): boolean {
+  return Boolean(skill.primaryEnv);
+}
+
+/**
+ * Returns true if the skill's required API key is already set (not missing).
+ */
+export function hasApiKeySet(skill: SkillStatusEntry): boolean {
+  return Boolean(
+    skill.primaryEnv && !skill.missing.env.includes(skill.primaryEnv),
+  );
+}
+
+/**
+ * Returns true when the toggle should be disabled.
+ * A user-disabled skill always allows toggling (to re-enable).
+ * An unavailable skill that is NOT user-disabled cannot be toggled.
+ */
+export function isToggleDisabled(skill: SkillStatusEntry): boolean {
+  return !skill.disabled && !skill.eligible;
+}
+
 export function computeSkillMissing(skill: SkillStatusEntry): string[] {
   const items: string[] = [];
 
