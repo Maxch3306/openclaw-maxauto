@@ -16,6 +16,14 @@ import {
 import { useEffect, useState } from "react";
 import { gateway } from "../../api/gateway-client";
 import { patchConfig, waitForReconnect } from "../../api/config-helpers";
+import {
+  type TelegramConfig,
+  type TelegramAccountConfig,
+  type BindingEntry,
+  getAccountConfigs,
+  getTelegramBindingForAccount,
+  buildUpdatedBindings,
+} from "../../api/telegram-accounts";
 import { TagInput } from "./TagInput";
 import {
   listPairingRequests,
@@ -24,23 +32,6 @@ import {
   type PairingRequest,
 } from "../../api/tauri-commands";
 import { useChatStore } from "../../stores/chat-store";
-
-interface TelegramConfig {
-  enabled?: boolean;
-  botToken?: string;
-  dmPolicy?: string;
-  groupPolicy?: string;
-  allowFrom?: Array<string | number>;
-  groupAllowFrom?: Array<string | number>;
-  groups?: Record<string, Record<string, unknown>>;
-}
-
-interface BindingEntry {
-  type?: string;
-  agentId: string;
-  comment?: string;
-  match: { channel: string; [key: string]: unknown };
-}
 
 interface ChannelAccountSnapshot {
   enabled?: boolean;
@@ -83,6 +74,7 @@ export function IMChannelsSection() {
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentAccountId, setCurrentAccountId] = useState("default");
 
   // Agent binding state
   const [boundAgentId, setBoundAgentId] = useState<string | null>(null);
@@ -133,17 +125,25 @@ export function IMChannelsSection() {
       };
       const tg = cfg.channels?.telegram ?? {};
       setTelegramCfg(tg);
-      setBotToken(tg.botToken ?? "");
-      setDmPolicy(tg.dmPolicy ?? "open");
-      setGroupPolicy(tg.groupPolicy ?? "disabled");
-      setAllowFromList((tg.allowFrom ?? []).map(String));
-      setGroupIds(Object.keys(tg.groups ?? {}));
-      setGroupAllowFromList((tg.groupAllowFrom ?? []).map(String));
-      setLoadedGroupIds(Object.keys(tg.groups ?? {}));
 
-      // Read bindings for agent binding
-      const bindings = cfg.bindings ?? [];
-      const tgBinding = bindings.find((b) => b.match?.channel === "telegram");
+      // Read account configs (handles both flat legacy and multi-account shapes)
+      const accounts = getAccountConfigs(tg);
+      // For Phase 10, always read the first/default account
+      const accountId = accounts.keys().next().value ?? "default";
+      const acct: TelegramAccountConfig = accounts.get(accountId) ?? {};
+      setCurrentAccountId(accountId);
+
+      setBotToken(acct.botToken ?? "");
+      setDmPolicy(acct.dmPolicy ?? "open");
+      setGroupPolicy(acct.groupPolicy ?? "disabled");
+      setAllowFromList((acct.allowFrom ?? []).map(String));
+      setGroupIds(Object.keys(acct.groups ?? {}));
+      setGroupAllowFromList((acct.groupAllowFrom ?? []).map(String));
+      setLoadedGroupIds(Object.keys(acct.groups ?? {}));
+
+      // Read bindings for agent binding (scoped by accountId)
+      const bindings = (cfg.bindings ?? []) as BindingEntry[];
+      const tgBinding = getTelegramBindingForAccount(bindings, accountId);
       setBoundAgentId(tgBinding?.agentId ?? null);
       setAllBindings(bindings);
     } catch (err) {
@@ -284,13 +284,16 @@ export function IMChannelsSection() {
         groups: Object.keys(groupsRecord).length > 0 ? groupsRecord : undefined,
       };
 
-      const otherBindings = allBindings.filter((b) => b.match?.channel !== "telegram");
-      const updatedBindings = boundAgentId
-        ? [...otherBindings, { agentId: boundAgentId, match: { channel: "telegram" } }]
-        : otherBindings;
+      const updatedBindings = buildUpdatedBindings(allBindings, currentAccountId, boundAgentId);
 
       await patchConfig({
-        channels: { telegram: telegramConfig },
+        channels: {
+          telegram: {
+            accounts: {
+              [currentAccountId]: telegramConfig,
+            },
+          },
+        },
         bindings: updatedBindings,
       });
 
@@ -311,7 +314,7 @@ export function IMChannelsSection() {
     setSaving(true);
     try {
       await patchConfig({
-        channels: { telegram: { enabled: false } },
+        channels: { telegram: { accounts: { [currentAccountId]: { enabled: false } } } },
       });
 
       setSavedMsg("Telegram disabled. Restarting gateway...");
@@ -325,7 +328,7 @@ export function IMChannelsSection() {
     }
   }
 
-  const isConfigured = !!telegramCfg.botToken;
+  const isConfigured = !!botToken.trim();
   const isEnabled = telegramCfg.enabled !== false && isConfigured;
   const isPairingMode = dmPolicy === "pairing";
 
