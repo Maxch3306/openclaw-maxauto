@@ -471,8 +471,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   addCustomModel: async (model) => {
-    const config = await readConfigFile();
-    const cfg = config as {
+    const configResult = await gateway.request<{
+      config: Record<string, unknown>;
+      hash: string;
+    }>("config.get", {});
+    const cfg = configResult.config as {
       models?: { providers?: Record<string, unknown> };
       agents?: { defaults?: Record<string, unknown> };
     };
@@ -496,8 +499,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   updateCustomModel: async (oldId, model) => {
-    const config = await readConfigFile();
-    const cfg = config as {
+    const configResult = await gateway.request<{
+      config: Record<string, unknown>;
+      hash: string;
+    }>("config.get", {});
+    const cfg = configResult.config as {
       models?: { providers?: Record<string, unknown> };
       agents?: { defaults?: Record<string, unknown> };
     };
@@ -590,8 +596,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   replaceProviderModels: async (providerName, oldModelIds, newModels) => {
-    const config = await readConfigFile();
-    const cfg = config as {
+    const configResult = await gateway.request<{
+      config: Record<string, unknown>;
+      hash: string;
+    }>("config.get", {});
+    const cfg = configResult.config as {
       models?: { providers?: Record<string, unknown> };
       agents?: { defaults?: Record<string, unknown> };
     };
