@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Config Infrastructure** - Safe config writes via patch semantics to prevent race conditions (completed 2026-03-14)
 - [x] **Phase 2: Skills Discovery** - Users can see all available skills and understand their status (completed 2026-03-14)
-- [ ] **Phase 3: Skills Control** - Users can toggle skills and configure their API keys
+- [x] **Phase 3: Skills Control** - Users can toggle skills and configure their API keys (completed 2026-03-14)
 - [ ] **Phase 4: Skills Installation** - Users can install missing skill dependencies from the UI
 - [ ] **Phase 5: Workspace Defaults** - Users can view, change, and open the default workspace directory
 - [ ] **Phase 6: Per-Agent Workspace** - Users can assign different workspace directories to individual agents
@@ -151,7 +151,7 @@ Note: Phases 2-4 (Skills) and Phases 5-6 (Workspace) and Phases 7-8 (Telegram) c
 |-------|----------------|--------|-----------|
 | 1. Config Infrastructure | 1/2 | Complete    | 2026-03-14 |
 | 2. Skills Discovery | 1/1 | Complete    | 2026-03-14 |
-| 3. Skills Control | 0/1 | Not started | - |
+| 3. Skills Control | 1/1 | Complete   | 2026-03-14 |
 | 4. Skills Installation | 0/? | Not started | - |
 | 5. Workspace Defaults | 0/? | Not started | - |
 | 6. Per-Agent Workspace | 0/? | Not started | - |

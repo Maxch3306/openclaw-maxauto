@@ -18,8 +18,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Skills Management
 
 - [x] **SKIL-01**: User can view a list of all available skills with their status (enabled/disabled/unavailable)
-- [ ] **SKIL-02**: User can toggle skills on and off
-- [ ] **SKIL-03**: User can enter API keys for skills that require them
+- [x] **SKIL-02**: User can toggle skills on and off
+- [x] **SKIL-03**: User can enter API keys for skills that require them
 - [x] **SKIL-04**: User can see why a skill is unavailable (missing dependencies, requirements)
 - [ ] **SKIL-05**: User can install skill dependencies from the UI
 
@@ -72,8 +72,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFR-01 | Phase 1: Config Infrastructure | Complete |
 | SKIL-01 | Phase 2: Skills Discovery | Complete |
 | SKIL-04 | Phase 2: Skills Discovery | Complete |
-| SKIL-02 | Phase 3: Skills Control | Pending |
-| SKIL-03 | Phase 3: Skills Control | Pending |
+| SKIL-02 | Phase 3: Skills Control | Complete |
+| SKIL-03 | Phase 3: Skills Control | Complete |
 | SKIL-05 | Phase 4: Skills Installation | Pending |
 | WORK-01 | Phase 5: Workspace Defaults | Pending |
 | WORK-03 | Phase 5: Workspace Defaults | Pending |
