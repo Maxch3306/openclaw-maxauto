@@ -157,4 +157,4 @@ Note: Phases 2-4 (Skills) and Phases 5-6 (Workspace) and Phases 7-8 (Telegram) c
 | 6. Per-Agent Workspace | 0/1 | Complete    | 2026-03-14 |
 | 7. Telegram Bot Setup | 1/1 | Complete    | 2026-03-14 |
 | 8. Telegram Access Control | 0/1 | Complete    | 2026-03-14 |
-| 9. Channel-Agent Binding | 1/1 | Complete   | 2026-03-14 |
+| 9. Channel-Agent Binding | 1/1 | Complete    | 2026-03-14 |
