@@ -37,13 +37,15 @@ Users can install, configure, and use OpenClaw without touching a terminal or re
 - ✓ Telegram access control — tag-based DM/group/sender allow-lists
 - ✓ Channel-agent binding — 1:1 mapping of Telegram bot to agent
 
+- ✓ Multi-bot Telegram — add/remove multiple Telegram bot accounts — v1.1
+- ✓ Strict 1:1 binding enforcement — one bot per agent, one agent per bot — v1.1
+- ✓ Per-bot access control and connection status — v1.1
+
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Multi-bot Telegram — add/remove multiple Telegram bot accounts
-- [ ] Strict 1:1 binding enforcement — one bot per agent, one agent per bot
-- [ ] Per-bot access control and connection status
+(None — planning next milestone)
 
 ### Out of Scope
 
@@ -52,24 +54,21 @@ Users can install, configure, and use OpenClaw without touching a terminal or re
 - MCP service management — defer until skills management is solid
 - Mobile app — desktop-first product
 
-## Current Milestone: v1.1 Multi-Bot Telegram
+## Shipped Milestones
 
-**Goal:** Support multiple Telegram bots, each bound to a unique agent with strict 1:1 enforcement.
-
-**Target features:**
-- Add/remove multiple Telegram bot accounts
-- Strict 1:1 binding: one bot per agent, one agent per bot, no duplicates
-- Per-bot access control (DM/group allow-lists)
-- Per-bot connection status
+- **v1.0 MVP** — Phases 1-9: Config infrastructure, skills management, workspace management, Telegram channel management (shipped 2026-03-14)
+- **v1.1 Multi-Bot Telegram** — Phases 10-12: Multi-bot config foundation, bot account management, per-bot access control (shipped 2026-03-15)
 
 ## Context
 
 - OpenClaw is the upstream runtime — MaxAuto manages its lifecycle but doesn't modify it
 - All runtime files isolated under `~/.openclaw-maxauto/` (node, git, openclaw, config, credentials, sessions, workspace)
 - OpenClaw gateway config lives at `~/.openclaw-maxauto/config/openclaw.json`
-- Settings UI has 9 sections — General, Models & API, MCP Services, Skills, Channels, Workspace, Data & Privacy, Feedback, About — most show "Coming Soon" placeholders
+- Settings UI has 9 sections — General, Models & API, MCP Services, Skills, Channels, Workspace, Data & Privacy, Feedback, About
+- Implemented sections: General, Models & API, Skills (discovery/toggle/install), Channels (multi-bot Telegram), Workspace (default + per-agent), About
+- Remaining placeholders: MCP Services, Data & Privacy, Feedback
 - OpenClaw supports 50+ built-in skills and multiple IM channels natively
-- Telegram pairing backend exists in Rust (`pairing.rs`) but the channel management UI is not built
+- 41 TS/TSX files, 26 Rust files
 
 ## Constraints
 
@@ -87,6 +86,8 @@ Users can install, configure, and use OpenClaw without touching a terminal or re
 | Full in-app Telegram setup | No need to leave the app, better onboarding experience | ✓ Good |
 | Install & toggle for skills | Users need both discovery and control over skill packages | ✓ Good |
 
+| Multi-bot Telegram | Most requested feature after single-bot, OpenClaw already supports accounts | ✓ Good — clean decomposition |
+
 ---
 
-*Last updated: 2026-03-14 after v1.1 milestone start*
+*Last updated: 2026-03-15 after v1.1 milestone*
