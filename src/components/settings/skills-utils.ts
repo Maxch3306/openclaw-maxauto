@@ -138,6 +138,13 @@ export function canInstallSkill(skill: SkillStatusEntry): boolean {
   return skill.install.length > 0 && skill.missing.bins.length > 0;
 }
 
+/**
+ * Returns true if the skill is unavailable solely due to OS incompatibility.
+ */
+export function isOsIncompatible(skill: SkillStatusEntry): boolean {
+  return skill.missing.os.length > 0;
+}
+
 export function computeSkillMissing(skill: SkillStatusEntry): string[] {
   const items: string[] = [];
 

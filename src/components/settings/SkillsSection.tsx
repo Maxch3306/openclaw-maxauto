@@ -22,6 +22,7 @@ import {
   hasApiKeySet,
   isToggleDisabled,
   canInstallSkill,
+  isOsIncompatible,
 } from "./skills-utils";
 
 const STATUS_BADGE: Record<
@@ -574,8 +575,11 @@ export function SkillsSection() {
     );
   }
 
-  // Skills grid
-  const groups = report ? groupSkills(report.skills) : [];
+  // Skills grid — filter out OS-incompatible skills
+  const allSkills = report?.skills ?? [];
+  const compatibleSkills = allSkills.filter((s) => !isOsIncompatible(s));
+  const hiddenCount = allSkills.length - compatibleSkills.length;
+  const groups = groupSkills(compatibleSkills);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -585,7 +589,8 @@ export function SkillsSection() {
         </h1>
         {report && (
           <span className="text-xs text-[var(--color-text-muted)]">
-            {report.skills.length} skills
+            {compatibleSkills.length} skills
+            {hiddenCount > 0 && ` · ${hiddenCount} hidden (unsupported OS)`}
           </span>
         )}
       </div>
