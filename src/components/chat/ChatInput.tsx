@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
 
 export function ChatInput() {
+  const { t } = useTranslation();
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendMessage = useChatStore((s) => s.sendMessage);
@@ -82,7 +84,7 @@ export function ChatInput() {
       {/* Model selector row */}
       {availableModels.length > 0 && (
         <div className="flex items-center gap-2 mb-2">
-          <label className="text-xs text-[var(--color-text-muted)] shrink-0">Model</label>
+          <label className="text-xs text-[var(--color-text-muted)] shrink-0">{t("chat.model")}</label>
           <select
             value={selectedModelId}
             onChange={(e) => handleModelChange(e.target.value)}
@@ -104,7 +106,7 @@ export function ChatInput() {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
           onInput={handleInput}
-          placeholder="Type a message..."
+          placeholder={t("chat.typeMessage")}
           rows={1}
           className="flex-1 resize-none bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] overflow-hidden"
         />
@@ -116,7 +118,7 @@ export function ChatInput() {
               : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
           }`}
         >
-          {streaming ? "Stop" : "Send"}
+          {streaming ? t("chat.stop") : t("chat.send")}
         </button>
       </div>
     </div>

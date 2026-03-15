@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { gateway } from "../../api/gateway-client";
 import {
@@ -18,6 +19,7 @@ import { UpdateBanner } from "../common/UpdateBanner";
 import { QuickConfigModal } from "../settings/QuickConfigModal";
 
 export function AppShell() {
+  const { t } = useTranslation();
   const port = useAppStore((s) => s.gatewayPort);
   const currentPage = useAppStore((s) => s.currentPage);
   const setGatewayConnected = useAppStore((s) => s.setGatewayConnected);
@@ -27,7 +29,7 @@ export function AppShell() {
   const showQuickConfig = useSettingsStore((s) => s.showQuickConfig);
   const hasProvider = useSettingsStore((s) => s.configuredProviders.size > 0);
 
-  const [startupStatus, setStartupStatus] = useState("Starting gateway...");
+  const [startupStatus, setStartupStatus] = useState("startingGateway");
   const [ready, setReady] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -63,22 +65,22 @@ export function AppShell() {
     // Ensure the gateway is running, then connect
     const ensureGatewayAndConnect = async () => {
       try {
-        setStartupStatus("Checking gateway...");
+        setStartupStatus("checkingGateway");
         const status = await getGatewayStatus();
         if (!status.running) {
-          setStartupStatus("Starting gateway...");
+          setStartupStatus("startingGateway");
           await startGateway(port);
         }
       } catch {
-        setStartupStatus("Starting gateway...");
+        setStartupStatus("startingGateway");
         try {
           await startGateway(port);
         } catch {
-          setStartupStatus("Waiting for gateway...");
+          setStartupStatus("waitingForGateway");
         }
       }
 
-      setStartupStatus("Connecting...");
+      setStartupStatus("connecting");
       try {
         const token = await getGatewayToken();
         gateway.connect(port, token);
@@ -281,7 +283,7 @@ export function AppShell() {
   if (!ready) {
     return (
       <div className="flex flex-col h-screen items-center justify-center gap-4 px-8">
-        <h1 className="text-xl font-semibold text-[var(--color-text)]">MaxAuto</h1>
+        <h1 className="text-xl font-semibold text-[var(--color-text)]">{t("app.title")}</h1>
         <div className="flex items-center gap-3">
           <svg
             className="animate-spin h-5 w-5 text-[var(--color-accent)]"
@@ -303,7 +305,7 @@ export function AppShell() {
             />
           </svg>
           <span className="text-sm text-[var(--color-text-muted)]">
-            {startupStatus}
+            {t(`app.${startupStatus}`)}
           </span>
         </div>
         {logs.length > 0 && (

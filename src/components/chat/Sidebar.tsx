@@ -1,12 +1,13 @@
 import { ArrowLeft, Plus, Settings, Trash2 } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { gateway } from "../../api/gateway-client";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "../../stores/chat-store";
 import { AgentList } from "./AgentList";
 import { SidebarTabs } from "./SidebarTabs";
 
-function formatTime(ts: number | null): string {
+function formatTime(ts: number | null, t: (key: string) => string): string {
   if (!ts) {
     return "";
   }
@@ -18,7 +19,7 @@ function formatTime(ts: number | null): string {
   if (diffDays === 0) {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   } else if (diffDays === 1) {
-    return "Yesterday";
+    return t("sidebar.yesterday");
   } else if (diffDays < 7) {
     return d.toLocaleDateString([], { weekday: "short" });
   }
@@ -26,6 +27,7 @@ function formatTime(ts: number | null): string {
 }
 
 function ChatsView() {
+  const { t } = useTranslation();
   const sessions = useChatStore((s) => s.sessions);
   const sessionKey = useChatStore((s) => s.sessionKey);
   const switchSession = useChatStore((s) => s.switchSession);
@@ -43,7 +45,7 @@ function ChatsView() {
       <div className="p-3 flex items-center gap-2">
         <button
           onClick={() => setSidebarTab("agents")}
-          title="Back to agents"
+          title={t("sidebar.backToAgents")}
           className="p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
         >
           <ArrowLeft size={16} />
@@ -51,12 +53,12 @@ function ChatsView() {
         <div className="flex-1 min-w-0">
           <h2 className="text-sm font-medium text-[var(--color-text)] truncate">
             {selectedAgent?.emoji ? `${selectedAgent.emoji} ` : ""}
-            {selectedAgent?.name || "Chats"}
+            {selectedAgent?.name || t("sidebar.chats")}
           </h2>
         </div>
         <button
           onClick={newSession}
-          title="New Chat"
+          title={t("sidebar.newChat")}
           className="p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
         >
           <Plus size={16} />
@@ -81,7 +83,7 @@ function ChatsView() {
               <div className="text-sm text-[var(--color-text)] truncate">{s.title}</div>
               {s.updatedAt && (
                 <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
-                  {formatTime(s.updatedAt)}
+                  {formatTime(s.updatedAt, t)}
                 </div>
               )}
             </button>
@@ -90,7 +92,7 @@ function ChatsView() {
                 e.stopPropagation();
                 void deleteSession(s.key);
               }}
-              title="Delete chat"
+              title={t("sidebar.deleteChat")}
               className="hidden group-hover:flex items-center justify-center p-1.5 mr-1 rounded-md text-[var(--color-text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-colors"
             >
               <Trash2 size={14} />
@@ -98,7 +100,7 @@ function ChatsView() {
           </div>
         ))}
         {sessions.length === 0 && (
-          <p className="text-xs text-[var(--color-text-muted)] px-3 py-2">No conversations yet</p>
+          <p className="text-xs text-[var(--color-text-muted)] px-3 py-2">{t("sidebar.noConversations")}</p>
         )}
       </div>
     </div>
@@ -106,6 +108,7 @@ function ChatsView() {
 }
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const sidebarTab = useChatStore((s) => s.sidebarTab);
   const loadAgents = useChatStore((s) => s.loadAgents);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
@@ -131,7 +134,7 @@ export function Sidebar() {
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors"
         >
           <Settings size={16} />
-          <span>Settings</span>
+          <span>{t("sidebar.settings")}</span>
         </button>
       </div>
     </aside>

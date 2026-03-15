@@ -1,5 +1,6 @@
 import { MoreHorizontal } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import type { Agent } from "../../stores/chat-store";
 
 function hashColor(str: string): string {
@@ -20,6 +21,7 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ agent, selected, onSelect, onEdit, onDelete }: AgentCardProps) {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -90,7 +92,7 @@ export function AgentCard({ agent, selected, onSelect, onEdit, onDelete }: Agent
               }}
               className="w-full text-left px-3 py-1.5 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
             >
-              Edit
+              {t("common.edit")}
             </button>
             <button
               onClick={(e) => {
@@ -100,7 +102,7 @@ export function AgentCard({ agent, selected, onSelect, onEdit, onDelete }: Agent
               }}
               className="w-full text-left px-3 py-1.5 text-sm text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors"
             >
-              Delete
+              {t("common.delete")}
             </button>
           </div>
         )}

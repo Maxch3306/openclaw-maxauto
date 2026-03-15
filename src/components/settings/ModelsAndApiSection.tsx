@@ -1,5 +1,6 @@
 import { Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { gateway } from "../../api/gateway-client";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "../../stores/chat-store";
@@ -8,6 +9,7 @@ import { AddModelDialog } from "./AddModelDialog";
 import { BailianCodingQuickSetup } from "./BailianCodingQuickSetup";
 
 export function ModelsAndApiSection() {
+  const { t } = useTranslation();
   const models = useSettingsStore((s) => s.models);
   const customModels = useSettingsStore((s) => s.customModels);
   const configuredProviders = useSettingsStore((s) => s.configuredProviders);
@@ -93,12 +95,12 @@ export function ModelsAndApiSection() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-semibold text-[var(--color-text)]">Models & API</h1>
+        <h1 className="text-lg font-semibold text-[var(--color-text)]">{t("settings.models.title")}</h1>
         <button
           onClick={handleReconnect}
           className="text-sm px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors"
         >
-          Reconnect
+          {t("common.reconnect")}
         </button>
       </div>
 
@@ -109,7 +111,7 @@ export function ModelsAndApiSection() {
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)]">Providers</h2>
+            <h2 className="text-sm font-medium text-[var(--color-text-muted)]">{t("settings.models.providers")}</h2>
             <button
               onClick={handleReload}
               disabled={reloading}
@@ -123,20 +125,20 @@ export function ModelsAndApiSection() {
             onClick={() => setShowAddDialog(true)}
             className="text-sm px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
           >
-            + Set up Provider
+            {t("settings.models.setupProvider")}
           </button>
         </div>
 
         {configuredProviders.size === 0 && customModels.length === 0 ? (
           <div className="text-center py-8 rounded-lg border border-dashed border-[var(--color-border)]">
             <p className="text-sm text-[var(--color-text-muted)] mb-3">
-              No providers configured yet
+              {t("settings.models.noProviders")}
             </p>
             <button
               onClick={() => setShowAddDialog(true)}
               className="text-sm px-4 py-2 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
             >
-              + Set up Provider
+              {t("settings.models.setupProvider")}
             </button>
           </div>
         ) : (
@@ -153,7 +155,7 @@ export function ModelsAndApiSection() {
                     <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-surface)]/80 backdrop-blur-sm rounded-lg">
                       <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
                         <Loader2 size={16} className="animate-spin" />
-                        <span>Updating config & restarting gateway...</span>
+                        <span>{t("settings.models.updatingConfig")}</span>
                       </div>
                     </div>
                   )}
@@ -163,13 +165,13 @@ export function ModelsAndApiSection() {
                         {provKey}
                       </span>
                       <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
-                        {providerModels.length} model{providerModels.length !== 1 ? "s" : ""}
+                        {t("settings.models.modelCount", { count: providerModels.length })}
                       </span>
                     </div>
                     {removingProvider === provKey ? (
                       <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
                         <Loader2 size={12} className="animate-spin" />
-                        <span>Removing...</span>
+                        <span>{t("common.removing")}</span>
                       </div>
                     ) : confirmingRemove === provKey ? (
                       <div className="flex items-center gap-2">
@@ -177,7 +179,7 @@ export function ModelsAndApiSection() {
                           onClick={() => setConfirmingRemove(null)}
                           className="text-xs text-[var(--color-text-muted)] hover:underline"
                         >
-                          Cancel
+                          {t("common.cancel")}
                         </button>
                         <button
                           onClick={async () => {
@@ -192,7 +194,7 @@ export function ModelsAndApiSection() {
                           }}
                           className="text-xs text-white bg-[var(--color-error)] px-2 py-0.5 rounded hover:opacity-90"
                         >
-                          Confirm
+                          {t("common.confirm")}
                         </button>
                       </div>
                     ) : (
@@ -200,7 +202,7 @@ export function ModelsAndApiSection() {
                         onClick={() => setConfirmingRemove(provKey)}
                         className="text-xs text-[var(--color-error)] hover:underline"
                       >
-                        Remove
+                        {t("common.remove")}
                       </button>
                     )}
                   </div>
@@ -222,19 +224,19 @@ export function ModelsAndApiSection() {
                               <span className="text-xs text-[var(--color-text-muted)] truncate">
                                 {m.name || m.id}
                               </span>
-                              {inputTypes.map((t) => (
+                              {inputTypes.map((type) => (
                                 <span
-                                  key={t}
+                                  key={type}
                                   className="text-[10px] px-1 py-0.5 rounded bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
                                 >
-                                  {t}
+                                  {type}
                                 </span>
                               ))}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               {isDefault ? (
                                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
-                                  Default
+                                  {t("common.default")}
                                 </span>
                               ) : (
                                 <button
@@ -244,12 +246,12 @@ export function ModelsAndApiSection() {
                                   }}
                                   className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
                                 >
-                                  Set Default
+                                  {t("settings.models.setDefault")}
                                 </button>
                               )}
                               {m.reasoning && (
                                 <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)]">
-                                  Reasoning
+                                  {t("settings.models.reasoning")}
                                 </span>
                               )}
                             </div>
@@ -274,7 +276,7 @@ export function ModelsAndApiSection() {
                   <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-surface)]/80 backdrop-blur-sm rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
                       <Loader2 size={16} className="animate-spin" />
-                      <span>Updating config & restarting gateway...</span>
+                      <span>{t("settings.models.updatingConfig")}</span>
                     </div>
                   </div>
                 )}
@@ -282,10 +284,10 @@ export function ModelsAndApiSection() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-[var(--color-text)]">{providerName}</span>
                     <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-accent)]/20 text-[var(--color-accent)]">
-                      {group.length} model{group.length !== 1 ? "s" : ""}
+                      {t("settings.models.modelCount", { count: group.length })}
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)]">
-                      Custom
+                      {t("settings.models.custom")}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -293,12 +295,12 @@ export function ModelsAndApiSection() {
                       onClick={() => setShowAddDialog(true, group[0], group)}
                       className="text-xs text-[var(--color-accent)] hover:underline"
                     >
-                      Edit
+                      {t("common.edit")}
                     </button>
                     {removingProvider === `custom:${providerName}` ? (
                       <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
                         <Loader2 size={12} className="animate-spin" />
-                        <span>Removing...</span>
+                        <span>{t("common.removing")}</span>
                       </div>
                     ) : confirmingRemove === `custom:${providerName}` ? (
                       <div className="flex items-center gap-2">
@@ -306,7 +308,7 @@ export function ModelsAndApiSection() {
                           onClick={() => setConfirmingRemove(null)}
                           className="text-xs text-[var(--color-text-muted)] hover:underline"
                         >
-                          Cancel
+                          {t("common.cancel")}
                         </button>
                         <button
                           onClick={async () => {
@@ -324,7 +326,7 @@ export function ModelsAndApiSection() {
                           }}
                           className="text-xs text-white bg-[var(--color-error)] px-2 py-0.5 rounded hover:opacity-90"
                         >
-                          Confirm
+                          {t("common.confirm")}
                         </button>
                       </div>
                     ) : (
@@ -332,7 +334,7 @@ export function ModelsAndApiSection() {
                         onClick={() => setConfirmingRemove(`custom:${providerName}`)}
                         className="text-xs text-[var(--color-error)] hover:underline"
                       >
-                        Remove
+                        {t("common.remove")}
                       </button>
                     )}
                   </div>
@@ -360,7 +362,7 @@ export function ModelsAndApiSection() {
                       <div className="flex items-center gap-2 shrink-0">
                         {isDefault ? (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
-                            Default
+                            {t("common.default")}
                           </span>
                         ) : (
                           <button
@@ -370,7 +372,7 @@ export function ModelsAndApiSection() {
                             }}
                             className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
                           >
-                            Set Default
+                            {t("settings.models.setDefault")}
                           </button>
                         )}
                       </div>
@@ -387,7 +389,7 @@ export function ModelsAndApiSection() {
 
       {/* Gateway URL */}
       <section>
-        <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">Gateway URL</h2>
+        <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">{t("settings.models.gatewayUrl")}</h2>
         <div className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]">
           <div className="flex items-center justify-between mb-3">
             <span
@@ -397,14 +399,14 @@ export function ModelsAndApiSection() {
                   : "bg-[var(--color-error)]/20 text-[var(--color-error)]"
               }`}
             >
-              {gatewayConnected ? "Connected" : "Disconnected"}
+              {gatewayConnected ? t("common.connected") : t("common.disconnected")}
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleReconnect}
                 className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
-                Reconnect
+                {t("common.reconnect")}
               </button>
             </div>
           </div>
