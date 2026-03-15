@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Multi-Bot Telegram
-status: completed
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-03-14T18:21:51.681Z"
-last_activity: 2026-03-15 -- Completed Phase 10 Plan 01 (multi-bot config foundation)
+status: in-progress
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-15T04:42:00Z"
+last_activity: 2026-03-15 -- Completed Phase 11 Plan 01 (bot account management UI)
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 100
+  total_plans: 2
+  completed_plans: 2
+  percent: 66
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Users can install, configure, and use OpenClaw without touching a terminal -- everything managed through a clean desktop UI.
-**Current focus:** v1.1 Multi-Bot Telegram -- Phase 10 (Multi-Bot Config Foundation)
+**Current focus:** v1.1 Multi-Bot Telegram -- Phase 11 (Bot Account Management)
 
 ## Current Position
 
-Phase: 10 of 12 (Multi-Bot Config Foundation) -- first phase of v1.1
-Plan: 1 of 1 (complete)
-Status: Phase 10 complete
-Last activity: 2026-03-15 -- Completed Phase 10 Plan 01 (multi-bot config foundation)
+Phase: 11 of 12 (Bot Account Management) -- second phase of v1.1
+Plan: 1 of 2 (complete)
+Status: Phase 11 in progress
+Last activity: 2026-03-15 -- Completed Phase 11 Plan 01 (bot account management UI)
 
 Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9 (8 from v1.0 + 1 from v1.1)
+- Total plans completed: 10 (8 from v1.0 + 2 from v1.1)
 - Average duration: 3min
-- Total execution time: 0.4 hours
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
@@ -52,9 +52,10 @@ Progress: [██████████] 100%
 | 08-telegram-access-control | 1 | 2min | 2min |
 | 09-channel-agent-binding | 1 | 3min | 3min |
 | 10-multi-bot-config-foundation | 1 | 3min | 3min |
+| 11-bot-account-management | 1 | 4min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 3min, 2min, 3min, 2min, 3min
+- Last 5 plans: 3min, 2min, 3min, 3min, 4min
 - Trend: stable
 
 ## Accumulated Context
@@ -68,6 +69,9 @@ Progress: [██████████] 100%
 - v1.1: Binding filter must use accountId scope (critical bug fix from research)
 - v1.1: Config writes always target accounts.<id> structure going forward (safe forward-migration)
 - v1.1: isConfigured derived from botToken state for multi-account compatibility
+- v1.1: Bot token read-only in card view; remove-and-readd for token changes
+- v1.1: Pairing section always visible (not gated on policy); handles empty state gracefully
+- v1.1: Status derived per-card from config.enabled and status snapshot
 
 ### Pending Todos
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T18:16:30Z
-Stopped at: Completed 10-01-PLAN.md
-Resume file: .planning/phases/10-multi-bot-config-foundation/10-01-SUMMARY.md
+Last session: 2026-03-15T04:42:00Z
+Stopped at: Completed 11-01-PLAN.md
+Resume file: .planning/phases/11-bot-account-management/11-01-SUMMARY.md
