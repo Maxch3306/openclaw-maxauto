@@ -56,11 +56,11 @@ Plans:
   3. User can enable or disable a bot without removing it or losing its configuration
   4. User can see each bot's connection status (connected, disconnected, error) in its card
   5. User cannot bind an agent that is already bound to another bot -- the dropdown shows why it is unavailable
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 11-01: TBD
-- [ ] 11-02: TBD
+- [ ] 11-01-PLAN.md — BotCardList + BotCard component decomposition with status, toggle, and 1:1 enforcement
+- [ ] 11-02-PLAN.md — AddBotDialog + RemoveBotDialog modal dialogs for bot lifecycle
 
 ### Phase 12: Per-Bot Access Control
 **Goal**: Each Telegram bot has independent access control settings for DM and group interactions
@@ -93,5 +93,5 @@ Phase 10 is mandatory before 11 and 12 (config correctness foundation). Phase 12
 | 8. Telegram Access Control | v1.0 | 0/1 | Complete | 2026-03-14 |
 | 9. Channel-Agent Binding | v1.0 | 1/1 | Complete | 2026-03-14 |
 | 10. Multi-Bot Config Foundation | 1/1 | Complete    | 2026-03-14 | - |
-| 11. Bot Account Management | v1.1 | 0/? | Not started | - |
+| 11. Bot Account Management | v1.1 | 0/2 | Not started | - |
 | 12. Per-Bot Access Control | v1.1 | 0/? | Not started | - |
