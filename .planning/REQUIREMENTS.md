@@ -9,8 +9,8 @@ Requirements for multi-bot Telegram milestone. Each maps to roadmap phases.
 
 ### Bot Account Management
 
-- [ ] **MBOT-01**: User can add a new Telegram bot by entering its token (validated via getMe API)
-- [ ] **MBOT-02**: User can remove a Telegram bot account and its associated binding
+- [x] **MBOT-01**: User can add a new Telegram bot by entering its token (validated via getMe API)
+- [x] **MBOT-02**: User can remove a Telegram bot account and its associated binding
 - [x] **MBOT-03**: User can enable/disable individual bot accounts without removing them
 - [x] **MBOT-04**: User can see per-bot connection status (connected/disconnected/error)
 
@@ -54,8 +54,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MBOT-01 | Phase 11 | Pending |
-| MBOT-02 | Phase 11 | Pending |
+| MBOT-01 | Phase 11 | Complete |
+| MBOT-02 | Phase 11 | Complete |
 | MBOT-03 | Phase 11 | Complete |
 | MBOT-04 | Phase 11 | Complete |
 | MBOT-05 | Phase 10 | Complete |

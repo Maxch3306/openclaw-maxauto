@@ -27,7 +27,7 @@
 **Milestone Goal:** Support multiple Telegram bots, each bound to a unique agent with strict 1:1 enforcement and per-bot access control.
 
 - [x] **Phase 10: Multi-Bot Config Foundation** - Account-scoped config layer with migration, binding fix, and pairing scoping (completed 2026-03-14)
-- [ ] **Phase 11: Bot Account Management** - Card-based multi-bot UI with add/remove/toggle, status, and 1:1 enforcement
+- [x] **Phase 11: Bot Account Management** - Card-based multi-bot UI with add/remove/toggle, status, and 1:1 enforcement (completed 2026-03-15)
 - [ ] **Phase 12: Per-Bot Access Control** - Each bot gets its own DM and group allow-list configuration
 
 ## Phase Details
@@ -59,8 +59,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — BotCardList + BotCard component decomposition with status, toggle, and 1:1 enforcement
-- [ ] 11-02-PLAN.md — AddBotDialog + RemoveBotDialog modal dialogs for bot lifecycle
+- [x] 11-01-PLAN.md — BotCardList + BotCard component decomposition with status, toggle, and 1:1 enforcement
+- [x] 11-02-PLAN.md — AddBotDialog + RemoveBotDialog modal dialogs for bot lifecycle
 
 ### Phase 12: Per-Bot Access Control
 **Goal**: Each Telegram bot has independent access control settings for DM and group interactions
@@ -93,5 +93,5 @@ Phase 10 is mandatory before 11 and 12 (config correctness foundation). Phase 12
 | 8. Telegram Access Control | v1.0 | 0/1 | Complete | 2026-03-14 |
 | 9. Channel-Agent Binding | v1.0 | 1/1 | Complete | 2026-03-14 |
 | 10. Multi-Bot Config Foundation | 1/1 | Complete    | 2026-03-14 | - |
-| 11. Bot Account Management | 1/2 | In Progress|  | - |
+| 11. Bot Account Management | 2/2 | Complete   | 2026-03-15 | - |
 | 12. Per-Bot Access Control | v1.1 | 0/? | Not started | - |

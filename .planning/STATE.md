@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Multi-Bot Telegram
 status: in-progress
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-15T04:42:00Z"
-last_activity: 2026-03-15 -- Completed Phase 11 Plan 01 (bot account management UI)
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-03-15T04:47:38Z"
+last_activity: 2026-03-15 -- Completed Phase 11 Plan 02 (bot lifecycle dialogs)
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 2
   completed_plans: 2
-  percent: 66
+  percent: 100
 ---
 
 # Project State
@@ -26,16 +26,16 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 11 of 12 (Bot Account Management) -- second phase of v1.1
-Plan: 1 of 2 (complete)
-Status: Phase 11 in progress
-Last activity: 2026-03-15 -- Completed Phase 11 Plan 01 (bot account management UI)
+Plan: 2 of 2 (complete)
+Status: Phase 11 complete
+Last activity: 2026-03-15 -- Completed Phase 11 Plan 02 (bot lifecycle dialogs)
 
 Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10 (8 from v1.0 + 2 from v1.1)
+- Total plans completed: 11 (8 from v1.0 + 3 from v1.1)
 - Average duration: 3min
 - Total execution time: 0.5 hours
 
@@ -52,10 +52,10 @@ Progress: [██████████] 100%
 | 08-telegram-access-control | 1 | 2min | 2min |
 | 09-channel-agent-binding | 1 | 3min | 3min |
 | 10-multi-bot-config-foundation | 1 | 3min | 3min |
-| 11-bot-account-management | 1 | 4min | 4min |
+| 11-bot-account-management | 2 | 8min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 3min, 2min, 3min, 3min, 4min
+- Last 5 plans: 3min, 3min, 3min, 4min, 4min
 - Trend: stable
 
 ## Accumulated Context
@@ -73,6 +73,9 @@ Progress: [██████████] 100%
 - v1.1: Pairing section always visible (not gated on policy); handles empty state gracefully
 - v1.1: Status derived per-card from config.enabled and status snapshot
 
+- v1.1: AddBotDialog loads own config on open for fresh duplicate detection and binding state
+- v1.1: reloadKey counter pattern forces BotCardList remount after add/remove operations
+
 ### Pending Todos
 
 None yet.
@@ -85,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T04:42:00Z
-Stopped at: Completed 11-01-PLAN.md
-Resume file: .planning/phases/11-bot-account-management/11-01-SUMMARY.md
+Last session: 2026-03-15T04:47:38Z
+Stopped at: Completed 11-02-PLAN.md
+Resume file: .planning/phases/11-bot-account-management/11-02-SUMMARY.md
