@@ -17,6 +17,8 @@ import {
   type PairingRequest,
 } from "../../api/tauri-commands";
 import { BotCardList } from "./BotCardList";
+import { AddBotDialog } from "./AddBotDialog";
+import { RemoveBotDialog } from "./RemoveBotDialog";
 
 export function IMChannelsSection() {
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -24,6 +26,7 @@ export function IMChannelsSection() {
     accountId: string;
     username: string;
   } | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Pairing state
   const [pairingRequests, setPairingRequests] = useState<PairingRequest[]>([]);
@@ -74,10 +77,6 @@ export function IMChannelsSection() {
     }
   }
 
-  // Suppress unused variable warnings for Plan 02 placeholders
-  void showAddDialog;
-  void removeTarget;
-
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
@@ -96,6 +95,7 @@ export function IMChannelsSection() {
       {/* Telegram Bot Cards */}
       <section className="mb-6">
         <BotCardList
+          key={reloadKey}
           onAddBot={() => setShowAddDialog(true)}
           onRemoveBot={(accountId, username) =>
             setRemoveTarget({ accountId, username })
@@ -269,6 +269,31 @@ export function IMChannelsSection() {
           ))}
         </div>
       </section>
+
+      {/* Dialogs */}
+      {showAddDialog && (
+        <AddBotDialog
+          open={showAddDialog}
+          onClose={() => setShowAddDialog(false)}
+          onAdded={() => {
+            setShowAddDialog(false);
+            setReloadKey((k) => k + 1);
+          }}
+          existingAccountIds={[]}
+        />
+      )}
+      {removeTarget && (
+        <RemoveBotDialog
+          open={!!removeTarget}
+          accountId={removeTarget.accountId}
+          username={removeTarget.username}
+          onClose={() => setRemoveTarget(null)}
+          onRemoved={() => {
+            setRemoveTarget(null);
+            setReloadKey((k) => k + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
