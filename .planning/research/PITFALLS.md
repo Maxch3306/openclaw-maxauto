@@ -1,231 +1,239 @@
-# Domain Pitfalls
+# Pitfalls Research
 
-**Domain:** Adding Telegram channel management, skills management, and workspace configuration to a Tauri v2 desktop app wrapping OpenClaw
-**Researched:** 2026-03-14
+**Domain:** Multi-bot Telegram support with 1:1 agent binding in a Tauri v2 desktop app wrapping OpenClaw
+**Researched:** 2026-03-15
+**Confidence:** HIGH (based on OpenClaw source code, config types, and existing MaxAuto codebase)
 
 ## Critical Pitfalls
 
-Mistakes that cause rewrites or major issues.
+### Pitfall 1: Config Migration Destroys Single-Bot Setup on Upgrade
 
-### Pitfall 1: Config Write Races Between UI Sections and Gateway
+**What goes wrong:**
+The current config stores Telegram settings as flat fields directly on `channels.telegram` (e.g., `channels.telegram.botToken`, `channels.telegram.dmPolicy`). OpenClaw's multi-account model uses `channels.telegram.accounts.<id>` for per-account config. If the migration from single-bot to multi-bot is not handled atomically, the user's working single-bot setup breaks: either the flat fields remain (ignored by multi-account code) or the migration runs partially, leaving the config in an inconsistent state where neither single nor multi-account paths work.
 
-**What goes wrong:** The Telegram channel UI, skills UI, and workspace settings all need to read-modify-write `openclaw.json` via `config.get` / `config.set`. If two settings panels are open or a user rapidly switches between them, stale `baseHash` values cause `config.set` to silently overwrite changes made by the other panel. The current `IMChannelsSection` already does this -- it reads the full config, mutates the `channels.telegram` subtree, and writes the entire config back with the hash it fetched. If another section wrote config in between, those changes are lost.
+**Why it happens:**
+OpenClaw's `TelegramConfig` type is a union: `{ accounts?: Record<string, TelegramAccountConfig> } & TelegramAccountConfig`. Flat fields (botToken, dmPolicy, etc.) are inherited by accounts as defaults, but `mergeTelegramAccountConfig()` in `openclaw/src/telegram/accounts.ts` has special logic: in multi-account setups, channel-level `groups` are NOT inherited by named accounts (to prevent one bot from claiming another bot's groups -- see OpenClaw issue #30673). A naive migration that copies flat fields into `accounts.default` without understanding this inheritance breaks group config.
 
-**Why it happens:** The codebase uses a "read full config, merge one subtree, write full config" pattern in every settings section independently. There is no centralized config mutation layer, no retry-on-hash-mismatch, and the `CONCERNS.md` already flags this as a fragile area with no test coverage for write conflicts.
+**How to avoid:**
+1. Build a migration function that runs exactly once on first multi-bot save: read current flat config, create `accounts.default` with only the fields that differ from inheritance defaults (botToken, name), and preserve flat fields as fallback defaults.
+2. Migration must be atomic: read config, compute new shape, write as single `config.patch` call. Never write partial migrations.
+3. Do NOT migrate eagerly on app update. Migrate lazily when the user first adds a second bot, so single-bot users never hit migration code.
+4. Add a `__migrated_multi_bot` marker or version field to track whether migration has run. Check this before every multi-bot operation.
 
-**Consequences:** User sets up Telegram bot token, switches to skills to enable a skill, and the skill config write overwrites the Telegram config (or vice versa). User has to reconfigure from scratch. Worse: the bot token could be silently lost, and the user discovers this only when Telegram stops working.
+**Warning signs:**
+- After adding a second bot, the first bot stops receiving messages or loses its group config.
+- `openclaw doctor` warns about missing default account after migration.
+- Single-bot users who never add a second bot start seeing "accounts.default" in their config unexpectedly.
 
-**Prevention:**
-1. Use `config.patch` (merge semantics) instead of `config.set` (replace semantics) -- the gateway protocol supports it. This lets each section write only its subtree without clobbering others.
-2. If `config.set` must be used, implement a centralized `configMutator` that serializes all config writes through a single queue with automatic hash refresh before each write.
-3. On hash mismatch error from the gateway, re-read config, re-apply the mutation, and retry (max 3 attempts).
-
-**Detection:** Test by rapidly saving Telegram config and skills config in alternation. If either section's changes disappear after the other saves, the race exists.
-
-**Phase relevance:** Must be solved before building any new settings section (Telegram, Skills, or Workspace). This is a prerequisite for all three features.
-
----
-
-### Pitfall 2: Gateway Restart Destroys Active Telegram Connection
-
-**What goes wrong:** The current `saveTelegramConfig()` and `writeConfigAndRestart()` both fully stop and restart the gateway process after every config change. This kills the active Telegram long-polling connection. If the user is configuring Telegram settings iteratively (common during first setup), each save causes a full gateway restart (1.5s stop + 3s start + 2s reconnect = 6.5s minimum), and the Telegram bot goes offline during each restart.
-
-**Why it happens:** The codebase has no concept of "hot config reload." Every config change triggers a full process restart via `stopGateway()` / `startGateway()`. The hardcoded delays (1.5s, 3s, 2s) in `writeConfigAndRestart()` are already flagged in `CONCERNS.md` as fragile.
-
-**Consequences:** Poor UX during Telegram setup. Users may think the bot is broken because it drops offline for 6+ seconds after each save. On slow machines, the gateway may not be ready when the fixed timeout expires, causing "gateway not connected" errors in the UI.
-
-**Prevention:**
-1. Use `config.apply` with `restartDelayMs` parameter instead of manually stopping/starting the gateway. The gateway protocol supports `config.apply` which handles restart internally with proper sequencing.
-2. For settings that do not require a restart (e.g., updating `allowFrom` list), use `config.patch` without any restart.
-3. Replace fixed `setTimeout` delays with event-based readiness detection: listen for the `gateway-log` event containing a "ready" marker, or poll `channels.status` until Telegram shows as connected.
-
-**Detection:** Time the save-to-reconnected cycle. If it exceeds 3 seconds or fails intermittently on slower hardware, the restart logic is too fragile.
-
-**Phase relevance:** Should be fixed in the Telegram channel management phase, before adding skills/workspace (which will also need config writes).
+**Phase to address:**
+Phase 1 (Config Layer) -- must be the first thing built. All subsequent multi-bot features depend on correct config shape.
 
 ---
 
-### Pitfall 3: Telegram allowFrom/groupAllowFrom Confusion in UI
+### Pitfall 2: Binding Array Corruption When Adding/Removing Bots
 
-**What goes wrong:** OpenClaw's Telegram access control has a notoriously confusing split between `allowFrom` (DM user IDs), `groupAllowFrom` (group sender user IDs), and `groups` (group chat IDs, which are negative numbers). The current UI merges all of these into a single "Allowed User/Group IDs" text input, which is incorrect. Users will paste negative group chat IDs into `allowFrom` (which only accepts user IDs) or paste user IDs into the groups config where negative chat IDs belong.
+**What goes wrong:**
+The current code manages bindings by filtering `allBindings` to remove the Telegram entry and appending a new one: `otherBindings.filter(b => b.match?.channel !== 'telegram')` then push the new binding. With multi-bot, this "filter all telegram + append one" pattern destroys bindings for other bots. If bot A is bound to agent-1 and the user edits bot B's binding, the filter removes bot A's binding too.
 
-**Why it happens:** The Telegram docs themselves include a warning about this exact confusion: "groupAllowFrom is not a Telegram group allowlist." The current UI does not distinguish these three separate concepts.
+**Why it happens:**
+The existing `IMChannelsSection.saveTelegramConfig()` uses `channel === "telegram"` as the filter predicate, which matches ALL telegram bindings regardless of accountId. OpenClaw bindings support `match.accountId` to distinguish per-account bindings, but the current code does not use this field.
 
-**Consequences:** Users configure access control incorrectly, resulting in either: (a) the bot ignoring all group messages because group IDs are in `allowFrom` instead of `groups`, or (b) all users being blocked from groups because user IDs are in the wrong field. Debugging this is extremely frustrating because the bot appears to work in DMs but silently ignores groups.
+**How to avoid:**
+1. Filter bindings by BOTH `match.channel === "telegram"` AND `match.accountId === currentAccountId` when updating a specific bot's binding.
+2. When adding a new bot binding, check that no other binding already claims the target agent (1:1 enforcement).
+3. When removing a bot, remove only that bot's binding entry, not all Telegram bindings.
+4. Write the bindings array as a single atomic `config.patch` -- never read-modify-write with stale data.
 
-**Prevention:**
-1. Separate the UI into three distinct sections: "DM Access" (allowFrom with user IDs), "Allowed Groups" (groups with negative chat IDs), and "Group Sender Access" (groupAllowFrom with user IDs).
-2. Validate input: user IDs are positive integers, group IDs are negative integers (prefixed with -100 for supergroups). Show inline validation errors.
-3. Provide guidance text explaining each field's purpose, with examples from the OpenClaw docs.
-4. Add a "Test Connection" button that calls `channels.status` with `probe: true` to verify the bot can reach Telegram and see configured groups.
+**Warning signs:**
+- After editing bot B's settings, bot A stops routing to its agent.
+- `bindings` array in config has fewer entries than expected after a save.
+- Two bots end up with the same agent binding (violates 1:1).
 
-**Detection:** User reports "bot works in DMs but not groups" -- almost always an allowFrom/groups/groupAllowFrom misconfiguration.
-
-**Phase relevance:** Telegram channel management phase. Must be designed correctly from the start to avoid user confusion.
-
----
-
-### Pitfall 4: Skills Install Runs on Gateway's Platform, Not UI's Expectation
-
-**What goes wrong:** The skills system in OpenClaw determines install methods based on the platform where the gateway runs (`process.platform`). Since MaxAuto spawns OpenClaw as a child process on the same machine, this is currently the same platform. However, the `skills.install` gateway method installs binaries (brew, npm, uv, go) into the system or into OpenClaw's managed environment. If the UI does not account for: (a) which package managers are available, (b) whether installation requires elevated privileges, or (c) whether the installed binary ends up on the gateway's PATH, skills will appear to install successfully but fail silently at runtime.
-
-**Why it happens:** The `skills-status.ts` code checks `hasBinary()` for local availability and filters install options by OS. But MaxAuto's isolated environment (`~/.openclaw-maxauto/`) uses its own Node.js -- the gateway process may not have `brew`, `go`, or `uv` on its PATH because MaxAuto sets up an isolated environment with custom PATH.
-
-**Consequences:** User clicks "Install skill" in the UI, the gateway attempts `brew install X` or `npm install -g X`, and either: (a) the command fails because brew/go/uv is not available in the isolated environment, (b) the binary installs globally but the gateway process cannot find it because its PATH is restricted to `~/.openclaw-maxauto/`, or (c) the installation succeeds but requires a gateway restart to pick up the new binary.
-
-**Prevention:**
-1. Before showing install options, call `skills.status` which returns the `install` array with available install methods. Only show install methods that the gateway reports as viable.
-2. After `skills.install` completes, re-fetch `skills.status` to verify the skill's `eligible` flag is now true. If not, show a diagnostic message.
-3. For skills requiring system binaries not in the isolated environment, show a manual installation guide instead of a one-click button.
-4. Consider adding the system PATH to the gateway's environment so it can find globally installed tools.
-
-**Detection:** After installing a skill, check `skills.status` -- if `eligible` is still false and `missing` lists bins, the install did not work as expected.
-
-**Phase relevance:** Skills management phase. Must be understood before building the install UI.
+**Phase to address:**
+Phase 1 (Config Layer) -- binding management is the foundation of 1:1 enforcement.
 
 ---
 
-### Pitfall 5: Per-Agent Workspace Creates but Never Persists in Config
+### Pitfall 3: 1:1 Enforcement Only in UI Leaves Config Backdoor
 
-**What goes wrong:** The chat store's `createAgent()` function generates a workspace path (`~/.openclaw-maxauto/workspace-{agentId}`) and passes it to `agents.create`. However, `setAgentModel()` only persists `agents.defaults.model` globally -- it never writes per-agent workspace to the config. The `CONCERNS.md` already flags this: "per-agent workspace configuration is unused; all agents share default workspace." If the workspace settings UI exposes per-agent workspace editing, changes will appear to save but will not survive a gateway restart because they are never written to `openclaw.json`.
+**What goes wrong:**
+If 1:1 binding (one bot per agent, one agent per bot) is enforced only in the UI's dropdown/select logic (e.g., filtering out already-bound agents), users can bypass it by: (a) editing `openclaw.json` directly, (b) using OpenClaw's CLI, or (c) a config.patch from another client. The UI then shows an inconsistent state, and two bots send messages to the same agent, causing interleaved conversations.
 
-**Why it happens:** OpenClaw stores per-agent config in `config.agents.list[].workspace` or `config.agents.perAgent.{agentId}.workspace`, but MaxAuto's `setAgentModel()` only writes to `agents.defaults`. The workspace path is passed during `agents.create` (which sets it on the gateway's runtime state), but runtime state is lost on restart.
+**Why it happens:**
+OpenClaw itself does not enforce 1:1 channel-agent bindings. The binding system is N:1 by design (multiple channels can route to one agent). MaxAuto's 1:1 constraint is a UI/product-level decision, not an upstream constraint.
 
-**Consequences:** User configures a custom workspace for an agent, restarts the app, and the agent reverts to the default workspace. Files created in the custom workspace become orphaned.
+**How to avoid:**
+1. Enforce 1:1 in the UI (disable already-bound agents in dropdowns) AND validate on every config load.
+2. On config load, detect violations: scan all telegram bindings and flag any agent bound to multiple bots or any bot bound to multiple agents. Show a warning banner with a "Fix" button.
+3. Do NOT silently auto-fix violations. The user may have intentionally configured this via CLI. Show the conflict and let the user resolve it.
+4. Accept that 1:1 is a MaxAuto UI constraint, not an invariant. Design the data layer to tolerate violations gracefully.
 
-**Prevention:**
-1. When updating an agent's workspace, write it to `config.agents.list` or `config.agents.perAgent.{agentId}.workspace` via `config.patch`, not just via the `agents.update` runtime call.
-2. Use `agents.update` for runtime changes AND `config.patch` for persistent config changes. Both are needed.
-3. On app startup, reconcile: compare `agents.list` runtime workspaces with persisted config workspaces and warn if they diverge.
+**Warning signs:**
+- Two Telegram bot cards show the same agent name.
+- After manual config edit, the UI crashes or shows duplicate entries.
+- Agent receives messages from two different bots in the same session.
 
-**Detection:** Change an agent's workspace, restart the gateway, then check `agents.list` -- if the workspace reverted, persistence is broken.
-
-**Phase relevance:** Workspace settings phase. Must be addressed before exposing workspace editing in the UI.
-
-## Moderate Pitfalls
-
-### Pitfall 6: Telegram Bot Token Stored in Plaintext Config
-
-**What goes wrong:** The `saveTelegramConfig()` function writes the bot token directly into `openclaw.json` as plaintext (`botToken: "123:abc"`). The `CONCERNS.md` already flags gateway tokens and API keys as security concerns. Telegram bot tokens are permanent credentials that grant full control of the bot.
-
-**Prevention:**
-1. OpenClaw supports `SecretRef` type for sensitive fields and `tokenFile` for reading tokens from a file. Use `tokenFile` pointing to a separate credentials file in `~/.openclaw-maxauto/credentials/telegram-token` with restrictive file permissions.
-2. At minimum, do not display the full token in the UI after initial entry. Show a masked version (e.g., `123:***...xyz`).
-3. Consider using Tauri's plugin-keyring for platform-native secret storage.
-
-**Phase relevance:** Telegram channel management phase.
+**Phase to address:**
+Phase 2 (UI) -- validation runs on config load, enforcement in UI controls.
 
 ---
 
-### Pitfall 7: Skills Status Shows Bundled Skills That Cannot Be Modified
+### Pitfall 4: Multi-Account Token Storage Leaks Between Accounts
 
-**What goes wrong:** OpenClaw has 50+ bundled skills that are always present. The `skills.status` response includes all of them with their `bundled: true` flag. If the skills management UI shows all 50+ skills as a flat list with toggle switches, users will be overwhelmed. Worse, some bundled skills have `always: true` (cannot be disabled) or `blockedByAllowlist: true` (disabled by admin policy). If the UI shows toggle switches for these, users will click them and nothing will happen.
+**What goes wrong:**
+The current `pairing.rs` uses a single `telegram-pairing.json` and `telegram-allowFrom.json` file for all pairing state. The `allow_from_file_path()` function already accepts an optional `account_id` parameter (producing `telegram-{id}-allowFrom.json`), but `approve_pairing_request()` always calls it with `None`, writing to the shared file. With multiple bots, pairing approvals for bot A leak into bot B's allow list, granting unintended access.
 
-**Prevention:**
-1. Group skills by category: "Active" (eligible + enabled), "Available" (eligible + disabled), "Requires Setup" (missing requirements), and "Restricted" (blocked by allowlist or always-on).
-2. For `always: true` skills, show them as informational only (no toggle).
-3. For skills with `missing` requirements (bins or env vars), show what is needed before the toggle can be enabled.
-4. For skills with `configChecks`, show which config paths need to be set.
-5. Implement search/filter since 50+ skills is too many to browse.
+**Why it happens:**
+The pairing backend was built for single-bot. The `account_id` parameter exists in the file path function but is never wired through the approve/reject flow. OpenClaw itself separates pairing stores per account, but MaxAuto's Rust wrapper does not propagate account context.
 
-**Phase relevance:** Skills management phase.
+**How to avoid:**
+1. Thread `account_id` through all pairing commands: `list_pairing_requests(account_id)`, `approve_pairing_request(code, account_id)`, `reject_pairing_request(code, account_id)`.
+2. Each bot gets its own pairing file: `telegram-{accountId}-pairing.json` and `telegram-{accountId}-allowFrom.json`.
+3. Migration: if upgrading from single-bot, rename existing files to `telegram-default-*` pattern on first multi-bot activation.
+4. The UI must pass the current bot's account ID when calling pairing commands, not rely on a global default.
 
----
+**Warning signs:**
+- Approving a pairing request on bot A also allows that user on bot B.
+- After adding a second bot, the pairing list shows requests from both bots mixed together with no way to tell which is which.
 
-### Pitfall 8: Channel-Agent Binding Requires Config AND Runtime Coordination
-
-**What goes wrong:** The PROJECT.md specifies "1:1 mapping of Telegram bot to agent." OpenClaw supports this via per-topic `agentId` routing and via `bindings[]` config. But simply setting `agentId` in the Telegram topic config is not enough -- the agent must exist, have a workspace, and the session key format changes when a non-default agent is routed (`agent:{id}:telegram:...`). If the UI allows binding a Telegram channel to an agent but does not verify the agent exists or handle the session key change, messages will fail silently.
-
-**Prevention:**
-1. When creating a channel-agent binding, verify the agent exists via `agents.list` before writing the binding config.
-2. Use the simplest binding mechanism first: set `channels.telegram.dmPolicy` agent routing via config, not the complex `bindings[]` array (which is designed for ACP/persistent harness scenarios).
-3. For DM-to-agent routing, the most straightforward approach is the default agent (`agents.defaults.id`), not per-channel binding. Only introduce per-channel binding if multi-agent is truly needed.
-4. Test the full flow: create agent, bind to Telegram, send a DM, verify the correct agent handles it and the session appears under that agent.
-
-**Phase relevance:** Telegram channel management phase (channel-agent binding feature).
+**Phase to address:**
+Phase 1 (Config Layer) -- pairing backend must be account-aware before UI can manage per-bot pairing.
 
 ---
 
-### Pitfall 9: Workspace Path Validation on Windows vs macOS
+### Pitfall 5: Gateway Restart Kills ALL Bots When Saving ONE Bot's Config
 
-**What goes wrong:** MaxAuto targets both Windows and macOS. Workspace paths have different constraints: Windows has 260-char path limits (unless long paths are enabled), uses backslashes, and has reserved characters (`<>:"|?*`). macOS uses forward slashes and has different case sensitivity rules. If the workspace settings UI accepts any path string without validation, users will enter paths that work on one platform but fail on the other, or paths that are too long for Windows.
+**What goes wrong:**
+Config changes trigger a full gateway restart via `config.patch` + `waitForReconnect()`. With multiple bots running, saving settings for bot B takes bot A offline for 6+ seconds. If the user is actively chatting through bot A, the conversation is interrupted. Repeated saves during setup (common when configuring access control iteratively) cause repeated outages for all bots.
 
-**Prevention:**
-1. Default to `~/.openclaw-maxauto/workspace-{agentId}` and only allow customization within a constrained set of locations (e.g., under the user's home directory).
-2. Validate paths before saving: check for invalid characters per platform, check path length on Windows, verify the parent directory exists.
-3. Use Tauri's `dialog.open()` with `directory: true` for path selection instead of free-text input. This ensures the selected path is valid on the current platform.
-4. Store paths using forward slashes internally and convert at the Rust layer, since OpenClaw (Node.js) normalizes to forward slashes.
+**Why it happens:**
+OpenClaw's gateway process manages all Telegram accounts in a single process. There is no hot-reload for individual channel accounts. The existing `config.apply` with `restartDelayMs` controls the delay but still restarts everything.
 
-**Phase relevance:** Workspace settings phase.
+**How to avoid:**
+1. Batch config changes: collect all edits in the UI and write them as a single `config.patch` call on explicit "Save All" rather than save-per-field.
+2. Show a warning before saving: "Saving will restart the gateway. All connected bots will briefly go offline."
+3. Use `config.patch` with `restartDelayMs: 2000` (the coalescing feature) so rapid saves within 2 seconds merge into a single restart.
+4. After restart, poll `channels.status` for ALL configured bots and show per-bot reconnection status so the user knows when each bot is back online.
 
----
+**Warning signs:**
+- User adds a second bot, saves, and the first bot's "Connected" status flickers to "Disconnected" then back.
+- Chat messages sent during the restart window are lost (Telegram long-polling gap).
 
-### Pitfall 10: Skills Update (Enable/Disable/API Key) Writes Config Without Hash Check
-
-**What goes wrong:** The `skills.update` gateway method directly calls `writeConfigFile()` without using `baseHash` for optimistic locking. If a skill toggle is clicked while another config write is in flight (e.g., from the settings store), the writes conflict. Unlike `config.set` which supports `baseHash`, `skills.update` bypasses the hash mechanism entirely.
-
-**Prevention:**
-1. For skill enable/disable toggles, use `config.patch` with `baseHash` from the settings store instead of `skills.update`. This integrates with the existing optimistic locking.
-2. If using `skills.update`, serialize it through the same config write queue as other config operations (see Pitfall 1).
-3. After any `skills.update` call, reload the full config to refresh the hash.
-
-**Phase relevance:** Skills management phase.
-
-## Minor Pitfalls
-
-### Pitfall 11: Telegram Channel Status Probe Timeout
-
-**What goes wrong:** The `channels.status` call with `probe: true` makes a live API call to Telegram's servers to verify the bot token. This has a default 10-second timeout. If the user's network is slow or Telegram's API is rate-limited, the probe hangs and the UI appears frozen.
-
-**Prevention:** Always call `channels.status` with `probe: false` for initial page load (fast, config-only status). Offer a separate "Test Connection" button that calls with `probe: true` and shows a loading spinner with a timeout message.
-
-**Phase relevance:** Telegram channel management phase.
+**Phase to address:**
+Phase 2 (UI) -- the save flow must account for multi-bot restart impact.
 
 ---
 
-### Pitfall 12: Skills Install is Async and Can Be Long-Running
+### Pitfall 6: Account ID Normalization Mismatch Between MaxAuto and OpenClaw
 
-**What goes wrong:** The `skills.install` method downloads and installs packages, which can take 30+ seconds for large dependencies. If the UI does not show progress or allow cancellation, users will click the install button again (causing duplicate installs) or navigate away (losing track of the installation).
+**What goes wrong:**
+OpenClaw normalizes account IDs via `normalizeAccountId()` (lowercased, trimmed). If MaxAuto generates account IDs with different casing or format (e.g., using the bot username as the ID), the binding `match.accountId` will not match OpenClaw's internal account resolution. The bot will start but routing fails silently -- messages arrive but no agent handles them because the binding lookup finds no match.
 
-**Prevention:**
-1. Show a progress indicator during installation.
-2. Disable the install button while an installation is in progress.
-3. Set a reasonable `timeoutMs` parameter (the `skills.install` method supports it).
-4. After installation completes, automatically refresh `skills.status` to update the UI.
+**Why it happens:**
+MaxAuto has no visibility into OpenClaw's normalization rules. The `DEFAULT_ACCOUNT_ID` is "default" (lowercase). If MaxAuto creates an account with ID "Default" or "my-bot", it might work for config but fail for binding resolution.
 
-**Phase relevance:** Skills management phase.
+**How to avoid:**
+1. Always use lowercase, alphanumeric-plus-hyphen account IDs. Never use the bot username or token as the account ID.
+2. Use "default" as the ID for the first/migrated bot. Use descriptive names like "support-bot", "alerts-bot" for additional bots.
+3. When writing bindings, use the exact same account ID string that appears as the key in `channels.telegram.accounts`.
+4. On config load, validate that every binding's `match.accountId` corresponds to an existing account in `channels.telegram.accounts`.
 
----
+**Warning signs:**
+- Bot shows as "Connected" in channel status but never routes messages to the bound agent.
+- `openclaw doctor` warns about unmatched bindings.
+- Adding a second bot causes the first bot to stop routing (the default fallback shifts).
 
-### Pitfall 13: Telegram Groups Config Uses Negative String IDs
+**Phase to address:**
+Phase 1 (Config Layer) -- account ID generation must follow OpenClaw's normalization rules from day one.
 
-**What goes wrong:** Telegram group chat IDs are negative numbers (e.g., `-1001234567890`). In JSON config, these must be string keys in the `groups` object: `"groups": { "-1001234567890": { ... } }`. If the UI converts these to numbers or strips the negative sign, the config becomes invalid and the gateway ignores the group configuration.
+## Technical Debt Patterns
 
-**Prevention:** Always treat group IDs as strings. Validate that group IDs start with `-` and contain only digits after the minus sign. Display them with the minus sign visible.
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Store all bot tokens in flat config (no tokenFile/keyring) | Simple implementation, matches current single-bot approach | Tokens in plaintext JSON readable by any process; grows worse with multiple tokens | MVP only -- move to tokenFile or keyring before v1.2 |
+| Use "default" as account ID for migrated single-bot | Zero-migration path, backward compatible | If user later wants meaningful names, renaming "default" requires config migration | Always acceptable -- "default" is OpenClaw's canonical first-account ID |
+| Filter already-bound agents in dropdown only (no server validation) | Fast UI-only enforcement of 1:1 | CLI/manual edits bypass the constraint; UI shows stale state after external changes | MVP -- add config-load validation in the same phase |
+| Single gateway restart for all config changes | Matches current behavior, no new complexity | Multi-bot users lose all connections on every save | Acceptable for v1.1 -- optimize in v1.2 with change-specific restart hints |
 
-**Phase relevance:** Telegram channel management phase (if group configuration is added).
+## Integration Gotchas
 
-## Phase-Specific Warnings
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| OpenClaw `channels.telegram.accounts` | Putting `botToken` at both account level AND channel level, causing token confusion | Put token only inside `accounts.<id>.botToken`. Channel-level `botToken` is for single-account backward compat only |
+| OpenClaw bindings array | Using `match: { channel: "telegram" }` without `accountId`, which matches ALL telegram accounts | Always include `match: { channel: "telegram", accountId: "<id>" }` for multi-account bindings |
+| OpenClaw `channels.status` | Expecting `channels.telegram` to return per-account status | Use `channelAccounts.telegram` (returns Record or array of per-account snapshots). The `channels.telegram` path returns aggregate status only |
+| Telegram Bot API `getMe` | Validating token via frontend `fetch()` which exposes the token to browser context | Validate via Tauri IPC command (Rust-side HTTP call) or via gateway's `channels.status` probe. Current frontend fetch is a security concern with multiple tokens |
+| OpenClaw group config inheritance | Assuming channel-level `groups` config applies to all accounts | In multi-account mode, channel-level `groups` is NOT inherited (OpenClaw issue #30673). Each account must define its own `groups` if needed |
 
-| Phase Topic | Likely Pitfall | Mitigation |
-|-------------|---------------|------------|
-| Telegram channel setup | Config write races (Pitfall 1) | Implement centralized config mutation queue before building the UI |
-| Telegram channel setup | Gateway restart on every save (Pitfall 2) | Use `config.apply` or `config.patch` instead of stop/start cycle |
-| Telegram channel setup | allowFrom/groupAllowFrom confusion (Pitfall 3) | Separate UI fields with validation and examples |
-| Telegram channel setup | Bot token in plaintext (Pitfall 6) | Use `tokenFile` or credentials file |
-| Channel-agent binding | Agent must exist before binding (Pitfall 8) | Validate agent existence, use simplest binding mechanism |
-| Skills management | Install fails in isolated env (Pitfall 4) | Check `skills.status` install options, verify post-install |
-| Skills management | 50+ skills overwhelm UI (Pitfall 7) | Group by status, add search/filter |
-| Skills management | Config write conflicts (Pitfall 10) | Serialize through config mutation queue |
-| Skills management | Long-running installs (Pitfall 12) | Progress indicator, disable button, set timeout |
-| Workspace settings | Per-agent workspace not persisted (Pitfall 5) | Write to config, not just runtime |
-| Workspace settings | Cross-platform path issues (Pitfall 9) | Use file picker dialog, validate per platform |
+## Performance Traps
+
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| Loading all bot statuses sequentially on page mount | Channels page takes N * probe_time seconds to load for N bots | Load config-only status first (fast), then probe in parallel on explicit refresh | 3+ bots with slow network (>10s page load) |
+| Re-rendering entire bot list on single bot status change | UI flickers, dropdown selections reset, input fields lose focus | Use per-bot component state isolation; memoize bot cards; use Zustand selectors per account ID | 3+ bots with 10-second status polling |
+| Full config reload after every bot save | Each save triggers config.get + full re-parse + full UI re-render for all bots | After config.patch, update only the changed bot's local state; do full reload only on mount or explicit refresh | 5+ bots with frequent config tweaks |
+
+## Security Mistakes
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| Displaying all bot tokens in a shared settings page | One bot's token visible while editing another; shoulder-surfing or screenshot captures multiple tokens | Show tokens only in per-bot detail view, always masked, with explicit "reveal" toggle that auto-hides after 30 seconds |
+| Frontend-side token validation via `fetch('https://api.telegram.org/bot<TOKEN>/getMe')` | Token passes through browser/renderer context; potentially logged in devtools network tab | Move token validation to Rust backend via Tauri IPC command; token never touches frontend JavaScript |
+| Using bot token as account ID or in file paths | Token appears in config keys, file names, and log messages | Generate opaque account IDs (slug from bot username or sequential: "bot-1", "bot-2"); never derive IDs from secrets |
+
+## UX Pitfalls
+
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| Showing all bots in a flat list with identical card layouts | Users cannot quickly identify which bot is which, especially during setup when names are not yet configured | Show bot username (@bot_name) prominently from getMe validation; use distinct colors or icons per bot; show "New" badge for unconfigured bots |
+| Agent binding dropdown shows all agents including already-bound ones | User accidentally binds two bots to the same agent, breaking 1:1; confusing error after save | Disable already-bound agents in dropdown with "(bound to @other_bot)" label; show current binding prominently at top of bot card |
+| Requiring full form completion before first save | User must fill token + agent + DM policy + group policy before anything works; high abandonment during setup | Allow saving with just token + agent (minimum viable config); default dmPolicy to "pairing" and groupPolicy to "disabled"; show "optional" labels on advanced fields |
+| No confirmation when removing a bot | Accidental deletion loses bot token (if not saved elsewhere), pairing approvals, and access control config | Show confirmation dialog listing what will be lost: "Remove @bot_name? This will disconnect the bot and remove its access control settings." |
+| Hiding connection errors behind a generic "Disconnected" status | User cannot diagnose why a bot is not working; calls it "broken" | Show last error message inline (from `channelStatus.lastError`); link to common fixes (token revoked, network issue, privacy mode) |
+
+## "Looks Done But Isn't" Checklist
+
+- [ ] **Multi-bot config save:** Often missing atomic binding update -- verify that saving bot B's config does not remove bot A's binding from the bindings array
+- [ ] **1:1 enforcement:** Often missing reverse check -- verify that the UI prevents binding agent X to bot B when agent X is already bound to bot A (not just preventing bot B from selecting an already-used agent)
+- [ ] **Config migration:** Often missing rollback path -- verify that if migration fails mid-write, the original single-bot config is preserved (not corrupted)
+- [ ] **Per-bot status:** Often missing account-scoped status -- verify that `channels.status` response is parsed per-account (via `channelAccounts.telegram`), not as single aggregate (`channels.telegram`)
+- [ ] **Bot removal:** Often missing binding cleanup -- verify that removing a bot also removes its entry from the `bindings[]` array, not just from `channels.telegram.accounts`
+- [ ] **Pairing per-bot:** Often missing account context -- verify that pairing approvals write to the correct per-account allowFrom file, not the shared default file
+- [ ] **Token validation:** Often missing for second+ bot -- verify that adding a second bot validates the token via getMe before saving, same as the first bot
+- [ ] **Default account fallback:** Often missing explicit `defaultAccount` -- verify that after adding a second bot, `channels.telegram.defaultAccount` is set (OpenClaw warns if missing)
+
+## Recovery Strategies
+
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| Config migration corrupts single-bot setup | LOW | OpenClaw keeps config backups; restore from `~/.openclaw-maxauto/config/openclaw.json.bak` or re-enter bot token manually |
+| Binding array corruption (lost bindings) | LOW | Re-select agent for each bot in the UI; bindings are regenerated on save |
+| 1:1 violation (two bots sharing agent) | LOW | Unbind one bot in UI, select a different agent; no data loss, just routing confusion |
+| Pairing leak across accounts | MEDIUM | Audit allowFrom files per account; remove unauthorized user IDs manually from `~/.openclaw-maxauto/credentials/telegram-{id}-allowFrom.json` |
+| Token stored in plaintext config | MEDIUM | Revoke compromised token via @BotFather `/revoke`; generate new token; update config; all sessions continue with new token |
+| Account ID normalization mismatch | HIGH | Must edit `openclaw.json` manually to fix account IDs and bindings; no UI repair path if IDs are wrong |
+
+## Pitfall-to-Phase Mapping
+
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| Config migration (Pitfall 1) | Phase 1 - Config Layer | Add second bot to single-bot setup; verify first bot still works; check config shape matches `accounts.<id>` pattern |
+| Binding corruption (Pitfall 2) | Phase 1 - Config Layer | Edit bot B's agent binding; verify bot A's binding unchanged in config file |
+| 1:1 backdoor (Pitfall 3) | Phase 2 - UI | Manually edit config to create 1:1 violation; reload UI; verify warning banner appears |
+| Pairing leak (Pitfall 4) | Phase 1 - Config Layer | Approve pairing on bot A; check that bot B's allowFrom file is unmodified |
+| Restart kills all bots (Pitfall 5) | Phase 2 - UI | Save bot B config while bot A is connected; measure bot A's downtime; verify reconnection status shown |
+| Account ID mismatch (Pitfall 6) | Phase 1 - Config Layer | Create account with mixed-case ID; verify binding resolution works; check `openclaw doctor` output |
 
 ## Sources
 
-- OpenClaw Telegram channel documentation: `openclaw/docs/channels/telegram.md` (HIGH confidence -- primary source, included in repo)
-- OpenClaw gateway server methods: `openclaw/src/gateway/server-methods/skills.ts`, `channels.ts` (HIGH confidence -- source code)
-- OpenClaw skills status system: `openclaw/src/agents/skills-status.ts` (HIGH confidence -- source code)
-- MaxAuto gateway protocol: `docs/gateway-protocol.md` (HIGH confidence -- project documentation)
-- MaxAuto existing implementations: `src/components/settings/IMChannelsSection.tsx`, `src/stores/settings-store.ts`, `src/stores/chat-store.ts`, `src-tauri/src/commands/pairing.rs`, `src-tauri/src/commands/config.rs` (HIGH confidence -- project source)
-- MaxAuto known concerns: `.planning/codebase/CONCERNS.md` (HIGH confidence -- project audit)
+- OpenClaw Telegram config types: `openclaw/src/config/types.telegram.ts` -- defines `TelegramConfig` union type with `accounts` and flat fields (HIGH confidence -- source code)
+- OpenClaw account resolution: `openclaw/src/telegram/accounts.ts` -- `mergeTelegramAccountConfig()` inheritance rules, multi-account group config non-inheritance (HIGH confidence -- source code, references issue #30673)
+- OpenClaw channel routing: `openclaw/docs/channels/channel-routing.md` -- binding resolution order, accountId matching (HIGH confidence -- official docs)
+- OpenClaw Telegram docs: `openclaw/docs/channels/telegram.md` -- multi-account precedence rules, defaultAccount requirement (HIGH confidence -- official docs)
+- MaxAuto existing Telegram UI: `src/components/settings/IMChannelsSection.tsx` -- current single-bot binding logic using channel-level filter (HIGH confidence -- project source)
+- MaxAuto pairing backend: `src-tauri/src/commands/pairing.rs` -- `allow_from_file_path(account_id)` already accepts account parameter but unused (HIGH confidence -- project source)
+- MaxAuto known concerns: `.planning/codebase/CONCERNS.md` -- config write races, restart timing (HIGH confidence -- project audit)
+
+---
+*Pitfalls research for: Multi-bot Telegram with 1:1 binding in MaxAuto*
+*Researched: 2026-03-15*
