@@ -93,5 +93,5 @@ Phase 10 is mandatory before 11 and 12 (config correctness foundation). Phase 12
 | 8. Telegram Access Control | v1.0 | 0/1 | Complete | 2026-03-14 |
 | 9. Channel-Agent Binding | v1.0 | 1/1 | Complete | 2026-03-14 |
 | 10. Multi-Bot Config Foundation | 1/1 | Complete    | 2026-03-14 | - |
-| 11. Bot Account Management | 2/2 | Complete   | 2026-03-15 | - |
+| 11. Bot Account Management | 2/2 | Complete    | 2026-03-15 | - |
 | 12. Per-Bot Access Control | v1.1 | 0/? | Not started | - |
