@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FolderOpen, RotateCcw } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { Agent } from "../../stores/chat-store";
@@ -12,6 +13,7 @@ interface EditAgentDialogProps {
 }
 
 export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
+  const { t } = useTranslation();
   const updateAgent = useChatStore((s) => s.updateAgent);
   const deleteAgent = useChatStore((s) => s.deleteAgent);
   const loadAgents = useChatStore((s) => s.loadAgents);
@@ -41,7 +43,7 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setError("Name is required");
+      setError(t("agent.edit.nameRequired"));
       return;
     }
     setSaving(true);
@@ -110,7 +112,7 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
       <div className="w-[400px] bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
-          <h2 className="text-base font-semibold text-[var(--color-text)]">Edit Agent</h2>
+          <h2 className="text-base font-semibold text-[var(--color-text)]">{t("agent.edit.title")}</h2>
           <button
             onClick={onClose}
             className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-lg"
@@ -121,24 +123,24 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
 
         <div className="px-6 py-4 space-y-4">
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1">* Name</label>
+            <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("agent.create.name")}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Agent name"
+              placeholder={t("agent.edit.namePlaceholder")}
               className={inputClass}
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1">Emoji</label>
+            <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("agent.create.emoji")}</label>
             <input
               type="text"
               value={emoji}
               onChange={(e) => setEmoji(e.target.value)}
-              placeholder="e.g. 🤖"
+              placeholder={t("agent.create.emojiPlaceholder")}
               className={inputClass}
               maxLength={4}
             />
@@ -146,7 +148,7 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm text-[var(--color-text-muted)]">Workspace</label>
+              <label className="block text-sm text-[var(--color-text-muted)]">{t("agent.edit.workspace")}</label>
               {(workspace || agent.workspace) && !resetWorkspace && (
                 <button
                   type="button"
@@ -154,7 +156,7 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
                   className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
                 >
                   <RotateCcw size={10} />
-                  Reset
+                  {t("common.reset")}
                 </button>
               )}
             </div>
@@ -166,7 +168,7 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
                   </span>
                 ) : (
                   <span className="block text-sm text-[var(--color-text-muted)]/50 truncate">
-                    Using default workspace
+                    {t("agent.edit.usingDefault")}
                   </span>
                 )}
               </div>
@@ -176,7 +178,7 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
                 className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors shrink-0"
               >
                 <FolderOpen size={14} />
-                Browse
+                {t("common.browse")}
               </button>
             </div>
           </div>
@@ -195,21 +197,21 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
                 : "text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
             } disabled:opacity-50`}
           >
-            {confirmDelete ? "Confirm Delete" : "Delete"}
+            {confirmDelete ? t("agent.edit.confirmDelete") : t("common.delete")}
           </button>
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm rounded-lg border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
               className="px-4 py-2 text-sm rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save"}
+              {saving ? t("common.saving") : t("common.save")}
             </button>
           </div>
         </div>

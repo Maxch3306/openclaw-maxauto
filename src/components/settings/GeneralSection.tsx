@@ -1,5 +1,7 @@
-import { Download, RotateCw, Stethoscope } from "lucide-react";
+import { Download, Globe, RotateCw, Stethoscope } from "lucide-react";
 import { useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
+import i18n from "../../i18n";
 import { gateway } from "../../api/gateway-client";
 import { stopGateway, startGateway, runDoctor } from "../../api/tauri-commands";
 import { useAppStore } from "../../stores/app-store";
@@ -8,6 +10,7 @@ import { useSettingsStore } from "../../stores/settings-store";
 import { useUpdateStore } from "../../stores/update-store";
 
 export function GeneralSection() {
+  const { t } = useTranslation();
   const gatewayConnected = useAppStore((s) => s.gatewayConnected);
   const gatewayPort = useAppStore((s) => s.gatewayPort);
   const loadConfig = useSettingsStore((s) => s.loadConfig);
@@ -55,10 +58,10 @@ export function GeneralSection() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-lg font-semibold text-[var(--color-text)] mb-6">General</h1>
+      <h1 className="text-lg font-semibold text-[var(--color-text)] mb-6">{t("settings.general.title")}</h1>
 
       <section className="mb-6">
-        <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">Gateway</h2>
+        <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">{t("settings.general.gateway")}</h2>
         <div className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -69,7 +72,7 @@ export function GeneralSection() {
                     : "bg-[var(--color-error)]/20 text-[var(--color-error)]"
                 }`}
               >
-                {gatewayConnected ? "Connected" : "Disconnected"}
+                {gatewayConnected ? t("common.connected") : t("common.disconnected")}
               </span>
               <span className="text-xs text-[var(--color-text-muted)] font-mono">
                 ws://127.0.0.1:{gatewayPort}
@@ -81,22 +84,18 @@ export function GeneralSection() {
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50"
             >
               <RotateCw size={14} className={restarting ? "animate-spin" : ""} />
-              {restarting ? "Restarting..." : "Restart Gateway"}
+              {restarting ? t("settings.general.restarting") : t("settings.general.restartGateway")}
             </button>
           </div>
         </div>
       </section>
 
       <section>
-        <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">Health Check</h2>
+        <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">{t("settings.general.healthCheck")}</h2>
         <div className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs text-[var(--color-text-muted)]">
-              Run{" "}
-              <code className="px-1 py-0.5 rounded bg-[var(--color-bg)] text-[var(--color-text)]">
-                openclaw doctor
-              </code>{" "}
-              to diagnose configuration issues.
+              <Trans i18nKey="settings.general.doctorDesc" components={{ code: <code className="px-1 py-0.5 rounded bg-[var(--color-bg)] text-[var(--color-text)]" /> }} />
             </p>
             <button
               onClick={handleDoctor}
@@ -104,7 +103,7 @@ export function GeneralSection() {
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50 shrink-0"
             >
               <Stethoscope size={14} className={runningDoctor ? "animate-pulse" : ""} />
-              {runningDoctor ? "Running..." : "Run Doctor"}
+              {runningDoctor ? t("settings.general.running") : t("settings.general.runDoctor")}
             </button>
           </div>
           {doctorOutput !== null && (
@@ -115,12 +114,55 @@ export function GeneralSection() {
         </div>
       </section>
 
+      <LanguageSection />
       <UpdateSection />
     </div>
   );
 }
 
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "zh-TW", label: "繁體中文" },
+];
+
+function LanguageSection() {
+  const { t } = useTranslation();
+  const currentLang = i18n.language;
+
+  const handleChange = (lang: string) => {
+    void i18n.changeLanguage(lang);
+  };
+
+  return (
+    <section className="mt-6">
+      <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">
+        <div className="flex items-center gap-1.5">
+          <Globe size={14} />
+          {t("settings.general.language")}
+        </div>
+      </h2>
+      <div className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] space-y-3">
+        <p className="text-xs text-[var(--color-text-muted)]">
+          {t("settings.general.languageDesc")}
+        </p>
+        <select
+          value={currentLang}
+          onChange={(e) => handleChange(e.target.value)}
+          className="bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+        >
+          {LANGUAGES.map((lang) => (
+            <option key={lang.code} value={lang.code}>
+              {lang.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </section>
+  );
+}
+
 function UpdateSection() {
+  const { t } = useTranslation();
   const status = useUpdateStore((s) => s.status);
   const availableVersion = useUpdateStore((s) => s.availableVersion);
   const checkForUpdate = useUpdateStore((s) => s.checkForUpdate);
@@ -129,18 +171,18 @@ function UpdateSection() {
 
   return (
     <section className="mt-6">
-      <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">Updates</h2>
+      <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">{t("settings.general.updates")}</h2>
       <div className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] space-y-3">
         <div className="flex items-center justify-between">
           <div>
             {status === "available" ? (
               <p className="text-sm text-[var(--color-text)]">
-                Update <strong>v{availableVersion}</strong> available
+                <Trans i18nKey="settings.general.updateAvailable" values={{ version: availableVersion }} components={{ strong: <strong /> }} />
               </p>
             ) : status === "up-to-date" ? (
-              <p className="text-xs text-[var(--color-text-muted)]">You're on the latest version.</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{t("settings.general.latestVersion")}</p>
             ) : (
-              <p className="text-xs text-[var(--color-text-muted)]">Check if a newer version is available.</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{t("settings.general.checkDesc")}</p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -150,7 +192,7 @@ function UpdateSection() {
                 className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
               >
                 <Download size={14} />
-                Install Update
+                {t("settings.general.installUpdate")}
               </button>
             )}
             <button
@@ -159,7 +201,7 @@ function UpdateSection() {
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50"
             >
               <RotateCw size={14} className={checking ? "animate-spin" : ""} />
-              {checking ? "Checking..." : "Check for Updates"}
+              {checking ? t("settings.general.checking") : t("settings.general.checkForUpdates")}
             </button>
           </div>
         </div>

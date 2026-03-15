@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp, Zap } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore, BAILIAN_CODING_PRESET, BAILIAN_CODING_PROVIDER_KEY } from "../../stores/settings-store";
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function BailianCodingQuickSetup({ isConfigured }: Props) {
+  const { t } = useTranslation();
   const addQuickProvider = useSettingsStore((s) => s.addQuickProvider);
   const removeQuickProvider = useSettingsStore((s) => s.removeQuickProvider);
   const defaultModelId = useSettingsStore((s) => s.defaultModelId);
@@ -60,7 +62,7 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
     <section className="mb-6">
       <div className="flex items-center gap-2 mb-3">
         <Zap size={14} className="text-[var(--color-warning)]" />
-        <h2 className="text-sm font-medium text-[var(--color-text-muted)]">Quick Setup</h2>
+        <h2 className="text-sm font-medium text-[var(--color-text-muted)]">{t("settings.models.quickSetup")}</h2>
       </div>
 
       <div className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden">
@@ -71,14 +73,14 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
         >
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-[var(--color-text)]">
-              Bailian Coding MaxAuto
+              {t("settings.bailian.title")}
             </span>
             <span className="text-xs text-[var(--color-text-muted)]">
-              {modelCount} models (Qwen, GLM, Kimi, MiniMax)
+              {t("settings.bailian.modelCount", { count: modelCount })}
             </span>
             {isConfigured && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
-                Configured
+                {t("settings.bailian.configured")}
               </span>
             )}
           </div>
@@ -93,8 +95,7 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
         {expanded && (
           <div className="border-t border-[var(--color-border)] px-4 py-3 space-y-3">
             <p className="text-xs text-[var(--color-text-muted)]">
-              One API key for multiple models via Alibaba Cloud Bailian Coding endpoint.
-              Includes Qwen 3.5 Plus, GLM-5, Kimi K2.5, and MiniMax M2.5.
+              {t("settings.bailian.description")}
             </p>
 
             {/* Model list */}
@@ -121,7 +122,7 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
                       <div className="flex items-center gap-2 shrink-0">
                         {isDefault ? (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
-                            Default
+                            {t("common.default")}
                           </span>
                         ) : (
                           <button
@@ -131,7 +132,7 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
                             }}
                             className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
                           >
-                            Set Default
+                            {t("settings.models.setDefault")}
                           </button>
                         )}
                       </div>
@@ -157,7 +158,7 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
                 {confirmRemove ? (
                   <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--color-error)]/10 border border-[var(--color-error)]/30">
                     <span className="text-xs text-[var(--color-error)]">
-                      Remove this provider and all its models?
+                      {t("settings.bailian.removeConfirm")}
                     </span>
                     <div className="flex items-center gap-2">
                       <button
@@ -165,27 +166,27 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
                         disabled={removing}
                         className="text-xs px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors"
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </button>
                       <button
                         onClick={handleRemove}
                         disabled={removing}
                         className="text-xs px-2 py-1 rounded bg-[var(--color-error)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                       >
-                        {removing ? "Removing..." : "Confirm"}
+                        {removing ? t("common.removing") : t("common.confirm")}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[var(--color-success)]">
-                      Provider is active
+                      {t("settings.bailian.providerActive")}
                     </span>
                     <button
                       onClick={() => setConfirmRemove(true)}
                       className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-error)]/30 text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors"
                     >
-                      Remove
+                      {t("common.remove")}
                     </button>
                   </div>
                 )}
@@ -194,7 +195,7 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
               <>
                 <div>
                   <label className="block text-xs text-[var(--color-text-muted)] mb-1">
-                    API Key
+                    {t("settings.bailian.apiKey")}
                   </label>
                   <div className="relative">
                     <input
@@ -204,7 +205,7 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
                         setApiKey(e.target.value);
                         setError("");
                       }}
-                      placeholder="Enter your Bailian API Key"
+                      placeholder={t("settings.bailian.enterKey")}
                       className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)] pr-14"
                     />
                     <button
@@ -212,13 +213,13 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
                       onClick={() => setShowKey(!showKey)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs"
                     >
-                      {showKey ? "Hide" : "Show"}
+                      {showKey ? t("common.hide") : t("common.show")}
                     </button>
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs text-[var(--color-text-muted)] mb-1">
-                    Base URL
+                    {t("settings.bailian.baseUrl")}
                   </label>
                   <input
                     type="text"
@@ -233,7 +234,7 @@ export function BailianCodingQuickSetup({ isConfigured }: Props) {
                   disabled={saving}
                   className="w-full py-2 text-sm rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
-                  {saving ? "Setting up..." : "Set up Bailian Coding MaxAuto"}
+                  {saving ? t("settings.bailian.settingUp") : t("settings.bailian.setup")}
                 </button>
               </>
             )}

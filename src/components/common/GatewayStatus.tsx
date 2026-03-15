@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { gateway } from "../../api/gateway-client";
 import { useAppStore } from "../../stores/app-store";
 
@@ -65,6 +66,7 @@ function openDebugWindow() {
 }
 
 export function GatewayStatus() {
+  const { t } = useTranslation();
   const connected = useAppStore((s) => s.gatewayConnected);
   const prevConnectedRef = useRef(connected);
 
@@ -94,7 +96,7 @@ export function GatewayStatus() {
           }`}
         />
         <span className="text-xs text-[var(--color-text-muted)]">
-          {connected ? "Connected" : "Disconnected"}
+          {connected ? t("common.connected") : t("common.disconnected")}
         </span>
         <span className="text-xs text-[var(--color-text-muted)] opacity-50 ml-1">
           WS: {gateway.wsState}
@@ -103,7 +105,7 @@ export function GatewayStatus() {
           onClick={openDebugWindow}
           className="text-xs text-[var(--color-accent)] ml-auto hover:underline"
         >
-          Debug
+          {t("common.debug")}
         </button>
       </div>
     </div>

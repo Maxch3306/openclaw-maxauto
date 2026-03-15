@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useChatStore } from "../../stores/chat-store";
 
 interface CreateAgentDialogProps {
@@ -6,6 +7,7 @@ interface CreateAgentDialogProps {
 }
 
 export function CreateAgentDialog({ onClose }: CreateAgentDialogProps) {
+  const { t } = useTranslation();
   const createAgent = useChatStore((s) => s.createAgent);
 
   const [name, setName] = useState("");
@@ -18,7 +20,7 @@ export function CreateAgentDialog({ onClose }: CreateAgentDialogProps) {
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setError("Name is required");
+      setError(t("agent.create.nameRequired"));
       return;
     }
     setSaving(true);
@@ -41,7 +43,7 @@ export function CreateAgentDialog({ onClose }: CreateAgentDialogProps) {
       <div className="w-[400px] bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
-          <h2 className="text-base font-semibold text-[var(--color-text)]">Create Agent</h2>
+          <h2 className="text-base font-semibold text-[var(--color-text)]">{t("agent.create.title")}</h2>
           <button
             onClick={onClose}
             className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-lg"
@@ -52,24 +54,24 @@ export function CreateAgentDialog({ onClose }: CreateAgentDialogProps) {
 
         <div className="px-6 py-4 space-y-4">
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1">* Name</label>
+            <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("agent.create.name")}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Research Assistant"
+              placeholder={t("agent.create.namePlaceholder")}
               className={inputClass}
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1">Emoji</label>
+            <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("agent.create.emoji")}</label>
             <input
               type="text"
               value={emoji}
               onChange={(e) => setEmoji(e.target.value)}
-              placeholder="e.g. 🤖"
+              placeholder={t("agent.create.emojiPlaceholder")}
               className={inputClass}
               maxLength={4}
             />
@@ -84,14 +86,14 @@ export function CreateAgentDialog({ onClose }: CreateAgentDialogProps) {
             onClick={onClose}
             className="px-4 py-2 text-sm rounded-lg border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={handleSubmit}
             disabled={saving}
             className="px-4 py-2 text-sm rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {saving ? "Creating..." : "Create"}
+            {saving ? t("agent.create.creating") : t("agent.create.title")}
           </button>
         </div>
       </div>

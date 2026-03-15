@@ -1,42 +1,25 @@
 import { Shell, ChevronRight, ChevronDown, FileText, Terminal, Pencil, Search, Globe, Code2, Wrench } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore, type ChatMessage as ChatMsg, type ContentBlock } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { AddModelDialog } from "../settings/AddModelDialog";
 import { ChatInput } from "./ChatInput";
 
-const TOOL_LABELS: Record<string, string> = {
-  thinking: "Agent is working",
-  exec: "Running command",
-  read: "Reading file",
-  write: "Writing file",
-  edit: "Editing file",
-  search: "Searching",
-  grep: "Searching code",
-  glob: "Finding files",
-  bash: "Running command",
-  browser: "Browsing web",
-  fetch: "Fetching URL",
+const TOOL_LABEL_KEYS: Record<string, string> = {
+  thinking: "tools.thinking",
+  exec: "tools.exec",
+  read: "tools.read",
+  write: "tools.write",
+  edit: "tools.edit",
+  search: "tools.search",
+  grep: "tools.grep",
+  glob: "tools.glob",
+  bash: "tools.bash",
+  browser: "tools.browser",
+  fetch: "tools.fetch",
 };
-
-function ToolActivityIndicator() {
-  const toolActivity = useChatStore((s) => s.toolActivity);
-  if (!toolActivity) return null;
-
-  const label = TOOL_LABELS[toolActivity.name] ?? `Using ${toolActivity.name}`;
-
-  return (
-    <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-[var(--color-text-muted)] animate-pulse">
-      <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-      </svg>
-      <span>{label}</span>
-      {toolActivity.phase === "partial" && <span className="opacity-50">...</span>}
-    </div>
-  );
-}
 
 const TOOL_ICONS: Record<string, typeof Wrench> = {
   read: FileText,
@@ -51,16 +34,38 @@ const TOOL_ICONS: Record<string, typeof Wrench> = {
   fetch: Globe,
 };
 
-function getToolLabel(name: string): string {
-  return TOOL_LABELS[name] ?? name;
+function ToolActivityIndicator() {
+  const { t } = useTranslation();
+  const toolActivity = useChatStore((s) => s.toolActivity);
+  if (!toolActivity) return null;
+
+  const label = TOOL_LABEL_KEYS[toolActivity.name]
+    ? t(TOOL_LABEL_KEYS[toolActivity.name])
+    : t("tools.using", { name: toolActivity.name });
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-[var(--color-text-muted)] animate-pulse">
+      <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      </svg>
+      <span>{label}</span>
+      {toolActivity.phase === "partial" && <span className="opacity-50">...</span>}
+    </div>
+  );
 }
 
 function ToolCallCard({ block }: { block: ContentBlock }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const toolName = block.toolName ?? "tool";
   const Icon = TOOL_ICONS[toolName] ?? Wrench;
   const hasResult = block.result !== undefined;
   const isError = block.isError;
+
+  const toolLabel = TOOL_LABEL_KEYS[toolName]
+    ? t(TOOL_LABEL_KEYS[toolName])
+    : t("tools.using", { name: toolName });
 
   // Extract a short summary from args (e.g. file_path)
   let summary = "";
@@ -82,7 +87,7 @@ function ToolCallCard({ block }: { block: ContentBlock }) {
       >
         <Icon size={14} className={`shrink-0 ${isError ? "text-[var(--color-error)]" : "text-[var(--color-accent)]"}`} />
         <span className="text-xs font-medium text-[var(--color-text)]">
-          {getToolLabel(toolName)}
+          {toolLabel}
         </span>
         {summary && (
           <span className="text-xs text-[var(--color-text-muted)] truncate">
@@ -95,12 +100,12 @@ function ToolCallCard({ block }: { block: ContentBlock }) {
               ? "bg-[var(--color-error)]/15 text-[var(--color-error)]"
               : "bg-[var(--color-success)]/15 text-[var(--color-success)]"
           }`}>
-            {isError ? "error" : "done"}
+            {isError ? t("common.error") : t("common.done")}
           </span>
         )}
         {!hasResult && (
           <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-warning)]/15 text-[var(--color-warning)]">
-            pending
+            {t("common.pending")}
           </span>
         )}
         <span className="shrink-0 text-[var(--color-text-muted)]">
@@ -111,7 +116,7 @@ function ToolCallCard({ block }: { block: ContentBlock }) {
         <div className="px-3 py-2 border-t border-[var(--color-border)] bg-black/20 text-[11px] font-mono space-y-2 max-h-60 overflow-y-auto">
           {block.args && (
             <div>
-              <div className="text-[var(--color-text-muted)] mb-0.5">Arguments:</div>
+              <div className="text-[var(--color-text-muted)] mb-0.5">{t("chat.arguments")}</div>
               <pre className="text-[var(--color-text)] whitespace-pre-wrap break-all">
                 {JSON.stringify(block.args, null, 2)}
               </pre>
@@ -119,7 +124,7 @@ function ToolCallCard({ block }: { block: ContentBlock }) {
           )}
           {hasResult && (
             <div>
-              <div className="text-[var(--color-text-muted)] mb-0.5">Result:</div>
+              <div className="text-[var(--color-text-muted)] mb-0.5">{t("chat.result")}</div>
               <pre className={`whitespace-pre-wrap break-all ${isError ? "text-[var(--color-error)]" : "text-[var(--color-text)]"}`}>
                 {block.result}
               </pre>
@@ -189,6 +194,7 @@ function TypingIndicator() {
 }
 
 function WelcomeScreen() {
+  const { t } = useTranslation();
   const models = useSettingsStore((s) => s.models);
   const configuredProviders = useSettingsStore((s) => s.configuredProviders);
   const showAddDialog = useSettingsStore((s) => s.showAddModelDialog);
@@ -212,9 +218,9 @@ function WelcomeScreen() {
       {/* Branding */}
       <div className="flex flex-col items-center text-center">
         <Shell size={40} className="text-[var(--color-accent)] mb-3" />
-        <h1 className="text-xl font-semibold text-[var(--color-text)]">Max-Auto</h1>
+        <h1 className="text-xl font-semibold text-[var(--color-text)]">{t("chat.welcome.title")}</h1>
         <p className="text-sm text-[var(--color-text-muted)] mt-2 max-w-md">
-          Describe your goal, and Max-Auto will execute step by step with real-time feedback
+          {t("chat.welcome.subtitle")}
         </p>
       </div>
 
@@ -227,10 +233,10 @@ function WelcomeScreen() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[var(--color-text-muted)]">Configured Providers</p>
+                <p className="text-xs text-[var(--color-text-muted)]">{t("chat.welcome.configuredProviders")}</p>
                 <p className="text-sm font-medium text-[var(--color-text)] mt-0.5">
-                  {providerCount} provider{providerCount !== 1 ? "s" : ""} ·{" "}
-                  {availableModels.length} model{availableModels.length !== 1 ? "s" : ""}
+                  {t("chat.welcome.providerCount", { count: providerCount })} ·{" "}
+                  {t("chat.welcome.modelCount", { count: availableModels.length })}
                 </p>
               </div>
               <ChevronRight size={16} className="text-[var(--color-text-muted)]" />
@@ -245,9 +251,9 @@ function WelcomeScreen() {
           onClick={() => setShowAddDialog(true)}
           className="w-80 p-4 rounded-xl bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 hover:border-[var(--color-warning)] transition-colors text-left group"
         >
-          <h3 className="text-sm font-medium text-[var(--color-warning)]">Set up a Provider</h3>
+          <h3 className="text-sm font-medium text-[var(--color-warning)]">{t("chat.welcome.setupProvider")}</h3>
           <p className="text-xs text-[var(--color-text-muted)] mt-1">
-            No provider configured yet. Add a provider with an API key to start chatting.
+            {t("chat.welcome.noProvider")}
           </p>
         </button>
       )}
@@ -258,6 +264,7 @@ function WelcomeScreen() {
 }
 
 export function ChatPanel() {
+  const { t } = useTranslation();
   const messages = useChatStore((s) => s.messages);
   const selectedAgentId = useChatStore((s) => s.selectedAgentId);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -271,7 +278,7 @@ export function ChatPanel() {
   if (!selectedAgentId) {
     return (
       <div className="flex-1 flex items-center justify-center text-[var(--color-text-muted)]">
-        <p>Select an agent to start chatting</p>
+        <p>{t("chat.selectAgent")}</p>
       </div>
     );
   }

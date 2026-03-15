@@ -10,6 +10,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   listPairingRequests,
   approvePairingRequest,
@@ -21,6 +22,7 @@ import { AddBotDialog } from "./AddBotDialog";
 import { RemoveBotDialog } from "./RemoveBotDialog";
 
 export function IMChannelsSection() {
+  const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<{
     accountId: string;
@@ -81,14 +83,14 @@ export function IMChannelsSection() {
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold text-[var(--color-text)]">
-          Channels
+          {t("settings.channels.title")}
         </h1>
         <button
           onClick={() => setShowAddDialog(true)}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--color-accent)] hover:opacity-90 transition-opacity"
         >
           <Plus size={14} />
-          Add Bot
+          {t("settings.channels.addBot")}
         </button>
       </div>
 
@@ -110,7 +112,7 @@ export function IMChannelsSection() {
             <div className="flex items-center gap-2">
               <Clock size={16} className="text-[var(--color-warning)]" />
               <h2 className="text-sm font-medium text-[var(--color-text)]">
-                Pending Pairing Requests
+                {t("settings.channels.pendingPairing")}
               </h2>
               {pairingRequests.length > 0 && (
                 <span className="text-xs px-1.5 py-0.5 rounded-full bg-[var(--color-warning)]/20 text-[var(--color-warning)] font-medium">
@@ -127,7 +129,7 @@ export function IMChannelsSection() {
               }}
               disabled={pairingLoading}
               className="p-1.5 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50"
-              title="Refresh"
+              title={t("settings.channels.refresh")}
             >
               <RefreshCw
                 size={14}
@@ -140,11 +142,10 @@ export function IMChannelsSection() {
             {pairingRequests.length === 0 ? (
               <div className="text-center py-4">
                 <p className="text-xs text-[var(--color-text-muted)]">
-                  No pending pairing requests
+                  {t("settings.channels.noPairing")}
                 </p>
                 <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
-                  When someone messages your bot, they'll receive a pairing
-                  code. Their request will appear here.
+                  {t("settings.channels.pairingHint")}
                 </p>
               </div>
             ) : (
@@ -189,10 +190,10 @@ export function IMChannelsSection() {
                           </span>
                           <span className="text-[10px] text-[var(--color-text-muted)]">
                             {ageMin < 1
-                              ? "just now"
+                              ? t("settings.channels.justNow")
                               : ageMin < 60
-                                ? `${ageMin}m ago`
-                                : "expired"}
+                                ? t("settings.channels.minutesAgo", { count: ageMin })
+                                : t("settings.channels.expired")}
                           </span>
                         </div>
                       </div>
@@ -200,7 +201,7 @@ export function IMChannelsSection() {
                         <button
                           onClick={() => handleApprovePairing(req.code)}
                           disabled={isActing}
-                          title="Approve"
+                          title={t("settings.channels.approve")}
                           className="p-1.5 rounded-md text-[var(--color-success)] hover:bg-[var(--color-success)]/10 transition-colors disabled:opacity-50"
                         >
                           <UserCheck size={16} />
@@ -208,7 +209,7 @@ export function IMChannelsSection() {
                         <button
                           onClick={() => handleRejectPairing(req.code)}
                           disabled={isActing}
-                          title="Reject"
+                          title={t("settings.channels.reject")}
                           className="p-1.5 rounded-md text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors disabled:opacity-50"
                         >
                           <UserX size={16} />
@@ -226,29 +227,29 @@ export function IMChannelsSection() {
       {/* Other Channels - Coming Soon */}
       <section>
         <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">
-          Other Channels
+          {t("settings.channels.otherChannels")}
         </h2>
         <div className="space-y-2">
           {[
             {
-              name: "WhatsApp",
+              name: t("settings.channels.whatsapp"),
               icon: <Smartphone size={20} />,
-              desc: "Connect via WhatsApp Business",
+              desc: t("settings.channels.whatsappDesc"),
             },
             {
-              name: "Discord",
+              name: t("settings.channels.discord"),
               icon: <Gamepad2 size={20} />,
-              desc: "Add a Discord bot",
+              desc: t("settings.channels.discordDesc"),
             },
             {
-              name: "Slack",
+              name: t("settings.channels.slack"),
               icon: <Briefcase size={20} />,
-              desc: "Install as a Slack app",
+              desc: t("settings.channels.slackDesc"),
             },
             {
-              name: "WeChat",
+              name: t("settings.channels.wechat"),
               icon: <MessageCircleHeart size={20} />,
-              desc: "Connect WeChat Official Account",
+              desc: t("settings.channels.wechatDesc"),
             },
           ].map((ch) => (
             <div
@@ -263,7 +264,7 @@ export function IMChannelsSection() {
                 </p>
               </div>
               <span className="text-xs text-[var(--color-text-muted)]">
-                Coming Soon
+                {t("common.comingSoon")}
               </span>
             </div>
           ))}

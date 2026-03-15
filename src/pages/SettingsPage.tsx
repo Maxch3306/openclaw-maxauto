@@ -11,6 +11,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { GeneralSection } from "../components/settings/GeneralSection";
 import { IMChannelsSection } from "../components/settings/IMChannelsSection";
 import { ModelsAndApiSection } from "../components/settings/ModelsAndApiSection";
@@ -20,22 +21,23 @@ import { WorkspaceSection } from "../components/settings/WorkspaceSection";
 import { useAppStore } from "../stores/app-store";
 import { useSettingsStore, type SettingsSection } from "../stores/settings-store";
 
-const NAV_ITEMS: { key: SettingsSection; label: string; icon: ReactNode }[] = [
-  { key: "general", label: "General", icon: <Settings size={16} /> },
-  { key: "models", label: "Models & API", icon: <Puzzle size={16} /> },
-  { key: "mcp", label: "MCP Services", icon: <Plug size={16} /> },
-  { key: "skills", label: "Skills", icon: <BookOpen size={16} /> },
-  { key: "im-channels", label: "Channels", icon: <MessageCircle size={16} /> },
-  { key: "workspace", label: "Workspace", icon: <FolderOpen size={16} /> },
-  { key: "privacy", label: "Data & Privacy", icon: <Shield size={16} /> },
-  { key: "feedback", label: "Feedback", icon: <Mail size={16} /> },
-  { key: "about", label: "About", icon: <Info size={16} /> },
+const NAV_ITEMS: { key: SettingsSection; labelKey: string; icon: ReactNode }[] = [
+  { key: "general", labelKey: "settings.nav.general", icon: <Settings size={16} /> },
+  { key: "models", labelKey: "settings.nav.models", icon: <Puzzle size={16} /> },
+  { key: "mcp", labelKey: "settings.nav.mcp", icon: <Plug size={16} /> },
+  { key: "skills", labelKey: "settings.nav.skills", icon: <BookOpen size={16} /> },
+  { key: "im-channels", labelKey: "settings.nav.channels", icon: <MessageCircle size={16} /> },
+  { key: "workspace", labelKey: "settings.nav.workspace", icon: <FolderOpen size={16} /> },
+  { key: "privacy", labelKey: "settings.nav.privacy", icon: <Shield size={16} /> },
+  { key: "feedback", labelKey: "settings.nav.feedback", icon: <Mail size={16} /> },
+  { key: "about", labelKey: "settings.nav.about", icon: <Info size={16} /> },
 ];
 
 function SectionPlaceholder({ label }: { label: string }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
-      <p>{label} - Coming Soon</p>
+      <p>{label} - {t("common.comingSoon")}</p>
     </div>
   );
 }
@@ -56,7 +58,7 @@ function renderSection(section: SettingsSection) {
       return <AboutSection />;
     default: {
       const item = NAV_ITEMS.find((n) => n.key === section);
-      return <SectionPlaceholder label={item?.label ?? section} />;
+      return <SectionPlaceholder label={item?.labelKey ?? section} />;
     }
   }
 }
@@ -65,6 +67,7 @@ export function SettingsPage() {
   const activeSection = useSettingsStore((s) => s.activeSection);
   const setActiveSection = useSettingsStore((s) => s.setActiveSection);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
+  const { t } = useTranslation();
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -75,7 +78,7 @@ export function SettingsPage() {
           className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--color-accent)] hover:bg-[var(--color-surface-hover)] transition-colors"
         >
           <ArrowLeft size={14} />
-          <span>Back to App</span>
+          <span>{t("settings.backToApp")}</span>
         </button>
         <div className="flex-1 px-2 py-1">
           {NAV_ITEMS.map((item) => (
@@ -88,8 +91,8 @@ export function SettingsPage() {
                   : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
               }`}
             >
-              <span className="text-base">{item.icon}</span>
-              <span>{item.label}</span>
+              <span>{item.icon}</span>
+              <span>{t(item.labelKey)}</span>
             </button>
           ))}
         </div>

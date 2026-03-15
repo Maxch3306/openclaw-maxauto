@@ -1,7 +1,9 @@
 import { MessageSquare, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useChatStore } from "../../stores/chat-store";
 
 export function SidebarTabs() {
+  const { t } = useTranslation();
   const tab = useChatStore((s) => s.sidebarTab);
   const setTab = useChatStore((s) => s.setSidebarTab);
 
@@ -16,7 +18,7 @@ export function SidebarTabs() {
         }`}
       >
         <Users size={14} />
-        Agents
+        {t("sidebar.agents")}
       </button>
       <button
         onClick={() => setTab("chats")}
@@ -27,7 +29,7 @@ export function SidebarTabs() {
         }`}
       >
         <MessageSquare size={14} />
-        Chats
+        {t("sidebar.chats")}
       </button>
     </div>
   );

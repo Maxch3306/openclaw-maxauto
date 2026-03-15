@@ -13,7 +13,25 @@ Download the latest installer from the [Releases](https://github.com/Maxch3306/o
 | Windows  | `MaxAuto_x.x.x_x64-setup.exe` or `.msi` |
 | macOS    | `MaxAuto_x.x.x_universal.dmg` |
 
-Open the installer and follow the prompts. MaxAuto will handle the rest — including installing Node.js and OpenClaw on first launch.
+### Windows
+
+1. Download the `.exe` or `.msi` installer from Releases.
+2. Run the installer. Windows SmartScreen may show a **"Windows protected your PC"** warning because the app is not code-signed yet.
+   - Click **"More info"**
+   - Then click **"Run anyway"**
+3. Follow the prompts to complete installation.
+
+### macOS
+
+1. Download the `.dmg` file from Releases.
+2. Open the `.dmg` and drag MaxAuto to your Applications folder.
+3. On first launch, macOS Gatekeeper will block the app because it is from an unidentified developer.
+   - Go to **System Settings → Privacy & Security**
+   - Scroll down to the **Security** section — you'll see a message like *"MaxAuto was blocked from use because it is not from an identified developer"*
+   - Click **"Open Anyway"** and confirm
+   - Alternatively, you can right-click (or Control-click) the app in Finder and select **"Open"**, then click **"Open"** in the dialog
+
+> MaxAuto will handle the rest on first launch — including installing Node.js and OpenClaw automatically into `~/.openclaw-maxauto/`.
 
 ## What It Does
 

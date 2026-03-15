@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { TitleBar } from "../components/layout/TitleBar";
 import { useAppStore } from "../stores/app-store";
 import {
@@ -14,7 +15,8 @@ import {
 export function SetupPage() {
   const { setupStep, setupError, setSetupStep, setSetupError, setSetupComplete, setGatewayRunning } =
     useAppStore();
-  const [statusMessage, setStatusMessage] = useState("Checking system...");
+  const { t } = useTranslation();
+  const [statusMessage, setStatusMessage] = useState(t("setup.checkingSystem"));
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -24,55 +26,55 @@ export function SetupPage() {
   async function runSetup() {
     try {
       setSetupStep("checking");
-      setStatusMessage("Checking Git...");
+      setStatusMessage(t("setup.checkingGit"));
       setProgress(5);
 
       const gitStatus = await checkGit();
 
       if (!gitStatus.available) {
         setSetupStep("install-git");
-        setStatusMessage("Installing Git...");
+        setStatusMessage(t("setup.installingGit"));
         setProgress(10);
         await installGit();
       }
 
       setProgress(15);
-      setStatusMessage("Checking Node.js...");
+      setStatusMessage(t("setup.checkingNode"));
 
       const nodeStatus = await checkNode();
 
       if (!nodeStatus.available) {
         setSetupStep("install-node");
-        setStatusMessage("Installing Node.js...");
+        setStatusMessage(t("setup.installingNode"));
         setProgress(25);
         await installNode();
       }
 
       setProgress(40);
-      setStatusMessage("Checking OpenClaw...");
+      setStatusMessage(t("setup.checkingOpenclaw"));
 
       const oclawStatus = await checkOpenclaw();
 
       if (!oclawStatus.installed) {
         setSetupStep("install-openclaw");
-        setStatusMessage("Installing OpenClaw...");
+        setStatusMessage(t("setup.installingOpenclaw"));
         setProgress(50);
         await installOpenclaw();
       }
 
       setProgress(70);
-      setStatusMessage("Starting gateway...");
+      setStatusMessage(t("setup.startingGateway"));
 
       await startGateway();
       setGatewayRunning(true);
 
       // Wait for gateway to be ready to accept connections
       setProgress(85);
-      setStatusMessage("Waiting for gateway to be ready...");
+      setStatusMessage(t("setup.waitingGateway"));
       await new Promise((r) => setTimeout(r, 2000));
 
       setProgress(100);
-      setStatusMessage("Ready!");
+      setStatusMessage(t("setup.ready"));
       setSetupStep("ready");
 
       // Brief delay so user sees "Ready!" before transition
@@ -82,7 +84,7 @@ export function SetupPage() {
       const message = err instanceof Error ? err.message : String(err);
       setSetupError(message);
       setSetupStep("error");
-      setStatusMessage(`Error: ${message}`);
+      setStatusMessage(t("setup.error", { message }));
     }
   }
 
@@ -90,9 +92,9 @@ export function SetupPage() {
     <div className="flex flex-col h-screen">
       <TitleBar />
       <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
-        <h1 className="text-3xl font-bold">MaxAuto</h1>
+        <h1 className="text-3xl font-bold">{t("setup.title")}</h1>
         <p className="text-[var(--color-text-muted)] text-center max-w-md">
-          Vendor-free desktop wrapper for OpenClaw. No login required.
+          {t("setup.subtitle")}
         </p>
 
         <div className="w-full max-w-sm">
@@ -120,7 +122,7 @@ export function SetupPage() {
                 }}
                 className="mt-3 px-4 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-lg text-sm transition-colors"
               >
-                Retry
+                {t("common.retry")}
               </button>
             </div>
           </div>

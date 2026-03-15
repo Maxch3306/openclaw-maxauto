@@ -1,5 +1,6 @@
 import { Shield, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { gateway } from "../../api/gateway-client";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
@@ -15,7 +16,19 @@ const SCENARIOS = [
   "Marketing",
 ];
 
+const SCENARIO_LABELS: Record<string, string> = {
+  "Coding": "settings.quickConfig.coding",
+  "Writing": "settings.quickConfig.writing",
+  "Product": "settings.quickConfig.product",
+  "Data Analysis": "settings.quickConfig.dataAnalysis",
+  "Design": "settings.quickConfig.design",
+  "DevOps": "settings.quickConfig.devops",
+  "Research": "settings.quickConfig.research",
+  "Marketing": "settings.quickConfig.marketing",
+};
+
 export function QuickConfigModal() {
+  const { t } = useTranslation();
   const setShowQuickConfig = useSettingsStore((s) => s.setShowQuickConfig);
   const selectedAgentId = useChatStore((s) => s.selectedAgentId);
 
@@ -78,9 +91,9 @@ export function QuickConfigModal() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
           <div>
-            <h2 className="text-base font-semibold text-[var(--color-text)]">Quick Setup</h2>
+            <h2 className="text-base font-semibold text-[var(--color-text)]">{t("settings.quickConfig.title")}</h2>
             <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-              Help AutoClaw understand you better for more accurate assistance
+              {t("settings.quickConfig.subtitle")}
             </p>
           </div>
           <button
@@ -96,13 +109,13 @@ export function QuickConfigModal() {
           {/* User name */}
           <div>
             <label className="block text-sm text-[var(--color-text)] mb-1">
-              What should we call you?
+              {t("settings.quickConfig.whatCallYou")}
             </label>
             <input
               type="text"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder={t("settings.quickConfig.enterName")}
               className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
@@ -110,13 +123,13 @@ export function QuickConfigModal() {
           {/* User role */}
           <div>
             <label className="block text-sm text-[var(--color-text)] mb-1">
-              Your role (optional)
+              {t("settings.quickConfig.yourRole")}
             </label>
             <input
               type="text"
               value={userRole}
               onChange={(e) => setUserRole(e.target.value)}
-              placeholder="e.g. Full-stack Engineer, Product Manager"
+              placeholder={t("settings.quickConfig.rolePlaceholder")}
               className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
@@ -124,13 +137,13 @@ export function QuickConfigModal() {
           {/* Agent nickname */}
           <div>
             <label className="block text-sm text-[var(--color-text)] mb-1">
-              What should I be called? (optional)
+              {t("settings.quickConfig.agentName")}
             </label>
             <input
               type="text"
               value={agentNickname}
               onChange={(e) => setAgentNickname(e.target.value)}
-              placeholder="Give the lobster a name, e.g. Claw, Max"
+              placeholder={t("settings.quickConfig.agentNamePlaceholder")}
               className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
@@ -138,7 +151,7 @@ export function QuickConfigModal() {
           {/* Usage scenarios */}
           <div>
             <label className="block text-sm text-[var(--color-text)] mb-2">
-              Usage Scenarios (select multiple)
+              {t("settings.quickConfig.scenarios")}
             </label>
             <div className="flex flex-wrap gap-2">
               {SCENARIOS.map((s) => (
@@ -151,18 +164,18 @@ export function QuickConfigModal() {
                       : "bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]"
                   }`}
                 >
-                  {s}
+                  {t(SCENARIO_LABELS[s] ?? s)}
                 </button>
               ))}
               <button className="px-3 py-1 rounded-full text-xs bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]">
-                + Other
+                {t("settings.quickConfig.other")}
               </button>
             </div>
           </div>
 
           {/* Work directory */}
           <div>
-            <label className="block text-sm text-[var(--color-text)] mb-1">Work Directory</label>
+            <label className="block text-sm text-[var(--color-text)] mb-1">{t("settings.quickConfig.workDir")}</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -171,7 +184,7 @@ export function QuickConfigModal() {
                 className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] font-mono focus:outline-none focus:border-[var(--color-accent)]"
               />
               <button className="px-3 py-2 text-sm rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors whitespace-nowrap">
-                Browse...
+                {t("settings.quickConfig.browseDots")}
               </button>
             </div>
           </div>
@@ -183,9 +196,9 @@ export function QuickConfigModal() {
               <div className="flex items-center gap-2">
                 <Shield size={16} />
                 <div>
-                  <p className="text-sm text-[var(--color-text)]">Limit File Access</p>
+                  <p className="text-sm text-[var(--color-text)]">{t("settings.quickConfig.limitFileAccess")}</p>
                   <p className="text-xs text-[var(--color-text-muted)]">
-                    When enabled, the agent can only read/write files within the work directory
+                    {t("settings.quickConfig.limitFileAccessDesc")}
                   </p>
                 </div>
               </div>
@@ -207,7 +220,7 @@ export function QuickConfigModal() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} />
-                <p className="text-sm text-[var(--color-text)]">Optimize Plan</p>
+                <p className="text-sm text-[var(--color-text)]">{t("settings.quickConfig.optimizePlan")}</p>
               </div>
               <button
                 onClick={() => setOptimizePlan(!optimizePlan)}
@@ -232,7 +245,7 @@ export function QuickConfigModal() {
             disabled={saving}
             className="w-full py-2.5 text-sm rounded-lg bg-[var(--color-warning)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Complete Setup"}
+            {saving ? t("common.saving") : t("settings.quickConfig.completeSetup")}
           </button>
         </div>
       </div>

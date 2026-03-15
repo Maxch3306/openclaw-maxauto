@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSettingsStore, PROVIDER_DEFAULTS } from "../../stores/settings-store";
 
 const DEFAULT_BASE_URL = "https://coding.dashscope.aliyuncs.com/v1";
@@ -26,6 +27,7 @@ const emptyEntry = (): ModelEntry => ({
 });
 
 export function AddModelDialog() {
+  const { t } = useTranslation();
   const setShowAddDialog = useSettingsStore((s) => s.setShowAddModelDialog);
   const addCustomModel = useSettingsStore((s) => s.addCustomModel);
   const replaceProviderModels = useSettingsStore((s) => s.replaceProviderModels);
@@ -101,11 +103,11 @@ export function AddModelDialog() {
 
   const handleSubmitBuiltIn = async () => {
     if (!selectedProvider) {
-      setError("Select a provider");
+      setError(t("settings.addModel.selectProvider"));
       return;
     }
     if (!apiKey.trim()) {
-      setError("API Key is required");
+      setError(t("settings.addModel.apiKeyRequired"));
       return;
     }
     setSaving(true);
@@ -127,15 +129,15 @@ export function AddModelDialog() {
   const handleSubmitCustom = async () => {
     const validEntries = modelEntries.filter((e) => e.id.trim());
     if (!providerName.trim()) {
-      setError("Provider Name is required");
+      setError(t("settings.addModel.providerNameRequired"));
       return;
     }
     if (validEntries.length === 0) {
-      setError("At least one Model ID is required");
+      setError(t("settings.addModel.modelIdRequired"));
       return;
     }
     if (!baseUrl.trim()) {
-      setError("Base URL is required");
+      setError(t("settings.addModel.baseUrlRequired"));
       return;
     }
     setSaving(true);
@@ -187,7 +189,7 @@ export function AddModelDialog() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
           <h2 className="text-base font-semibold text-[var(--color-text)]">
-            {isEditingProvider ? "Edit Provider" : isEditing ? "Edit Model" : "Set up Provider"}
+            {isEditingProvider ? t("settings.addModel.editProvider") : isEditing ? t("settings.addModel.editModel") : t("settings.addModel.setupProvider")}
           </h2>
           <button
             onClick={() => setShowAddDialog(false)}
@@ -212,7 +214,7 @@ export function AddModelDialog() {
                     : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] border-r border-[var(--color-border)]"
                 }`}
               >
-                Built-in Provider
+                {t("settings.addModel.builtinProvider")}
               </button>
               <button
                 onClick={() => {
@@ -225,7 +227,7 @@ export function AddModelDialog() {
                     : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
                 }`}
               >
-                Custom Provider
+                {t("settings.addModel.customProvider")}
               </button>
             </div>
           )}
@@ -235,7 +237,7 @@ export function AddModelDialog() {
             <>
               <div>
                 <label className="block text-sm text-[var(--color-text-muted)] mb-1">
-                  Provider
+                  {t("settings.addModel.provider")}
                 </label>
                 <select
                   value={selectedProvider}
@@ -246,7 +248,7 @@ export function AddModelDialog() {
                   className={inputClass}
                 >
                   {builtInProviders.length === 0 && (
-                    <option value="">No providers available</option>
+                    <option value="">{t("settings.addModel.noProviders")}</option>
                   )}
                   {builtInProviders.map((p: string) => (
                     <option key={p} value={p}>
@@ -259,19 +261,19 @@ export function AddModelDialog() {
               {isAlreadyConfigured && (
                 <div className="px-3 py-2 rounded-lg bg-[var(--color-success)]/10 border border-[var(--color-success)]/30">
                   <p className="text-xs text-[var(--color-success)]">
-                    This provider is already configured. Submitting will update the API key.
+                    {t("settings.addModel.alreadyConfigured")}
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">API Key</label>
+                <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("settings.addModel.apiKey")}</label>
                 <div className="relative">
                   <input
                     type={showKey ? "text" : "password"}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter API Key"
+                    placeholder={t("settings.addModel.enterApiKey")}
                     className={`${inputClass} pr-14`}
                   />
                   <button
@@ -279,14 +281,14 @@ export function AddModelDialog() {
                     onClick={() => setShowKey(!showKey)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs"
                   >
-                    {showKey ? "Hide" : "Show"}
+                    {showKey ? t("common.hide") : t("common.show")}
                   </button>
                 </div>
               </div>
 
               {selectedProvider === "modelstudio" && (
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">Base URL</label>
+                <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("settings.addModel.baseUrl")}</label>
                 <input
                   type="text"
                   value={builtInBaseUrl}
@@ -305,7 +307,7 @@ export function AddModelDialog() {
               {!isEditing && (
                 <div className="px-3 py-2 rounded-lg bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30">
                   <p className="text-xs text-[var(--color-warning)]">
-                    Adding an external model means you understand and accept the associated risks.
+                    {t("settings.addModel.customWarning")}
                   </p>
                 </div>
               )}
@@ -313,13 +315,13 @@ export function AddModelDialog() {
               {/* Provider Name */}
               <div>
                 <label className="block text-sm text-[var(--color-text-muted)] mb-1">
-                  * Provider Name
+                  * {t("settings.addModel.providerName")}
                 </label>
                 <input
                   type="text"
                   value={providerName}
                   onChange={(e) => setProviderName(e.target.value)}
-                  placeholder="e.g. MyProvider"
+                  placeholder={t("settings.addModel.providerNamePlaceholder")}
                   className={inputClass}
                 />
               </div>
@@ -327,14 +329,14 @@ export function AddModelDialog() {
               {/* Models list */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm text-[var(--color-text-muted)]">* Models</label>
+                  <label className="text-sm text-[var(--color-text-muted)]">* {t("settings.addModel.models")}</label>
                   <button
                     type="button"
                     onClick={addModelEntry}
                     className="flex items-center gap-1 text-xs text-[var(--color-accent)] hover:opacity-80 transition-opacity"
                   >
                     <Plus size={12} />
-                    Add Model
+                    {t("settings.addModel.addModel")}
                   </button>
                 </div>
                 <div className="space-y-3">
@@ -345,14 +347,14 @@ export function AddModelDialog() {
                           type="text"
                           value={entry.id}
                           onChange={(e) => updateModelEntry(i, "id", e.target.value)}
-                          placeholder="Model ID *"
+                          placeholder={t("settings.addModel.modelId")}
                           className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
                         />
                         <input
                           type="text"
                           value={entry.displayName}
                           onChange={(e) => updateModelEntry(i, "displayName", e.target.value)}
-                          placeholder="Display Name"
+                          placeholder={t("settings.addModel.displayName")}
                           className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
                         />
                         {modelEntries.length > 1 && (
@@ -367,7 +369,7 @@ export function AddModelDialog() {
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1">
-                          <label className="block text-[10px] text-[var(--color-text-muted)] mb-0.5">Context Window</label>
+                          <label className="block text-[10px] text-[var(--color-text-muted)] mb-0.5">{t("settings.addModel.contextWindow")}</label>
                           <input
                             type="number"
                             value={entry.contextWindow}
@@ -377,7 +379,7 @@ export function AddModelDialog() {
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="block text-[10px] text-[var(--color-text-muted)] mb-0.5">Max Tokens</label>
+                          <label className="block text-[10px] text-[var(--color-text-muted)] mb-0.5">{t("settings.addModel.maxTokens")}</label>
                           <input
                             type="number"
                             value={entry.maxTokens}
@@ -388,7 +390,7 @@ export function AddModelDialog() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <label className="block text-[10px] text-[var(--color-text-muted)]">Options</label>
+                        <label className="block text-[10px] text-[var(--color-text-muted)]">{t("settings.addModel.options")}</label>
                         <label className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] cursor-pointer">
                           <input
                             type="checkbox"
@@ -396,7 +398,7 @@ export function AddModelDialog() {
                             onChange={(e) => updateModelEntry(i, "inputText", e.target.checked)}
                             className="rounded"
                           />
-                          text
+                          {t("settings.addModel.text")}
                         </label>
                         <label className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] cursor-pointer">
                           <input
@@ -405,7 +407,7 @@ export function AddModelDialog() {
                             onChange={(e) => updateModelEntry(i, "inputImage", e.target.checked)}
                             className="rounded"
                           />
-                          image
+                          {t("settings.addModel.image")}
                         </label>
                         <label className="flex items-center gap-1 text-xs text-[var(--color-warning)] cursor-pointer">
                           <input
@@ -423,13 +425,13 @@ export function AddModelDialog() {
               </div>
 
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">API Key</label>
+                <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("settings.addModel.apiKey")}</label>
                 <div className="relative">
                   <input
                     type={showCustomKey ? "text" : "password"}
                     value={customApiKey}
                     onChange={(e) => setCustomApiKey(e.target.value)}
-                    placeholder="Enter API Key (optional)"
+                    placeholder={t("settings.addModel.enterApiKeyOptional")}
                     className={`${inputClass} pr-14`}
                   />
                   <button
@@ -437,14 +439,14 @@ export function AddModelDialog() {
                     onClick={() => setShowCustomKey(!showCustomKey)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs"
                   >
-                    {showCustomKey ? "Hide" : "Show"}
+                    {showCustomKey ? t("common.hide") : t("common.show")}
                   </button>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm text-[var(--color-text-muted)] mb-1">
-                  API Protocol
+                  {t("settings.addModel.apiProtocol")}
                 </label>
                 <select
                   value={apiProtocol}
@@ -461,7 +463,7 @@ export function AddModelDialog() {
 
               <div>
                 <label className="block text-sm text-[var(--color-text-muted)] mb-1">
-                  * Base URL
+                  * {t("settings.addModel.baseUrl")}
                 </label>
                 <input
                   type="text"
@@ -483,7 +485,7 @@ export function AddModelDialog() {
             onClick={() => setShowAddDialog(false)}
             className="px-4 py-2 text-sm rounded-lg border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={mode === "builtin" && !isEditing ? handleSubmitBuiltIn : handleSubmitCustom}
@@ -491,12 +493,12 @@ export function AddModelDialog() {
             className="px-4 py-2 text-sm rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {saving
-              ? "Saving..."
+              ? t("common.saving")
               : isEditing
-                ? "Save"
+                ? t("common.save")
                 : isAlreadyConfigured && mode === "builtin"
-                  ? "Update"
-                  : "Add"}
+                  ? t("common.update")
+                  : t("common.add")}
           </button>
         </div>
       </div>

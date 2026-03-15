@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { gateway } from "../../api/gateway-client";
 import { openFolder } from "../../api/tauri-commands";
 
@@ -14,6 +15,7 @@ interface AgentWorkspaceInfo {
 }
 
 export function WorkspaceSection() {
+  const { t } = useTranslation();
   const [workspacePath, setWorkspacePath] = useState(DEFAULT_WORKSPACE);
   const [agentWorkspaces, setAgentWorkspaces] = useState<AgentWorkspaceInfo[]>([]);
 
@@ -101,16 +103,15 @@ export function WorkspaceSection() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-lg font-semibold text-[var(--color-text)] mb-6">Workspace</h1>
+      <h1 className="text-lg font-semibold text-[var(--color-text)] mb-6">{t("settings.workspace.title")}</h1>
 
       <section className="mb-6">
         <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">
-          Default Workspace
+          {t("settings.workspace.defaultWorkspace")}
         </h2>
         <div className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] space-y-3">
           <p className="text-xs text-[var(--color-text-muted)]">
-            The workspace is the directory where agents read and write files. All agents use this
-            default workspace unless overridden.
+            {t("settings.workspace.description")}
           </p>
 
           <div className="flex items-center justify-between gap-4">
@@ -122,7 +123,7 @@ export function WorkspaceSection() {
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors shrink-0"
             >
               <ExternalLink size={14} />
-              {isMac ? "Open in Finder" : "Open in Explorer"}
+              {isMac ? t("settings.workspace.openInFinder") : t("settings.workspace.openInExplorer")}
             </button>
           </div>
         </div>
@@ -130,10 +131,10 @@ export function WorkspaceSection() {
 
       <section>
         <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">
-          Per-Agent Workspaces
+          {t("settings.workspace.perAgent")}
         </h2>
         {agentWorkspaces.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-muted)]">No agents found.</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t("settings.workspace.noAgents")}</p>
         ) : (
           <div className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] divide-y divide-[var(--color-border)]">
             {agentWorkspaces.map((info) => (
@@ -157,11 +158,11 @@ export function WorkspaceSection() {
                     </span>
                   ) : info.status === "default" ? (
                     <span className="text-xs text-[var(--color-text-muted)] italic">
-                      Default
+                      {t("common.default")}
                     </span>
                   ) : (
                     <span className="text-xs text-[var(--color-text-muted)] italic">
-                      Auto-assigned
+                      {t("settings.workspace.autoAssigned")}
                     </span>
                   )}
                 </div>
@@ -172,7 +173,7 @@ export function WorkspaceSection() {
                   className="flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors shrink-0"
                 >
                   <ExternalLink size={12} />
-                  {isMac ? "Finder" : "Explorer"}
+                  {isMac ? t("settings.workspace.finder") : t("settings.workspace.explorer")}
                 </button>
               </div>
             ))}
