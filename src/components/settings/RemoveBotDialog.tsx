@@ -8,6 +8,7 @@ import {
   buildUpdatedBindings,
   getAccountConfigs,
   getTelegramBindingForAccount,
+  isMultiAccountConfig,
 } from "../../api/telegram-accounts";
 import { patchConfig, waitForReconnect } from "../../api/config-helpers";
 import { useChatStore } from "../../stores/chat-store";
@@ -97,6 +98,7 @@ export function RemoveBotDialog({
         channels?: { telegram?: TelegramConfig };
         bindings?: BindingEntry[];
       };
+      const tg = cfg.channels?.telegram ?? {};
       const currentBindings = (cfg.bindings ?? []) as BindingEntry[];
 
       // Build updated bindings: remove this account's binding
@@ -106,9 +108,28 @@ export function RemoveBotDialog({
         null,
       );
 
+      // Build the config patch based on config shape
+      let telegramPatch: Record<string, unknown>;
+
+      if (isMultiAccountConfig(tg)) {
+        // Multi-account: delete the specific account entry
+        telegramPatch = { accounts: { [accountId]: null } };
+      } else {
+        // Legacy flat config: null out top-level telegram fields
+        telegramPatch = {
+          botToken: null,
+          dmPolicy: null,
+          groupPolicy: null,
+          allowFrom: null,
+          groupAllowFrom: null,
+          groups: null,
+          enabled: null,
+        };
+      }
+
       // Single atomic patchConfig: delete account + update bindings
       await patchConfig({
-        channels: { telegram: { accounts: { [accountId]: null } } },
+        channels: { telegram: telegramPatch },
         bindings: updatedBindings,
       });
 

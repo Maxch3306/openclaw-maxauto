@@ -199,6 +199,52 @@ async fn get_git_version(git_path: &str) -> Option<String> {
 }
 
 #[tauri::command]
+pub async fn open_folder(path: String) -> Result<(), String> {
+    let expanded = if path.starts_with("~/") || path == "~" {
+        let home = dirs::home_dir().ok_or("Could not determine home directory")?;
+        if path == "~" {
+            home
+        } else {
+            home.join(&path[2..])
+        }
+    } else {
+        PathBuf::from(&path)
+    };
+
+    // Create directory if it doesn't exist
+    if !expanded.exists() {
+        std::fs::create_dir_all(&expanded)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        tokio::process::Command::new("explorer")
+            .arg(expanded.to_string_lossy().to_string())
+            .spawn()
+            .map_err(|e| format!("Failed to open folder: {}", e))?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        tokio::process::Command::new("open")
+            .arg(expanded.to_string_lossy().to_string())
+            .spawn()
+            .map_err(|e| format!("Failed to open folder: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        tokio::process::Command::new("xdg-open")
+            .arg(expanded.to_string_lossy().to_string())
+            .spawn()
+            .map_err(|e| format!("Failed to open folder: {}", e))?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn check_git() -> Result<GitStatus, String> {
     // Check local git first (Windows MinGit)
     let local = local_git_path();

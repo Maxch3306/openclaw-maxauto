@@ -74,6 +74,7 @@ export const writeConfig = (json: string) => invoke<string>("write_config", { js
 
 // Shell
 export const openUrl = (url: string) => open(url);
+export const openFolder = (path: string) => invoke<void>("open_folder", { path });
 
 // Pairing
 export interface PairingRequest {
