@@ -2,6 +2,8 @@
 
 A vendor-free, open-source desktop app that wraps [OpenClaw](https://github.com/openclaw/openclaw). No login, no credits, no vendor lock-in — just a double-click installer that manages OpenClaw's setup and provides a polished GUI.
 
+Please join our discord community: https://discord.gg/QfS4Sa8h
+
 ## Install
 
 Download the latest installer from the [Releases](https://github.com/Maxch3306/openclaw-maxauto/releases) page:
