@@ -25,6 +25,7 @@ pub fn run() {
             commands::system::check_node,
             commands::system::check_git,
             commands::system::check_openclaw,
+            commands::system::open_folder,
             // Setup
             commands::setup::install_node,
             commands::setup::install_git,
