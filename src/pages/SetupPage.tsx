@@ -184,11 +184,11 @@ export function SetupPage() {
             {t("setup.chooseMode")}
           </p>
 
-          <div className="flex gap-4 w-full max-w-xl">
+          <div className="grid grid-cols-2 gap-4 w-full max-w-xl">
             {/* Native Install Card */}
             <button
               onClick={() => handleSelectMode("native")}
-              className="flex-1 p-5 rounded-xl border-2 border-border bg-card hover:border-primary hover:bg-secondary transition-all text-left cursor-pointer group"
+              className="flex flex-col p-5 rounded-xl border-2 border-border bg-card hover:border-primary hover:bg-secondary transition-all text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
@@ -198,17 +198,17 @@ export function SetupPage() {
                   {t("setup.modeNative")}
                 </h3>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed flex-1">
                 {t("setup.modeNativeDesc")}
               </p>
             </button>
 
             {/* Docker Install Card */}
-            <div className="flex-1 relative">
+            <div className="flex flex-col">
               <button
                 onClick={() => dockerAvailable && handleSelectMode("docker")}
                 disabled={!dockerAvailable}
-                className={`w-full h-full p-5 rounded-xl border-2 text-left transition-all ${
+                className={`flex flex-col flex-1 p-5 rounded-xl border-2 text-left transition-all ${
                   dockerAvailable
                     ? "border-border bg-card hover:border-primary hover:bg-secondary cursor-pointer"
                     : "border-border bg-card opacity-60 cursor-not-allowed"
@@ -222,7 +222,7 @@ export function SetupPage() {
                     {t("setup.modeDocker")}
                   </h3>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                <p className="text-xs text-muted-foreground leading-relaxed mb-3 flex-1">
                   {t("setup.modeDockerDesc")}
                 </p>
 

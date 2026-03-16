@@ -5,6 +5,7 @@ import { patchConfig, waitForReconnect } from "../api/config-helpers";
 
 export type SettingsSection =
   | "general"
+  | "appearance"
   | "usage"
   | "credits"
   | "models"

@@ -1,3 +1,4 @@
+import { Plus, ArrowUp, Square, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useChatStore } from "@/stores/chat-store";
@@ -18,16 +19,13 @@ export function ChatInput() {
   const configuredProviders = useSettingsStore((s) => s.configuredProviders);
   const defaultModelId = useSettingsStore((s) => s.defaultModelId);
 
-  // Only show models from configured providers
   const availableModels = models.filter((m) => configuredProviders.has(m.provider));
 
   const [selectedModelId, setSelectedModelId] = useState("");
 
-  // Set initial model: use default from config, or first available
   useEffect(() => {
     if (availableModels.length > 0 && !selectedModelId) {
       if (defaultModelId) {
-        // Check if default model is in available models
         const match = availableModels.find((m) => `${m.provider}/${m.id}` === defaultModelId);
         if (match) {
           setSelectedModelId(defaultModelId);
@@ -81,43 +79,67 @@ export function ChatInput() {
   }
 
   return (
-    <div className="border-t border-border p-3 bg-card">
-      {/* Model selector row */}
-      {availableModels.length > 0 && (
-        <div className="flex items-center gap-2 mb-2">
-          <label className="text-xs text-muted-foreground shrink-0">{t("chat.model")}</label>
-          <select
-            value={selectedModelId}
-            onChange={(e) => handleModelChange(e.target.value)}
-            className="bg-background border border-input rounded-lg px-2 py-1 text-xs text-foreground focus:outline-none focus:border-primary max-w-xs truncate"
-          >
-            {availableModels.map((m) => (
-              <option key={`${m.provider}/${m.id}`} value={`${m.provider}/${m.id}`}>
-                {m.name || m.id} ({m.provider})
-              </option>
-            ))}
-          </select>
+    <div className="px-4 pb-3 pt-1">
+      {/* Main input container */}
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        {/* Textarea area */}
+        <div className="relative px-4 pt-3 pb-2">
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onInput={handleInput}
+            placeholder={t("chat.typeMessage")}
+            rows={1}
+            className="w-full resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none overflow-hidden min-h-[24px]"
+          />
         </div>
-      )}
-      {/* Input row */}
-      <div className="flex items-end gap-2">
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onInput={handleInput}
-          placeholder={t("chat.typeMessage")}
-          rows={1}
-          className="flex-1 resize-none bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary overflow-hidden"
-        />
-        <Button
-          onClick={handleSubmit}
-          variant={streaming ? "destructive" : "default"}
-          size="sm"
-        >
-          {streaming ? t("chat.stop") : t("chat.send")}
-        </Button>
+
+        {/* Bottom toolbar */}
+        <div className="flex items-center justify-between px-3 pb-2.5">
+          <div className="flex items-center gap-1">
+            {/* Attach button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
+            >
+              <Plus size={16} />
+            </Button>
+
+            {/* Model selector */}
+            {availableModels.length > 0 && (
+              <div className="relative">
+                <select
+                  value={selectedModelId}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  className="appearance-none bg-transparent text-xs text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none pr-4 pl-2 py-1 rounded-md hover:bg-secondary transition-colors"
+                >
+                  {availableModels.map((m) => (
+                    <option key={`${m.provider}/${m.id}`} value={`${m.provider}/${m.id}`}>
+                      {m.name || m.id}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={10}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Send / Stop button */}
+          <Button
+            onClick={handleSubmit}
+            size="icon"
+            variant={streaming ? "destructive" : "default"}
+            className="h-8 w-8 rounded-full"
+          >
+            {streaming ? <Square size={14} /> : <ArrowUp size={16} />}
+          </Button>
+        </div>
       </div>
     </div>
   );

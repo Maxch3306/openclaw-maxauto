@@ -139,6 +139,7 @@
     "backToApp": "返回應用程式",
     "nav": {
       "general": "一般",
+      "appearance": "外觀",
       "models": "模型與 API",
       "mcp": "MCP 服務",
       "skills": "技能",
@@ -147,6 +148,27 @@
       "privacy": "資料與隱私",
       "feedback": "意見回饋",
       "about": "關於"
+    },
+    "appearance": {
+      "title": "外觀",
+      "themeMode": "主題",
+      "light": "淺色",
+      "dark": "深色",
+      "system": "系統",
+      "presets": "預設主題",
+      "defaultDark": "預設深色",
+      "defaultLight": "預設淺色",
+      "ocean": "海洋",
+      "rosewood": "玫瑰木",
+      "monochrome": "黑白",
+      "custom": "自訂",
+      "colors": "顏色",
+      "accentColor": "主色",
+      "backgroundColor": "背景",
+      "foregroundColor": "前景",
+      "contrast": "對比度",
+      "contrastDesc": "調整邊框與輔助色的可見度。",
+      "resetToDefault": "重設為預設"
     },
     "general": {
       "title": "一般",

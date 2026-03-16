@@ -293,13 +293,17 @@ export function ChatPanel() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 && <WelcomeScreen />}
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} msg={msg} />
-        ))}
+        <div className="max-w-3xl mx-auto">
+          {messages.length === 0 && <WelcomeScreen />}
+          {messages.map((msg) => (
+            <ChatMessage key={msg.id} msg={msg} />
+          ))}
+        </div>
       </div>
       <ToolActivityIndicator />
-      <ChatInput />
+      <div className="max-w-3xl mx-auto w-full">
+        <ChatInput />
+      </div>
     </div>
   );
 }

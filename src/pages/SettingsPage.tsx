@@ -1,5 +1,6 @@
 import {
   Settings,
+  Palette,
   Puzzle,
   Plug,
   BookOpen,
@@ -14,6 +15,7 @@ import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { GeneralSection } from "@/components/settings/GeneralSection";
+import { AppearanceSection } from "@/components/settings/AppearanceSection";
 import { IMChannelsSection } from "@/components/settings/IMChannelsSection";
 import { ModelsAndApiSection } from "@/components/settings/ModelsAndApiSection";
 import { McpSection } from "@/components/settings/McpSection";
@@ -25,6 +27,7 @@ import { useSettingsStore, type SettingsSection } from "@/stores/settings-store"
 
 const NAV_ITEMS: { key: SettingsSection; labelKey: string; icon: ReactNode }[] = [
   { key: "general", labelKey: "settings.nav.general", icon: <Settings size={16} /> },
+  { key: "appearance", labelKey: "settings.nav.appearance", icon: <Palette size={16} /> },
   { key: "models", labelKey: "settings.nav.models", icon: <Puzzle size={16} /> },
   { key: "mcp", labelKey: "settings.nav.mcp", icon: <Plug size={16} /> },
   { key: "skills", labelKey: "settings.nav.skills", icon: <BookOpen size={16} /> },
@@ -48,6 +51,8 @@ function renderSection(section: SettingsSection) {
   switch (section) {
     case "general":
       return <GeneralSection />;
+    case "appearance":
+      return <AppearanceSection />;
     case "models":
       return <ModelsAndApiSection />;
     case "mcp":

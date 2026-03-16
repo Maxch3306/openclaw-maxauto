@@ -139,6 +139,7 @@
     "backToApp": "Back to App",
     "nav": {
       "general": "General",
+      "appearance": "Appearance",
       "models": "Models & API",
       "mcp": "MCP Services",
       "skills": "Skills",
@@ -147,6 +148,27 @@
       "privacy": "Data & Privacy",
       "feedback": "Feedback",
       "about": "About"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "themeMode": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "presets": "Presets",
+      "defaultDark": "Default Dark",
+      "defaultLight": "Default Light",
+      "ocean": "Ocean",
+      "rosewood": "Rosewood",
+      "monochrome": "Monochrome",
+      "custom": "Custom",
+      "colors": "Colors",
+      "accentColor": "Accent",
+      "backgroundColor": "Background",
+      "foregroundColor": "Foreground",
+      "contrast": "Contrast",
+      "contrastDesc": "Adjusts border and muted color visibility.",
+      "resetToDefault": "Reset to Default"
     },
     "general": {
       "title": "General",
