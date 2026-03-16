@@ -289,8 +289,8 @@ export function BotCard({
             }`}
           >
             <span
-              className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-                isEnabled ? "translate-x-4" : "translate-x-0.5"
+              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                isEnabled ? "translate-x-[18px]" : "translate-x-[2px]"
               }`}
             />
           </div>

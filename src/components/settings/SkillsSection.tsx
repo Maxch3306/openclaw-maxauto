@@ -85,8 +85,8 @@ function ToggleSwitch({
       } ${checked ? "bg-[var(--color-success)]" : "bg-[var(--color-text-muted)]/30"}`}
     >
       <span
-        className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0.5"
+        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+          checked ? "translate-x-[18px]" : "translate-x-[2px]"
         }`}
       />
     </button>
