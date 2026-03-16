@@ -42,7 +42,7 @@ MaxAuto 在首次啟動時提供兩種安裝模式：
 直接在您的電腦上安裝 Node.js 和 OpenClaw，存放於 `~/.openclaw-maxauto/`。需要先安裝 Git。
 
 - **macOS：** Git 包含在 Xcode 命令列工具中。如果尚未安裝，MaxAuto 會自動觸發安裝對話框。
-- **Windows：** 需要手動安裝 Git。請從 [git-scm.com](https://git-scm.com/) 下載。如果未偵測到 Git，MaxAuto 會提示您安裝。
+- **Windows：** 如果未偵測到 Git，MaxAuto 會自動下載並啟動 Git for Windows 安裝程式 — 依照精靈指示完成安裝即可。
 
 ### Docker 模式（沙箱隔離）
 

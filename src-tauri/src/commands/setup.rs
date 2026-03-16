@@ -228,8 +228,98 @@ pub async fn install_git(app: tauri::AppHandle) -> Result<String, String> {
     }
 
     if cfg!(windows) {
-        // Windows: direct user to install Git manually from the official installer
-        return Err("GIT_NOT_FOUND".into());
+        // Windows: download and launch the Git for Windows installer
+        let version = "2.47.1";
+        let filename = format!("Git-{}-64-bit.exe", version);
+        let url = format!(
+            "https://github.com/git-for-windows/git/releases/download/v{}.windows.1/{}",
+            version, filename
+        );
+
+        let temp_dir = maxauto_dir().join("tmp");
+        std::fs::create_dir_all(&temp_dir)
+            .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+        let installer_path = temp_dir.join(&filename);
+
+        let _ = app.emit("setup-progress", SetupProgress {
+            step: "git".into(),
+            message: "Downloading Git installer...".into(),
+            progress: Some(0.1),
+            error: None,
+        });
+
+        let response = reqwest::get(&url)
+            .await
+            .map_err(|_| "GIT_NOT_FOUND".to_string())?;
+
+        if !response.status().is_success() {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return Err("GIT_NOT_FOUND".into());
+        }
+
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|_| "GIT_NOT_FOUND".to_string())?;
+
+        std::fs::write(&installer_path, &bytes)
+            .map_err(|e| format!("Failed to save installer: {}", e))?;
+
+        let _ = app.emit("setup-progress", SetupProgress {
+            step: "git".into(),
+            message: "Launching Git installer (please follow the wizard)...".into(),
+            progress: Some(0.4),
+            error: None,
+        });
+
+        // Launch the installer (user clicks through the wizard)
+        let _child = tokio::process::Command::new(&installer_path)
+            .spawn()
+            .map_err(|e| format!("Failed to launch Git installer: {}", e))?;
+
+        // Poll for git availability (the user is clicking through the installer)
+        let max_wait = std::time::Duration::from_secs(600); // 10 min timeout
+        let start = std::time::Instant::now();
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+            let git_ok = tokio::process::Command::new("git.exe")
+                .arg("--version")
+                .output()
+                .await
+                .map(|o| o.status.success())
+                .unwrap_or(false);
+
+            if git_ok {
+                let _ = std::fs::remove_file(&installer_path);
+                let _ = std::fs::remove_dir_all(&temp_dir);
+                let _ = app.emit("setup-progress", SetupProgress {
+                    step: "git".into(),
+                    message: "Git installed".into(),
+                    progress: Some(1.0),
+                    error: None,
+                });
+                return Ok("Git installed successfully".into());
+            }
+
+            if start.elapsed() > max_wait {
+                let _ = std::fs::remove_file(&installer_path);
+                let _ = std::fs::remove_dir_all(&temp_dir);
+                return Err(
+                    "Timed out waiting for Git installation. \
+                     Please install Git manually from https://git-scm.com/downloads and restart MaxAuto."
+                        .into(),
+                );
+            }
+
+            let elapsed_pct = (start.elapsed().as_secs_f64() / max_wait.as_secs_f64()).min(0.9);
+            let _ = app.emit("setup-progress", SetupProgress {
+                step: "git".into(),
+                message: "Waiting for Git installation to complete...".into(),
+                progress: Some(0.4 + elapsed_pct * 0.6),
+                error: None,
+            });
+        }
     } else {
         // macOS: trigger Xcode Command Line Tools install
         let _ = app.emit("setup-progress", SetupProgress {

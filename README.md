@@ -44,7 +44,7 @@ MaxAuto offers two installation modes on first launch:
 Installs Node.js and OpenClaw directly on your machine under `~/.openclaw-maxauto/`. Git is required as a prerequisite.
 
 - **macOS:** Git is included with Xcode Command Line Tools. If not installed, MaxAuto will trigger the install dialog automatically.
-- **Windows:** Git must be installed manually before setup. Download it from [git-scm.com](https://git-scm.com/). MaxAuto will prompt you if Git is not found.
+- **Windows:** If Git is not found, MaxAuto will automatically download and launch the Git for Windows installer — just follow the wizard to complete the installation.
 
 ### Docker (Sandboxed)
 
