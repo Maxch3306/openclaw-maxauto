@@ -86,6 +86,15 @@ export function groupSkills(skills: SkillStatusEntry[]): SkillGroup[] {
     { id: "other", label: "Other Skills", skills: groups.other },
   ];
 
+  // Sort skills within each group: enabled first, then disabled, then unavailable
+  for (const group of orderedGroups) {
+    group.skills.sort((a, b) => {
+      const order = (s: SkillStatusEntry) =>
+        s.disabled ? 1 : !s.eligible ? 2 : 0;
+      return order(a) - order(b);
+    });
+  }
+
   return orderedGroups.filter((g) => g.skills.length > 0);
 }
 
@@ -143,6 +152,44 @@ export function canInstallSkill(skill: SkillStatusEntry): boolean {
  */
 export function isOsIncompatible(skill: SkillStatusEntry): boolean {
   return skill.missing.os.length > 0;
+}
+
+/**
+ * Mapping of brew formulas to winget package IDs for Windows installs.
+ * Only includes formulas with known winget equivalents.
+ */
+export const BREW_TO_WINGET: Record<string, string> = {
+  ffmpeg: "Gyan.FFmpeg",
+  gh: "GitHub.cli",
+  python: "Python.Python.3.12",
+  uv: "astral-sh.uv",
+  himalaya: "sostrovsky.himalaya",
+  "1password-cli": "AgileBits.1Password.CLI",
+  "gemini-cli": "Google.GeminiCLI",
+};
+
+/**
+ * Returns the winget package ID for a skill's brew install, or null if no mapping exists.
+ * Only returns a value when the skill has brew-only installs with a mapped formula.
+ */
+export function getWingetPackageForSkill(skill: SkillStatusEntry): string | null {
+  if (!canInstallSkill(skill)) return null;
+  // Check if any install spec is brew with a known winget mapping
+  for (const spec of skill.install) {
+    const kind = (spec as Record<string, unknown>).kind as string | undefined;
+    const formula = (spec as Record<string, unknown>).formula as string | undefined;
+    if (kind === "brew" && formula && BREW_TO_WINGET[formula]) {
+      return BREW_TO_WINGET[formula];
+    }
+  }
+  return null;
+}
+
+/**
+ * Returns true if the skill can be installed via winget on Windows.
+ */
+export function canWingetInstall(skill: SkillStatusEntry): boolean {
+  return getWingetPackageForSkill(skill) !== null;
 }
 
 export function computeSkillMissing(skill: SkillStatusEntry): string[] {

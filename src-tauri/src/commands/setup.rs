@@ -599,3 +599,54 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
 
     Ok("OpenClaw installed successfully".into())
 }
+
+/// Install a package via winget (Windows only).
+/// Returns the combined stdout+stderr output.
+#[tauri::command]
+pub async fn install_winget_package(package_id: String) -> Result<String, String> {
+    // Validate package_id: only allow alphanumeric, dots, hyphens, underscores, slashes
+    if !package_id
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '.' || c == '-' || c == '_' || c == '/')
+    {
+        return Err("Invalid package ID".into());
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = package_id;
+        return Err("winget is only available on Windows".into());
+    }
+
+    #[cfg(windows)]
+    {
+        let output = tokio::process::Command::new("winget")
+            .args([
+                "install",
+                "-e",
+                "--id",
+                &package_id,
+                "--accept-source-agreements",
+                "--accept-package-agreements",
+            ])
+            .output()
+            .await
+            .map_err(|e| format!("Failed to run winget: {}", e))?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+        if output.status.success() {
+            // Refresh PATH so the new binary is detectable immediately
+            refresh_path_from_registry();
+            Ok(format!("{}\n{}", stdout, stderr).trim().to_string())
+        } else {
+            Err(format!(
+                "winget install failed (exit {}):\n{}\n{}",
+                output.status.code().unwrap_or(-1),
+                stdout,
+                stderr
+            ))
+        }
+    }
+}

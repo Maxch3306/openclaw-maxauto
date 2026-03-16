@@ -24,7 +24,10 @@ import {
   isToggleDisabled,
   canInstallSkill,
   isOsIncompatible,
+  canWingetInstall,
+  getWingetPackageForSkill,
 } from "./skills-utils";
+import { installWingetPackage } from "@/api/tauri-commands";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +109,9 @@ function SkillCard({
   const hasKey = hasApiKeySet(skill);
   const isEditing = apiKeyEdit !== undefined;
 
+  const isWin = navigator.platform.includes("Win");
+  const showInstall = canInstallSkill(skill) && (!isWin || canWingetInstall(skill));
+
   return (
     <Card
       className={`cursor-pointer hover:bg-secondary transition-colors ${
@@ -114,16 +120,16 @@ function SkillCard({
       onClick={onCardClick}
     >
       {/* Collapsed view */}
-      <div className="p-3">
-        <div className="flex items-center gap-2">
+      <div className="p-4">
+        <div className="flex items-center gap-2.5">
           <SkillEmoji emoji={skill.emoji} />
-          <span className="flex-1 text-sm font-medium text-foreground truncate">
+          <span className="flex-1 text-sm font-medium text-foreground">
             {skill.name}
           </span>
           <Badge variant={badgeInfo.variant} className="text-[10px] px-2 py-0.5">
             {t(badgeInfo.labelKey)}
           </Badge>
-          {canInstallSkill(skill) && (
+          {showInstall && (
             installingSkill === skill.skillKey ? (
               <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                 <Loader2 size={12} className="animate-spin" />
@@ -158,7 +164,7 @@ function SkillCard({
             }`}
           />
         </div>
-        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+        <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
           {skill.description}
         </p>
         {skillError && (
@@ -425,6 +431,8 @@ export function SkillsSection() {
     [loadSkills],
   );
 
+  const isWindows = navigator.platform.includes("Win");
+
   const handleInstall = useCallback(
     async (skill: SkillStatusEntry) => {
       const key = skill.skillKey;
@@ -438,6 +446,17 @@ export function SkillsSection() {
       });
 
       try {
+        // On Windows, try winget install if a mapping exists
+        if (isWindows) {
+          const wingetPkg = getWingetPackageForSkill(skill);
+          if (wingetPkg) {
+            await installWingetPackage(wingetPkg);
+            await loadSkills();
+            return;
+          }
+        }
+
+        // Default: use gateway's skill install
         await gateway.request("skills.install", {
           name: skill.name,
           installId: skill.install[0].id,
@@ -580,7 +599,7 @@ export function SkillsSection() {
                 {group.skills.length}
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {group.skills.map((skill) => (
                 <SkillCard
                   key={skill.skillKey}
