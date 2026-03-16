@@ -110,11 +110,16 @@ pub(crate) fn ensure_config_with_token(config_path: &std::path::Path, port: u16,
 
             let mut config = config;
 
-            // Ensure gateway.mode and controlUi config are set
+            // Ensure gateway.mode, bind, port, and controlUi config are set
             if let Some(gw) = config.get_mut("gateway").and_then(|g| g.as_object_mut()) {
                 if !gw.contains_key("mode") {
                     gw.insert("mode".into(), serde_json::json!("local"));
                 }
+
+                // Always update bind and port to match the requested values
+                // (critical for Docker mode where bind must be "lan" for 0.0.0.0)
+                gw.insert("bind".into(), serde_json::json!(bind));
+                gw.insert("port".into(), serde_json::json!(port));
 
                 // Always update controlUi to ensure Tauri origins + insecure auth are present
                 gw.insert("controlUi".into(), control_ui.clone());
@@ -145,6 +150,10 @@ pub(crate) fn ensure_config_with_token(config_path: &std::path::Path, port: u16,
 
         // Ensure gateway.mode is set
         gw_obj.entry("mode").or_insert_with(|| serde_json::json!("local"));
+
+        // Always update bind and port to match the requested values
+        gw_obj.insert("bind".into(), serde_json::json!(bind));
+        gw_obj.insert("port".into(), serde_json::json!(port));
 
         // Ensure controlUi config
         gw_obj.insert("controlUi".into(), control_ui.clone());
@@ -267,7 +276,6 @@ pub async fn start_gateway(
     app: AppHandle,
     state: State<'_, GatewayProcess>,
     port: Option<u16>,
-    bind: Option<String>,
 ) -> Result<GatewayStatus, String> {
     // If we already have a child, kill it first (handles restart)
     let old_child = {
@@ -280,7 +288,8 @@ pub async fn start_gateway(
     }
 
     let port = port.unwrap_or(51789);
-    let bind = bind.unwrap_or_else(|| "loopback".to_string());
+    // Native mode always binds to loopback for security — never expose to LAN
+    let bind = "loopback".to_string();
     let base_dir = maxauto_dir();
     let config_path = base_dir.join("config").join("openclaw.json");
 

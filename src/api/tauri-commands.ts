@@ -46,8 +46,8 @@ export interface DockerStatus {
 }
 
 // Gateway
-export const startGateway = (port?: number, bind?: string) =>
-  invoke<GatewayStatus>("start_gateway", { port, bind });
+export const startGateway = (port?: number) =>
+  invoke<GatewayStatus>("start_gateway", { port });
 
 export const stopGateway = () => invoke<string>("stop_gateway");
 
