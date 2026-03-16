@@ -259,6 +259,10 @@ pub async fn check_git() -> Result<GitStatus, String> {
         });
     }
 
+    // On Windows, refresh PATH from registry so we detect newly-installed Git
+    #[cfg(windows)]
+    crate::commands::setup::refresh_path_from_registry();
+
     // Check system git
     let system_git = if cfg!(windows) { "git.exe" } else { "git" };
     if let Some(version) = get_git_version(system_git).await {
@@ -268,6 +272,22 @@ pub async fn check_git() -> Result<GitStatus, String> {
             path: Some(system_git.into()),
             source: Some("system".into()),
         });
+    }
+
+    // Check default install paths (Windows)
+    #[cfg(windows)]
+    {
+        if let Some(git_path) = crate::commands::setup::find_git_in_default_paths() {
+            let path_str = git_path.to_string_lossy().to_string();
+            if let Some(version) = get_git_version(&path_str).await {
+                return Ok(GitStatus {
+                    available: true,
+                    version: Some(version),
+                    path: Some(path_str),
+                    source: Some("system".into()),
+                });
+            }
+        }
     }
 
     Ok(GitStatus {

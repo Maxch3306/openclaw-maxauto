@@ -2071,6 +2071,7 @@ dependencies = [
  "tauri-plugin-shell",
  "tauri-plugin-updater",
  "tokio",
+ "winreg",
  "zip 2.4.2",
 ]
 

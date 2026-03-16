@@ -2,6 +2,67 @@ use serde::Serialize;
 use std::path::PathBuf;
 use tauri::Emitter;
 
+/// On Windows, refresh the PATH env var from the registry so we can detect
+/// newly-installed programs (like Git) without restarting the app.
+#[cfg(windows)]
+pub fn refresh_path_from_registry() {
+    use std::ffi::OsString;
+    use std::os::windows::ffi::OsStringExt;
+    use winreg::enums::*;
+    use winreg::RegKey;
+
+    let mut parts: Vec<String> = Vec::new();
+
+    // System PATH
+    if let Ok(env) = RegKey::predef(HKEY_LOCAL_MACHINE)
+        .open_subkey(r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")
+    {
+        if let Ok(val) = env.get_raw_value("Path") {
+            let wide: Vec<u16> = val.bytes.chunks_exact(2)
+                .map(|c| u16::from_le_bytes([c[0], c[1]]))
+                .collect();
+            let s = OsString::from_wide(&wide);
+            if let Some(s) = s.to_str() {
+                parts.extend(s.trim_end_matches('\0').split(';').map(|p| p.to_string()));
+            }
+        }
+    }
+
+    // User PATH
+    if let Ok(env) = RegKey::predef(HKEY_CURRENT_USER).open_subkey("Environment") {
+        if let Ok(val) = env.get_raw_value("Path") {
+            let wide: Vec<u16> = val.bytes.chunks_exact(2)
+                .map(|c| u16::from_le_bytes([c[0], c[1]]))
+                .collect();
+            let s = OsString::from_wide(&wide);
+            if let Some(s) = s.to_str() {
+                parts.extend(s.trim_end_matches('\0').split(';').map(|p| p.to_string()));
+            }
+        }
+    }
+
+    if !parts.is_empty() {
+        std::env::set_var("PATH", parts.join(";"));
+    }
+}
+
+/// Try to find git.exe by checking well-known install paths.
+/// Returns the path if found.
+#[cfg(windows)]
+pub fn find_git_in_default_paths() -> Option<PathBuf> {
+    let candidates = [
+        r"C:\Program Files\Git\cmd\git.exe",
+        r"C:\Program Files (x86)\Git\cmd\git.exe",
+    ];
+    for p in &candidates {
+        let path = PathBuf::from(p);
+        if path.exists() {
+            return Some(path);
+        }
+    }
+    None
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct SetupProgress {
     pub step: String,
@@ -283,12 +344,30 @@ pub async fn install_git(app: tauri::AppHandle) -> Result<String, String> {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
-            let git_ok = tokio::process::Command::new("git.exe")
+            // Refresh PATH from registry so we pick up the installer's changes
+            #[cfg(windows)]
+            refresh_path_from_registry();
+
+            // Try PATH-based lookup first
+            let mut git_ok = tokio::process::Command::new("git.exe")
                 .arg("--version")
                 .output()
                 .await
                 .map(|o| o.status.success())
                 .unwrap_or(false);
+
+            // Also check default install locations directly
+            #[cfg(windows)]
+            if !git_ok {
+                if let Some(git_path) = find_git_in_default_paths() {
+                    git_ok = tokio::process::Command::new(&git_path)
+                        .arg("--version")
+                        .output()
+                        .await
+                        .map(|o| o.status.success())
+                        .unwrap_or(false);
+                }
+            }
 
             if git_ok {
                 let _ = std::fs::remove_file(&installer_path);
