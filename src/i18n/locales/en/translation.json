@@ -50,7 +50,21 @@
     "startingGateway": "Starting gateway...",
     "waitingGateway": "Waiting for gateway to be ready...",
     "ready": "Ready!",
-    "error": "Error: {{message}}"
+    "error": "Error: {{message}}",
+    "chooseMode": "Choose how to run OpenClaw",
+    "modeNative": "Native Install",
+    "modeNativeDesc": "Install Node.js and OpenClaw locally. Full access to system tools and extensions.",
+    "modeDocker": "Docker",
+    "modeDockerDesc": "Run OpenClaw in a sandboxed container. The AI agent can only access the workspace folder.",
+    "checkingDocker": "Checking Docker...",
+    "dockerDetected": "Docker {{version}} detected",
+    "dockerNotDetected": "Docker Desktop not detected",
+    "dockerNotRunning": "Docker is installed but the daemon is not running",
+    "dockerDownload": "Download Docker Desktop",
+    "dockerRefresh": "Refresh",
+    "pullingImage": "Pulling OpenClaw Docker image...",
+    "startingContainer": "Starting Docker container...",
+    "backToModeSelection": "Back"
   },
   "chat": {
     "welcome": {
@@ -147,7 +161,11 @@
       "checkForUpdates": "Check for Updates",
       "checking": "Checking...",
       "language": "Language",
-      "languageDesc": "Select the display language for the application."
+      "languageDesc": "Select the display language for the application.",
+      "installMode": "Installation Mode",
+      "installModeNative": "Native Install",
+      "installModeDocker": "Docker (Sandboxed)",
+      "resetSetup": "Reset Setup"
     },
     "models": {
       "title": "Models & API",

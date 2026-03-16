@@ -1,4 +1,4 @@
-import { Download, Globe, RotateCw, Stethoscope } from "lucide-react";
+import { Download, Globe, RotateCw, Stethoscope, Container, Monitor } from "lucide-react";
 import { useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import i18n from "../../i18n";
@@ -115,6 +115,7 @@ export function GeneralSection() {
       </section>
 
       <LanguageSection />
+      <InstallModeSection />
       <UpdateSection />
     </div>
   );
@@ -156,6 +157,48 @@ function LanguageSection() {
             </option>
           ))}
         </select>
+      </div>
+    </section>
+  );
+}
+
+function InstallModeSection() {
+  const { t } = useTranslation();
+  const installMode = useAppStore((s) => s.installMode);
+  const setSetupComplete = useAppStore((s) => s.setSetupComplete);
+  const setSetupStep = useAppStore((s) => s.setSetupStep);
+
+  const handleReset = () => {
+    setSetupStep("choosing-mode");
+    setSetupComplete(false);
+  };
+
+  return (
+    <section className="mt-6">
+      <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">
+        {t("settings.general.installMode")}
+      </h2>
+      <div className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {installMode === "docker" ? (
+              <Container size={14} className="text-green-400" />
+            ) : (
+              <Monitor size={14} className="text-blue-400" />
+            )}
+            <span className="text-sm text-[var(--color-text)]">
+              {installMode === "docker"
+                ? t("settings.general.installModeDocker")
+                : t("settings.general.installModeNative")}
+            </span>
+          </div>
+          <button
+            onClick={handleReset}
+            className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
+          >
+            {t("settings.general.resetSetup")}
+          </button>
+        </div>
       </div>
     </section>
   );

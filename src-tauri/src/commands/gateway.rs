@@ -10,7 +10,7 @@ pub struct GatewayStatus {
     pub pid: Option<u32>,
 }
 
-fn maxauto_dir() -> PathBuf {
+pub(crate) fn maxauto_dir() -> PathBuf {
     dirs::home_dir()
         .expect("Could not determine home directory")
         .join(".openclaw-maxauto")
@@ -39,7 +39,7 @@ fn node_binary() -> PathBuf {
     PathBuf::from(if cfg!(windows) { "node.exe" } else { "node" })
 }
 
-fn generate_token() -> String {
+pub(crate) fn generate_token() -> String {
     use std::collections::hash_map::RandomState;
     use std::hash::{BuildHasher, Hasher};
     let mut token = String::with_capacity(48);
@@ -55,7 +55,7 @@ fn generate_token() -> String {
     token
 }
 
-fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str) -> Result<String, String> {
+pub(crate) fn ensure_config_with_token(config_path: &std::path::Path, port: u16, bind: &str) -> Result<String, String> {
     // Origins that Tauri webviews may send depending on OS/version
     let allowed_origins = serde_json::json!([
         "tauri://localhost",

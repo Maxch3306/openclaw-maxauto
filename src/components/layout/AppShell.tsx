@@ -6,6 +6,8 @@ import {
   getGatewayStatus,
   getGatewayToken,
   startGateway,
+  dockerGatewayStatus,
+  startDockerGateway,
 } from "../../api/tauri-commands";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { useAppStore } from "../../stores/app-store";
@@ -21,6 +23,7 @@ import { QuickConfigModal } from "../settings/QuickConfigModal";
 export function AppShell() {
   const { t } = useTranslation();
   const port = useAppStore((s) => s.gatewayPort);
+  const installMode = useAppStore((s) => s.installMode);
   const currentPage = useAppStore((s) => s.currentPage);
   const setGatewayConnected = useAppStore((s) => s.setGatewayConnected);
   const loadAgents = useChatStore((s) => s.loadAgents);
@@ -66,15 +69,27 @@ export function AppShell() {
     const ensureGatewayAndConnect = async () => {
       try {
         setStartupStatus("checkingGateway");
-        const status = await getGatewayStatus();
-        if (!status.running) {
-          setStartupStatus("startingGateway");
-          await startGateway(port);
+        if (installMode === "docker") {
+          const status = await dockerGatewayStatus(port);
+          if (!status.running) {
+            setStartupStatus("startingGateway");
+            await startDockerGateway(port);
+          }
+        } else {
+          const status = await getGatewayStatus();
+          if (!status.running) {
+            setStartupStatus("startingGateway");
+            await startGateway(port);
+          }
         }
       } catch {
         setStartupStatus("startingGateway");
         try {
-          await startGateway(port);
+          if (installMode === "docker") {
+            await startDockerGateway(port);
+          } else {
+            await startGateway(port);
+          }
         } catch {
           setStartupStatus("waitingForGateway");
         }
@@ -270,7 +285,7 @@ export function AppShell() {
       }
       gateway.disconnect();
     };
-  }, [port]);
+  }, [port, installMode]);
 
   // Auto-check for updates 3s after mount
   useEffect(() => {
