@@ -28,7 +28,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 
 export function AppShell() {
@@ -378,7 +377,7 @@ export function AppShell() {
             <DialogTitle>{t("app.closeDialog.title")}</DialogTitle>
             <DialogDescription>{t("app.closeDialog.description")}</DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
+          <div className="flex flex-col gap-2 pt-2">
             <Button
               variant="outline"
               className="w-full"
@@ -397,7 +396,7 @@ export function AppShell() {
             >
               {t("app.closeDialog.quit")}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

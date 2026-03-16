@@ -81,7 +81,7 @@ export function SettingsPage() {
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Settings sidebar */}
-      <aside className="w-56 bg-card border-r border-border flex flex-col overflow-y-auto">
+      <aside className="w-64 bg-card border-r border-border flex flex-col overflow-y-auto">
         <Button
           variant="ghost"
           onClick={() => setCurrentPage("home")}
