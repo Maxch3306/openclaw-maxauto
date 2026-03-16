@@ -117,7 +117,7 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
   minimax: {
     displayName: "MiniMax (Global)",
     description: "MiniMax M2.5 — global endpoint",
-    signupUrl: "https://www.minimax.io/platform",
+    signupUrl: "https://platform.minimax.io/subscribe/coding-plan",
     baseUrl: "https://api.minimax.io/anthropic",
     api: "anthropic-messages",
     extraConfig: { authHeader: true },
