@@ -73,71 +73,7 @@ interface ProviderDefaults {
 
 const ZERO_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 
-/** Bailian Coding provider key */
-export const BAILIAN_CODING_PROVIDER_KEY = "bailian-coding-maxauto";
-
 export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
-  "maxauto-crs-openai": {
-    displayName: "MaxAuto Claude Proxy",
-    description: "Claude proxy via OpenAI-compatible API",
-    baseUrl: "https://claude-proxy.bsoltest.com/openai",
-    api: "openai-responses",
-    models: [
-      { id: "gpt-5.4", name: "GPT-5.4", reasoning: true, input: ["text","image"], cost: ZERO_COST, contextWindow: 1050000, maxTokens: 272000 },
-    ],
-  },
-  "kimi-coding": {
-    displayName: "Kimi for Coding",
-    description: "Moonshot Kimi coding-optimized API",
-    signupUrl: "https://kimi.com/coding",
-    baseUrl: "https://api.kimi.com/coding/",
-    api: "anthropic-messages",
-    models: [
-      {
-        id: "k2p5",
-        name: "Kimi for Coding",
-        reasoning: true,
-        input: ["text", "image"],
-        cost: ZERO_COST,
-        contextWindow: 262144,
-        maxTokens: 32768,
-      },
-    ],
-  },
-  moonshot: {
-    displayName: "Moonshot / Kimi",
-    description: "Moonshot AI (Kimi K2.5)",
-    signupUrl: "https://platform.moonshot.cn/console/api-keys",
-    baseUrl: "https://api.moonshot.ai/v1",
-    api: "openai-completions",
-    models: [
-      { id: "kimi-k2.5", name: "Kimi K2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 256000, maxTokens: 8192 },
-    ],
-  },
-  minimax: {
-    displayName: "MiniMax (Global)",
-    description: "MiniMax M2.5 — global endpoint",
-    signupUrl: "https://platform.minimax.io/subscribe/coding-plan",
-    baseUrl: "https://api.minimax.io/anthropic",
-    api: "anthropic-messages",
-    extraConfig: { authHeader: true },
-    models: [
-      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
-      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
-    ],
-  },
-  "minimax-cn": {
-    displayName: "MiniMax (China)",
-    description: "MiniMax M2.5 — China endpoint",
-    signupUrl: "https://platform.minimaxi.com/user-center/basic-information/interface-key",
-    baseUrl: "https://api.minimaxi.com/anthropic",
-    api: "anthropic-messages",
-    extraConfig: { authHeader: true },
-    models: [
-      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
-      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
-    ],
-  },
   "maxauto-aliyun-cn": {
     displayName: "Aliyun bailian (CN)",
     description: "Alibaba Cloud (Qwen models)",
@@ -146,7 +82,21 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
     api: "openai-completions",
     models: [
       { id: "qwen3.5-plus", name: "qwen3.5-plus", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536 },
-      { id: "qwen3-coder-next", name: "qwen3-coder-next", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 262144, maxTokens: 65536 }    ],
+      { id: "qwen3-coder-next", name: "qwen3-coder-next", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 262144, maxTokens: 65536 },
+    ],
+  },
+  "bailian-coding-maxauto": {
+    displayName: "Bailian Coding (CN)",
+    description: "Aliyun Bailian Coding — multi-vendor models via single API key",
+    signupUrl: "https://bailian.console.aliyun.com",
+    baseUrl: "https://coding.dashscope.aliyuncs.com/v1",
+    api: "openai-completions",
+    models: [
+      { id: "qwen3.5-plus", name: "qwen3.5-plus", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536, compat: { thinkingFormat: "qwen" } },
+      { id: "MiniMax-M2.5", name: "MiniMax-M2.5", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 196608, maxTokens: 32768 },
+      { id: "glm-5", name: "glm-5", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 202752, maxTokens: 16384, compat: { thinkingFormat: "qwen" } },
+      { id: "kimi-k2.5", name: "kimi-k2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 262144, maxTokens: 32768, compat: { thinkingFormat: "qwen" } },
+    ],
   },
   "maxauto-glm-coding-plan": {
     displayName: "GLM Coding (CN)",
@@ -171,17 +121,65 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
       { id: "glm-5-turbo", name: "GLM-5 Turbo", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 200000, maxTokens: 128000 },
     ],
   },
-  [BAILIAN_CODING_PROVIDER_KEY]: {
-    displayName: "Bailian Coding (CN)",
-    description: "Aliyun Bailian Coding — multi-vendor models via single API key",
-    signupUrl: "https://bailian.console.aliyun.com",
-    baseUrl: "https://coding.dashscope.aliyuncs.com/v1",
+  "kimi-coding": {
+    displayName: "Kimi for Coding",
+    description: "Moonshot Kimi coding-optimized API",
+    signupUrl: "https://kimi.com/coding",
+    baseUrl: "https://api.kimi.com/coding/",
+    api: "anthropic-messages",
+    models: [
+      {
+        id: "k2p5",
+        name: "Kimi for Coding",
+        reasoning: true,
+        input: ["text", "image"],
+        cost: ZERO_COST,
+        contextWindow: 262144,
+        maxTokens: 32768,
+      },
+    ],
+  },
+  "maxauto-crs-openai": {
+    displayName: "MaxAuto Claude Proxy",
+    description: "Claude proxy via OpenAI-compatible API",
+    baseUrl: "https://claude-proxy.bsoltest.com/openai",
+    api: "openai-responses",
+    models: [
+      { id: "gpt-5.4", name: "GPT-5.4", reasoning: true, input: ["text","image"], cost: ZERO_COST, contextWindow: 1050000, maxTokens: 272000 },
+    ],
+  },
+  "minimax-cn": {
+    displayName: "MiniMax (China)",
+    description: "MiniMax M2.5 — China endpoint",
+    signupUrl: "https://platform.minimaxi.com/user-center/basic-information/interface-key",
+    baseUrl: "https://api.minimaxi.com/anthropic",
+    api: "anthropic-messages",
+    extraConfig: { authHeader: true },
+    models: [
+      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+    ],
+  },
+  minimax: {
+    displayName: "MiniMax (Global)",
+    description: "MiniMax M2.5 — global endpoint",
+    signupUrl: "https://platform.minimax.io/subscribe/coding-plan",
+    baseUrl: "https://api.minimax.io/anthropic",
+    api: "anthropic-messages",
+    extraConfig: { authHeader: true },
+    models: [
+      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+    ],
+  },
+  moonshot: {
+    displayName: "Moonshot / Kimi",
+    description: "Moonshot AI (Kimi K2.5)",
+    signupUrl: "https://platform.moonshot.cn/console/api-keys",
+    baseUrl: "https://api.moonshot.ai/v1",
     api: "openai-completions",
     models: [
-      { id: "qwen3.5-plus", name: "qwen3.5-plus", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536, compat: { thinkingFormat: "qwen" } },
-      { id: "MiniMax-M2.5", name: "MiniMax-M2.5", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 196608, maxTokens: 32768 },
-      { id: "glm-5", name: "glm-5", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 202752, maxTokens: 16384, compat: { thinkingFormat: "qwen" } },
-      { id: "kimi-k2.5", name: "kimi-k2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 262144, maxTokens: 32768, compat: { thinkingFormat: "qwen" } },
+      { id: "kimi-k2.5", name: "Kimi K2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 256000, maxTokens: 8192 },
     ],
   },
 };
@@ -189,62 +187,6 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
 /** GLM Coding provider key and MCP server key */
 export const GLM_MCP_PROVIDER_KEY = "maxauto-glm-coding-plan";
 export const GLM_MCP_SERVER_KEY = "zai-mcp-server";
-
-export const BAILIAN_CODING_PRESET = {
-  baseUrl: "https://coding.dashscope.aliyuncs.com/v1",
-  api: "openai-completions",
-  models: [
-    {
-      id: "qwen3.5-plus",
-      name: "qwen3.5-plus",
-      reasoning: false,
-      input: ["text", "image"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 1000000,
-      maxTokens: 65536,
-      compat: { thinkingFormat: "qwen" },
-    },
-    {
-      id: "MiniMax-M2.5",
-      name: "MiniMax-M2.5",
-      reasoning: false,
-      input: ["text"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 196608,
-      maxTokens: 32768,
-    },
-    {
-      id: "glm-5",
-      name: "glm-5",
-      reasoning: false,
-      input: ["text"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 202752,
-      maxTokens: 16384,
-      compat: { thinkingFormat: "qwen" },
-    },
-    {
-      id: "kimi-k2.5",
-      name: "kimi-k2.5",
-      reasoning: false,
-      input: ["text", "image"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 262144,
-      maxTokens: 32768,
-      compat: { thinkingFormat: "qwen" },
-    },
-  ],
-} as const;
-
-export const BAILIAN_CODING_AGENTS_DEFAULTS = {
-  model: { primary: `${BAILIAN_CODING_PROVIDER_KEY}/qwen3.5-plus` },
-  models: {
-    [`${BAILIAN_CODING_PROVIDER_KEY}/qwen3.5-plus`]: {},
-    [`${BAILIAN_CODING_PROVIDER_KEY}/MiniMax-M2.5`]: {},
-    [`${BAILIAN_CODING_PROVIDER_KEY}/glm-5`]: {},
-    [`${BAILIAN_CODING_PROVIDER_KEY}/kimi-k2.5`]: {},
-  },
-} as const;
 
 /** Map UI protocol label to OpenClaw `api` value */
 function mapProtocolToApi(protocol: string): string {
@@ -444,8 +386,6 @@ interface SettingsState {
   removeCustomModel: (modelId: string) => Promise<void>;
   setProviderAuth: (providerKey: string, apiKey: string, baseUrl?: string) => Promise<void>;
   removeProvider: (providerKey: string) => Promise<void>;
-  addQuickProvider: (apiKey: string, baseUrl?: string) => Promise<void>;
-  removeQuickProvider: () => Promise<void>;
   replaceProviderModels: (providerName: string, oldModelIds: string[], newModels: CustomModel[]) => Promise<void>;
   setGlmMcpServer: (enabled: boolean) => Promise<void>;
 }
@@ -795,70 +735,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     await patchConfig({
       models: { providers: providersPatch },
-      agents: { defaults: defaultsPatch },
-    });
-    await waitForReconnect();
-    await get().loadConfig();
-    await get().loadModels();
-  },
-
-  addQuickProvider: async (apiKey, baseUrl) => {
-    const providerEntry = {
-      ...BAILIAN_CODING_PRESET,
-      ...(baseUrl ? { baseUrl } : {}),
-      apiKey,
-    };
-
-    await patchConfig({
-      models: { providers: { [BAILIAN_CODING_PROVIDER_KEY]: providerEntry } },
-      agents: {
-        defaults: {
-          model: BAILIAN_CODING_AGENTS_DEFAULTS.model,
-          models: { ...BAILIAN_CODING_AGENTS_DEFAULTS.models },
-        },
-      },
-    });
-    await waitForReconnect();
-    await get().loadConfig();
-    await get().loadModels();
-  },
-
-  removeQuickProvider: async () => {
-    // Read config to find which model keys to null-out
-    const configResult = await gateway.request<{
-      config: Record<string, unknown>;
-      hash: string;
-    }>("config.get", {});
-    const cfg = configResult.config as {
-      agents?: { defaults?: { model?: unknown; models?: Record<string, unknown> } };
-    };
-
-    // Null-out the provider key
-    const prefix = `${BAILIAN_CODING_PROVIDER_KEY}/`;
-
-    // Null-out model entries belonging to this provider
-    const existingModelsMap = cfg.agents?.defaults?.models ?? {};
-    const modelsPatch: Record<string, unknown> = {};
-    for (const key of Object.keys(existingModelsMap)) {
-      if (key.startsWith(prefix)) {
-        modelsPatch[key] = null;
-      }
-    }
-
-    // Clear default model if it belongs to this provider
-    const defaultsPatch: Record<string, unknown> = { models: modelsPatch };
-    const primaryModel = cfg.agents?.defaults?.model;
-    if (typeof primaryModel === "object" && primaryModel !== null) {
-      const pm = primaryModel as { primary?: string };
-      if (pm.primary?.startsWith(prefix)) {
-        defaultsPatch.model = null;
-      }
-    } else if (typeof primaryModel === "string" && primaryModel.startsWith(prefix)) {
-      defaultsPatch.model = null;
-    }
-
-    await patchConfig({
-      models: { providers: { [BAILIAN_CODING_PROVIDER_KEY]: null } },
       agents: { defaults: defaultsPatch },
     });
     await waitForReconnect();

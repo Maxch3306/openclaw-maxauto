@@ -36,9 +36,13 @@ export function AddModelDialog() {
   const editingProviderGroup = useSettingsStore((s) => s.editingProviderGroup);
   const configuredProviders = useSettingsStore((s) => s.configuredProviders);
 
-  // Only show providers defined in PROVIDER_DEFAULTS
+  // Only show providers defined in PROVIDER_DEFAULTS, sorted by displayName A-Z
   const builtInProviders = useMemo(() => {
-    return Object.keys(PROVIDER_DEFAULTS).sort();
+    return Object.keys(PROVIDER_DEFAULTS).sort((a, b) => {
+      const nameA = PROVIDER_DEFAULTS[a]?.displayName ?? a;
+      const nameB = PROVIDER_DEFAULTS[b]?.displayName ?? b;
+      return nameA.localeCompare(nameB);
+    });
   }, []);
 
   const isEditing = !!editingModel;
