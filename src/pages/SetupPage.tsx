@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Monitor, Container, RefreshCw, ExternalLink } from "lucide-react";
+import { Monitor, Container, RefreshCw, ExternalLink, Download } from "lucide-react";
 import { TitleBar } from "../components/layout/TitleBar";
 import { useAppStore } from "../stores/app-store";
 import {
@@ -32,6 +32,7 @@ export function SetupPage() {
   const { t } = useTranslation();
   const [statusMessage, setStatusMessage] = useState("");
   const [progress, setProgress] = useState(0);
+  const [needsGit, setNeedsGit] = useState(false);
 
   // Docker detection state
   const [dockerStatus, setDockerStatus] = useState<DockerStatus | null>(null);
@@ -76,7 +77,17 @@ export function SetupPage() {
         setSetupStep("install-git");
         setStatusMessage(t("setup.installingGit"));
         setProgress(10);
-        await installGit();
+        try {
+          await installGit();
+        } catch (gitErr) {
+          const gitMsg = gitErr instanceof Error ? gitErr.message : String(gitErr);
+          if (gitMsg.includes("GIT_NOT_FOUND")) {
+            setNeedsGit(true);
+            setSetupStep("git-missing");
+            return;
+          }
+          throw gitErr;
+        }
       }
 
       setProgress(15);
@@ -258,6 +269,58 @@ export function SetupPage() {
               )}
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show Git missing screen (Windows — user needs to install Git manually)
+  if (needsGit && setupStep === "git-missing") {
+    return (
+      <div className="flex flex-col h-screen">
+        <TitleBar />
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
+          <div className="p-3 rounded-2xl bg-orange-500/10">
+            <Download size={32} className="text-orange-400" />
+          </div>
+          <h1 className="text-2xl font-bold">{t("setup.gitRequired")}</h1>
+          <p className="text-[var(--color-text-muted)] text-center max-w-md text-sm leading-relaxed">
+            {t("setup.gitRequiredDesc")}
+          </p>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => openUrl("https://git-scm.com/downloads/win")}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-lg text-sm transition-colors"
+            >
+              <ExternalLink size={14} />
+              {t("setup.gitDownload")}
+            </button>
+            <button
+              onClick={() => {
+                setNeedsGit(false);
+                setSetupError(null);
+                setProgress(0);
+                runNativeSetup();
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] rounded-lg text-sm transition-colors"
+            >
+              <RefreshCw size={14} />
+              {t("setup.gitRetry")}
+            </button>
+          </div>
+
+          <button
+            onClick={() => {
+              setNeedsGit(false);
+              setSetupError(null);
+              setProgress(0);
+              setSetupStep("choosing-mode");
+            }}
+            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+          >
+            {t("setup.backToModeSelection")}
+          </button>
         </div>
       </div>
     );

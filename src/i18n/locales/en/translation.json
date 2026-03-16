@@ -64,7 +64,11 @@
     "dockerRefresh": "Refresh",
     "pullingImage": "Pulling OpenClaw Docker image...",
     "startingContainer": "Starting Docker container...",
-    "backToModeSelection": "Back"
+    "backToModeSelection": "Back",
+    "gitRequired": "Git is Required",
+    "gitRequiredDesc": "OpenClaw needs Git to install some dependencies. Please download and install Git from the official website, then click Retry.",
+    "gitDownload": "Download Git",
+    "gitRetry": "Retry"
   },
   "chat": {
     "welcome": {

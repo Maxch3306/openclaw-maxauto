@@ -16,26 +16,6 @@ fn maxauto_dir() -> PathBuf {
         .join(".openclaw-maxauto")
 }
 
-fn git_download_url() -> (String, String) {
-    let version = "2.49.0";
-    if cfg!(windows) {
-        let arch = if cfg!(target_arch = "aarch64") {
-            "arm64"
-        } else {
-            "64-bit"
-        };
-        let filename = format!("MinGit-{}-{}.zip", version, arch);
-        let url = format!(
-            "https://github.com/git-for-windows/git/releases/download/v{}.windows.1/{}",
-            version, filename
-        );
-        (url, filename)
-    } else {
-        // macOS — not used, we install via xcode-select
-        ("".into(), "".into())
-    }
-}
-
 fn node_download_url() -> (String, String) {
     let version = "24.14.0";
     let (os_name, arch_name, ext) = if cfg!(windows) {
@@ -248,83 +228,8 @@ pub async fn install_git(app: tauri::AppHandle) -> Result<String, String> {
     }
 
     if cfg!(windows) {
-        // Windows: download MinGit portable
-        let _ = app.emit("setup-progress", SetupProgress {
-            step: "git".into(),
-            message: "Downloading Git...".into(),
-            progress: Some(0.0),
-            error: None,
-        });
-
-        let (url, filename) = git_download_url();
-        let temp_dir = maxauto_dir().join("tmp");
-        std::fs::create_dir_all(&temp_dir)
-            .map_err(|e| format!("Failed to create temp dir: {}", e))?;
-        let archive_path = temp_dir.join(&filename);
-
-        let response = reqwest::get(&url)
-            .await
-            .map_err(|e| format!("Git download failed: {}", e))?;
-
-        if !response.status().is_success() {
-            return Err(format!("Git download failed with status: {}", response.status()));
-        }
-
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| format!("Failed to read download: {}", e))?;
-
-        std::fs::write(&archive_path, &bytes)
-            .map_err(|e| format!("Failed to save archive: {}", e))?;
-
-        let _ = app.emit("setup-progress", SetupProgress {
-            step: "git".into(),
-            message: "Extracting Git...".into(),
-            progress: Some(0.5),
-            error: None,
-        });
-
-        let git_dir = maxauto_dir().join("git");
-        std::fs::create_dir_all(&git_dir)
-            .map_err(|e| format!("Failed to create git dir: {}", e))?;
-
-        // MinGit ZIP extracts flat (no top-level directory wrapper)
-        let file = std::fs::File::open(&archive_path)
-            .map_err(|e| format!("Failed to open archive: {}", e))?;
-        let mut archive = zip::ZipArchive::new(file)
-            .map_err(|e| format!("Failed to read zip: {}", e))?;
-
-        for i in 0..archive.len() {
-            let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
-            let name = entry.name().to_string();
-            let outpath = git_dir.join(&name);
-
-            if entry.is_dir() {
-                std::fs::create_dir_all(&outpath).ok();
-            } else {
-                if let Some(parent) = outpath.parent() {
-                    std::fs::create_dir_all(parent).ok();
-                }
-                let mut outfile = std::fs::File::create(&outpath)
-                    .map_err(|e| format!("Failed to create {}: {}", outpath.display(), e))?;
-                std::io::copy(&mut entry, &mut outfile)
-                    .map_err(|e| format!("Failed to extract {}: {}", name, e))?;
-            }
-        }
-
-        // Cleanup
-        let _ = std::fs::remove_file(&archive_path);
-        let _ = std::fs::remove_dir_all(&temp_dir);
-
-        let _ = app.emit("setup-progress", SetupProgress {
-            step: "git".into(),
-            message: "Git installed".into(),
-            progress: Some(1.0),
-            error: None,
-        });
-
-        Ok("Git installed successfully".into())
+        // Windows: direct user to install Git manually from the official installer
+        return Err("GIT_NOT_FOUND".into());
     } else {
         // macOS: trigger Xcode Command Line Tools install
         let _ = app.emit("setup-progress", SetupProgress {
@@ -466,12 +371,22 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
     let npm_cache = base_dir.join("npm-cache");
     std::fs::create_dir_all(&npm_cache).ok();
 
+    // Some npm dependencies reference ssh://git@github.com/... which fails
+    // without SSH keys. Use GIT_CONFIG_* env vars to rewrite to HTTPS
+    // scoped only to these subprocesses — no persistent global git config changes.
+    let git_config_count = "1";
+    let git_config_key = "url.https://github.com/.insteadOf";
+    let git_config_val = "ssh://git@github.com/";
+
     let output = if use_system_npm {
         // Use system npm directly
         let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
         tokio::process::Command::new(npm_cmd)
             .env("PATH", &new_path)
             .env("npm_config_cache", npm_cache.to_str().unwrap())
+            .env("GIT_CONFIG_COUNT", git_config_count)
+            .env("GIT_CONFIG_KEY_0", git_config_key)
+            .env("GIT_CONFIG_VALUE_0", git_config_val)
             .args([
                 "install",
                 "--prefix",
@@ -486,6 +401,9 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
         tokio::process::Command::new(&node_cmd)
             .env("PATH", &new_path)
             .env("npm_config_cache", npm_cache.to_str().unwrap())
+            .env("GIT_CONFIG_COUNT", git_config_count)
+            .env("GIT_CONFIG_KEY_0", git_config_key)
+            .env("GIT_CONFIG_VALUE_0", git_config_val)
             .arg(local_npm_cli.to_str().unwrap())
             .args([
                 "install",
@@ -500,7 +418,13 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("npm install failed: {}", stderr));
+        // Filter out "npm notice" lines (upgrade ads, changelogs) to surface actual errors
+        let errors: String = stderr
+            .lines()
+            .filter(|l| !l.trim_start().starts_with("npm notice"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Err(format!("npm install failed: {}", errors.trim()));
     }
 
     let _ = app.emit("setup-progress", SetupProgress {

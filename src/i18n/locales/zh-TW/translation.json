@@ -64,7 +64,11 @@
     "dockerRefresh": "重新檢查",
     "pullingImage": "正在拉取 OpenClaw Docker 映像檔...",
     "startingContainer": "正在啟動 Docker 容器...",
-    "backToModeSelection": "返回"
+    "backToModeSelection": "返回",
+    "gitRequired": "需要安裝 Git",
+    "gitRequiredDesc": "OpenClaw 需要 Git 來安裝部分相依套件。請從官方網站下載並安裝 Git，完成後點擊重試。",
+    "gitDownload": "下載 Git",
+    "gitRetry": "重試"
   },
   "chat": {
     "welcome": {

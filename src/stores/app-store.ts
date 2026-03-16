@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type SetupStep = "choosing-mode" | "checking" | "install-git" | "install-node" | "install-openclaw" | "ready" | "error";
+type SetupStep = "choosing-mode" | "checking" | "install-git" | "git-missing" | "install-node" | "install-openclaw" | "ready" | "error";
 type InstallMode = "native" | "docker";
 
 interface AppState {
