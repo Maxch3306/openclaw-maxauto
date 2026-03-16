@@ -243,10 +243,14 @@ async fn kill_process_on_port(port: u16) {
             "Get-NetTCPConnection -LocalPort {} -State Listen -ErrorAction SilentlyContinue | ForEach-Object {{ Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }}",
             port
         );
-        let _ = tokio::process::Command::new("powershell")
-            .args(["-NoProfile", "-Command", &script])
-            .output()
-            .await;
+        let mut cmd = tokio::process::Command::new("powershell");
+        cmd.args(["-NoProfile", "-Command", &script]);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000);
+        }
+        let _ = cmd.output().await;
     } else {
         // macOS: lsof to find PIDs, then kill each one
         // Note: macOS xargs doesn't support -r, so we check output first
@@ -315,14 +319,23 @@ pub async fn start_gateway(
         ));
     }
 
-    let mut child = tokio::process::Command::new(&node)
-        .arg(&entry)
+    let mut cmd = tokio::process::Command::new(&node);
+    cmd.arg(&entry)
         .args(["gateway", "run", "--bind", &bind, "--port", &port.to_string()])
         .env("OPENCLAW_STATE_DIR", base_dir.to_str().unwrap())
         .env("OPENCLAW_CONFIG_PATH", config_path.to_str().unwrap())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
-        .kill_on_drop(true)
+        .kill_on_drop(true);
+
+    // Hide the console window on Windows
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
+    let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to start gateway: {}", e))?;
 
@@ -439,11 +452,19 @@ pub async fn run_doctor() -> Result<String, String> {
         return Err("OpenClaw not installed".into());
     }
 
-    let output = tokio::process::Command::new(&node)
-        .arg(&entry)
+    let mut cmd = tokio::process::Command::new(&node);
+    cmd.arg(&entry)
         .arg("doctor")
         .env("OPENCLAW_STATE_DIR", base_dir.to_str().unwrap())
-        .env("OPENCLAW_CONFIG_PATH", config_path.to_str().unwrap())
+        .env("OPENCLAW_CONFIG_PATH", config_path.to_str().unwrap());
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+
+    let output = cmd
         .output()
         .await
         .map_err(|e| format!("Failed to run doctor: {}", e))?;
