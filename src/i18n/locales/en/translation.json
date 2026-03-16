@@ -35,7 +35,13 @@
     "startingGateway": "Starting gateway...",
     "checkingGateway": "Checking gateway...",
     "waitingForGateway": "Waiting for gateway...",
-    "connecting": "Connecting..."
+    "connecting": "Connecting...",
+    "closeDialog": {
+      "title": "Close MaxAuto?",
+      "description": "Would you like to minimize to system tray or quit the app?",
+      "minimize": "Minimize to Tray",
+      "quit": "Quit"
+    }
   },
   "setup": {
     "title": "MaxAuto",

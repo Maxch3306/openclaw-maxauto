@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { gateway } from "@/api/gateway-client";
+import { exit } from "@tauri-apps/plugin-process";
 import {
   getGatewayStatus,
   getGatewayToken,
@@ -19,6 +21,15 @@ import { Sidebar } from "@/components/chat/Sidebar";
 import { GatewayStatus } from "@/components/common/GatewayStatus";
 import { UpdateBanner } from "@/components/common/UpdateBanner";
 import { QuickConfigModal } from "@/components/settings/QuickConfigModal";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export function AppShell() {
   const { t } = useTranslation();
@@ -35,6 +46,7 @@ export function AppShell() {
   const [startupStatus, setStartupStatus] = useState("startingGateway");
   const [ready, setReady] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   // Listen for gateway log events from the Rust backend
@@ -295,6 +307,16 @@ export function AppShell() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Intercept window close — ask user to hide or quit
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    const unlisten = appWindow.onCloseRequested(async (event) => {
+      event.preventDefault();
+      setShowCloseDialog(true);
+    });
+    return () => { void unlisten.then((fn) => fn()); };
+  }, []);
+
   if (!ready) {
     return (
       <div className="flex flex-col h-screen items-center justify-center gap-4 px-8">
@@ -348,6 +370,36 @@ export function AppShell() {
         </div>
       </div>
       {showQuickConfig && hasProvider && <QuickConfigModal />}
+
+      {/* Close confirmation dialog */}
+      <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>{t("app.closeDialog.title")}</DialogTitle>
+            <DialogDescription>{t("app.closeDialog.description")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                setShowCloseDialog(false);
+                const appWindow = getCurrentWindow();
+                await appWindow.hide();
+              }}
+            >
+              {t("app.closeDialog.minimize")}
+            </Button>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => void exit(0)}
+            >
+              {t("app.closeDialog.quit")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -35,7 +35,13 @@
     "startingGateway": "正在啟動閘道...",
     "checkingGateway": "正在檢查閘道...",
     "waitingForGateway": "等待閘道中...",
-    "connecting": "連線中..."
+    "connecting": "連線中...",
+    "closeDialog": {
+      "title": "關閉 MaxAuto？",
+      "description": "您要最小化到系統匣還是退出應用程式？",
+      "minimize": "最小化到系統匣",
+      "quit": "退出"
+    }
   },
   "setup": {
     "title": "MaxAuto",
