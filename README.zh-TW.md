@@ -33,10 +33,45 @@
 
 > MaxAuto 會在首次啟動時自動處理其餘事項 — 包括自動將 Node.js 和 OpenClaw 安裝至 `~/.openclaw-maxauto/`。
 
+## 安裝模式
+
+MaxAuto 在首次啟動時提供兩種安裝模式：
+
+### 原生模式（預設）
+
+直接在您的電腦上安裝 Node.js 和 OpenClaw，存放於 `~/.openclaw-maxauto/`。需要先安裝 Git。
+
+- **macOS：** Git 包含在 Xcode 命令列工具中。如果尚未安裝，MaxAuto 會自動觸發安裝對話框。
+- **Windows：** 如果未偵測到 Git，MaxAuto 會自動下載並啟動 Git for Windows 安裝程式 — 依照精靈指示完成安裝即可。
+
+### Docker 模式（沙箱隔離）
+
+在 Docker 容器中執行 OpenClaw，實現完全隔離。OpenClaw 及其依賴項不會安裝在您的主機上 — 僅共享設定檔和工作區資料夾。
+
+**前置需求：** 選擇此模式前，請先安裝 [Docker Desktop](https://www.docker.com/products/docker-desktop/)。
+
+| 平台 | Docker Desktop 下載 |
+|------|---------------------|
+| macOS   | [Mac 版下載](https://docs.docker.com/desktop/setup/install/mac-install/) |
+| Windows | [Windows 版下載](https://docs.docker.com/desktop/setup/install/windows-install/) |
+
+**設定步驟：**
+
+1. 安裝並啟動 Docker Desktop。
+2. 啟動 MaxAuto — 在設定畫面選擇 **Docker** 模式。
+3. MaxAuto 會自動拉取 `openclaw/openclaw` 映像檔並啟動容器。
+4. 閘道在 `maxauto-openclaw` 容器內執行，映射至 `localhost:51789`。
+
+**注意事項：**
+- 使用 Docker 模式時，Docker Desktop 必須保持執行中。
+- 所有資料儲存於 `~/.openclaw-maxauto/config` 和 `~/.openclaw-maxauto/workspace`，並掛載至容器中。
+- 容器僅監聽 `127.0.0.1` — 網路上的其他裝置無法存取。
+- 您可以在 **設定 → 一般 → 安裝模式** 中切換原生模式和 Docker 模式。
+
 ## 功能特色
 
-1. **首次執行設定** — 自動將 Node.js 22 和 OpenClaw 安裝至 `~/.openclaw-maxauto/`（完全隔離，不與全域安裝衝突）
-2. **啟動 OpenClaw 閘道** — 自動管理背景程序
+1. **首次執行設定** — 選擇原生模式或 Docker 模式，MaxAuto 自動處理其餘事項
+2. **啟動 OpenClaw 閘道** — 自動管理背景程序（或 Docker 容器）
 3. **與 AI 助理對話** — 使用任何支援的模型提供商，建立、設定並與 AI 助理對話
 4. **模型提供商** — 自備 API 金鑰，支援 OpenAI、Anthropic、DeepSeek、Moonshot、MiniMax、百鍊等
 5. **自動更新** — 應用程式會自動檢查更新，一鍵即可安裝

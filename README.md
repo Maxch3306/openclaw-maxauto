@@ -35,10 +35,45 @@ Download the latest installer from the [Releases](https://github.com/Maxch3306/o
 
 > MaxAuto will handle the rest on first launch — including installing Node.js and OpenClaw automatically into `~/.openclaw-maxauto/`.
 
+## Installation Modes
+
+MaxAuto offers two installation modes on first launch:
+
+### Native (Default)
+
+Installs Node.js and OpenClaw directly on your machine under `~/.openclaw-maxauto/`. Git is required as a prerequisite.
+
+- **macOS:** Git is included with Xcode Command Line Tools. If not installed, MaxAuto will trigger the install dialog automatically.
+- **Windows:** If Git is not found, MaxAuto will automatically download and launch the Git for Windows installer — just follow the wizard to complete the installation.
+
+### Docker (Sandboxed)
+
+Runs OpenClaw inside a Docker container for full isolation. OpenClaw and its dependencies never touch your host system — only config and workspace files are shared.
+
+**Prerequisites:** Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) before choosing this mode.
+
+| Platform | Docker Desktop Download |
+|----------|------------------------|
+| macOS    | [Download for Mac](https://docs.docker.com/desktop/setup/install/mac-install/) |
+| Windows  | [Download for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) |
+
+**Setup steps:**
+
+1. Install and start Docker Desktop.
+2. Launch MaxAuto — on the setup screen, choose **Docker** mode.
+3. MaxAuto will automatically pull the `openclaw/openclaw` image and start the container.
+4. The gateway runs inside the `maxauto-openclaw` container, mapped to `localhost:51789`.
+
+**Notes:**
+- Docker Desktop must be running whenever you use MaxAuto in Docker mode.
+- All data is stored under `~/.openclaw-maxauto/config` and `~/.openclaw-maxauto/workspace`, which are mounted into the container.
+- The container only listens on `127.0.0.1` — it is not accessible from other devices on your network.
+- You can switch between Native and Docker mode from **Settings → General → Installation Mode**.
+
 ## What It Does
 
-1. **First-run setup** — automatically installs Node.js 22 and OpenClaw into `~/.openclaw-maxauto/` (fully isolated, no conflicts with global installs)
-2. **Starts the OpenClaw gateway** — manages the background process for you
+1. **First-run setup** — choose Native or Docker mode; MaxAuto handles the rest
+2. **Starts the OpenClaw gateway** — manages the background process (or Docker container) for you
 3. **Chat with AI agents** — create, configure, and chat with agents using any supported model provider
 4. **Model providers** — bring your own API key for OpenAI, Anthropic, DeepSeek, Moonshot, MiniMax, Bailian, and more
 5. **Auto-updates** — the app checks for updates and can install them in one click
