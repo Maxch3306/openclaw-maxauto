@@ -39,6 +39,12 @@ export interface ConfigData {
   path: string;
 }
 
+export interface DockerStatus {
+  available: boolean;
+  version: string | null;
+  daemon_running: boolean;
+}
+
 // Gateway
 export const startGateway = (port?: number, bind?: string) =>
   invoke<GatewayStatus>("start_gateway", { port, bind });
@@ -75,6 +81,20 @@ export const writeConfig = (json: string) => invoke<string>("write_config", { js
 // Shell
 export const openUrl = (url: string) => open(url);
 export const openFolder = (path: string) => invoke<void>("open_folder", { path });
+
+// Docker
+export const checkDocker = () => invoke<DockerStatus>("check_docker");
+
+export const pullOpenclawImage = (tag?: string) =>
+  invoke<string>("pull_openclaw_image", { tag });
+
+export const startDockerGateway = (port?: number, tag?: string) =>
+  invoke<GatewayStatus>("start_docker_gateway", { port, tag });
+
+export const stopDockerGateway = () => invoke<string>("stop_docker_gateway");
+
+export const dockerGatewayStatus = (port?: number) =>
+  invoke<GatewayStatus>("docker_gateway_status", { port });
 
 // Pairing
 export interface PairingRequest {

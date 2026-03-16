@@ -37,6 +37,12 @@ pub fn run() {
             commands::pairing::list_pairing_requests,
             commands::pairing::approve_pairing_request,
             commands::pairing::reject_pairing_request,
+            // Docker
+            commands::docker::check_docker,
+            commands::docker::pull_openclaw_image,
+            commands::docker::start_docker_gateway,
+            commands::docker::stop_docker_gateway,
+            commands::docker::docker_gateway_status,
         ])
         .setup(|app| {
             tray::menu::setup_tray(app)?;

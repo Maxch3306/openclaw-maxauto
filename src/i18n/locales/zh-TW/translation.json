@@ -50,7 +50,25 @@
     "startingGateway": "正在啟動閘道...",
     "waitingGateway": "等待閘道準備就緒...",
     "ready": "準備完成！",
-    "error": "錯誤：{{message}}"
+    "error": "錯誤：{{message}}",
+    "chooseMode": "選擇 OpenClaw 的執行方式",
+    "modeNative": "本機安裝",
+    "modeNativeDesc": "在本機安裝 Node.js 和 OpenClaw。可完整存取系統工具和擴充功能。",
+    "modeDocker": "Docker",
+    "modeDockerDesc": "在沙盒容器中執行 OpenClaw。AI 助理只能存取工作區資料夾。",
+    "checkingDocker": "正在檢查 Docker...",
+    "dockerDetected": "已偵測到 Docker {{version}}",
+    "dockerNotDetected": "未偵測到 Docker Desktop",
+    "dockerNotRunning": "Docker 已安裝但背景服務未啟動",
+    "dockerDownload": "下載 Docker Desktop",
+    "dockerRefresh": "重新檢查",
+    "pullingImage": "正在拉取 OpenClaw Docker 映像檔...",
+    "startingContainer": "正在啟動 Docker 容器...",
+    "backToModeSelection": "返回",
+    "gitRequired": "需要安裝 Git",
+    "gitRequiredDesc": "OpenClaw 需要 Git 來安裝部分相依套件。請從官方網站下載並安裝 Git，完成後點擊重試。",
+    "gitDownload": "下載 Git",
+    "gitRetry": "重試"
   },
   "chat": {
     "welcome": {
@@ -147,7 +165,11 @@
       "checkForUpdates": "檢查更新",
       "checking": "檢查中...",
       "language": "語言",
-      "languageDesc": "選擇應用程式的顯示語言。"
+      "languageDesc": "選擇應用程式的顯示語言。",
+      "installMode": "安裝模式",
+      "installModeNative": "本機安裝",
+      "installModeDocker": "Docker（沙盒模式）",
+      "resetSetup": "重設安裝"
     },
     "models": {
       "title": "模型與 API",
