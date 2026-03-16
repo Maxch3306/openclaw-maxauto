@@ -131,7 +131,8 @@ pub async fn start_docker_gateway(
         "{}:/home/node/.openclaw/workspace",
         workspace_dir.to_str().ok_or("Invalid workspace dir path")?
     );
-    let port_mapping = format!("{}:18789", port);
+    // Bind to 127.0.0.1 on the host so the port is not exposed to the LAN
+    let port_mapping = format!("127.0.0.1:{}:18789", port);
     let token_env = format!("OPENCLAW_GATEWAY_TOKEN={}", token);
 
     let output = tokio::process::Command::new(docker_bin)
@@ -163,18 +164,17 @@ pub async fn start_docker_gateway(
         return Err(format!("docker run failed: {}", stderr));
     }
 
-    // Wait for the container to be healthy (poll /healthz up to 30s)
+    // Wait for the gateway to be ready (TCP connect check, up to 30s)
+    // The gateway is a WebSocket server — there's no HTTP /healthz endpoint,
+    // so we check readiness by attempting a TCP connection to the mapped port.
     let _ = app.emit("setup-progress", "Waiting for gateway to be ready...");
-    let healthz_url = format!("http://127.0.0.1:{}/healthz", port);
-    let client = reqwest::Client::new();
+    let addr = format!("127.0.0.1:{}", port);
     let mut healthy = false;
     for _ in 0..30 {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        if let Ok(resp) = client.get(&healthz_url).send().await {
-            if resp.status().is_success() {
-                healthy = true;
-                break;
-            }
+        if tokio::net::TcpStream::connect(&addr).await.is_ok() {
+            healthy = true;
+            break;
         }
     }
 
@@ -221,7 +221,7 @@ pub async fn start_docker_gateway(
     })
 }
 
-/// Stop and remove the OpenClaw Docker container.
+/// Stop the OpenClaw Docker container (without removing it).
 #[tauri::command]
 pub async fn stop_docker_gateway() -> Result<String, String> {
     let docker_bin = if cfg!(windows) { "docker.exe" } else { "docker" };
@@ -240,13 +240,7 @@ pub async fn stop_docker_gateway() -> Result<String, String> {
         }
     }
 
-    // Remove the container
-    let _ = tokio::process::Command::new(docker_bin)
-        .args(["rm", "-f", "maxauto-openclaw"])
-        .output()
-        .await;
-
-    Ok("Docker gateway stopped and removed".into())
+    Ok("Docker gateway stopped".into())
 }
 
 /// Check if the Docker container is running.

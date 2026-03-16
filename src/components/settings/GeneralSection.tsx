@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import i18n from "../../i18n";
 import { gateway } from "../../api/gateway-client";
-import { stopGateway, startGateway, runDoctor } from "../../api/tauri-commands";
+import { stopGateway, startGateway, stopDockerGateway, startDockerGateway, runDoctor } from "../../api/tauri-commands";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
@@ -13,6 +13,7 @@ export function GeneralSection() {
   const { t } = useTranslation();
   const gatewayConnected = useAppStore((s) => s.gatewayConnected);
   const gatewayPort = useAppStore((s) => s.gatewayPort);
+  const installMode = useAppStore((s) => s.installMode);
   const loadConfig = useSettingsStore((s) => s.loadConfig);
   const loadModels = useSettingsStore((s) => s.loadModels);
   const loadAgents = useChatStore((s) => s.loadAgents);
@@ -25,9 +26,15 @@ export function GeneralSection() {
     setRestarting(true);
     try {
       gateway.disconnect();
-      await stopGateway();
-      await new Promise((r) => setTimeout(r, 1500));
-      await startGateway();
+      if (installMode === "docker") {
+        await stopDockerGateway();
+        await new Promise((r) => setTimeout(r, 1500));
+        await startDockerGateway(gatewayPort);
+      } else {
+        await stopGateway();
+        await new Promise((r) => setTimeout(r, 1500));
+        await startGateway();
+      }
       await new Promise((r) => setTimeout(r, 3000));
       gateway.reconnect();
       // Wait for WS to connect, then reload all data
