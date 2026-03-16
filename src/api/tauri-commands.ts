@@ -78,6 +78,9 @@ export const readConfig = () => invoke<ConfigData>("read_config");
 
 export const writeConfig = (json: string) => invoke<string>("write_config", { json });
 
+export const readProviderApiKey = (providerKey: string) =>
+  invoke<string | null>("read_provider_api_key", { providerKey });
+
 // Shell
 export const openUrl = (url: string) => open(url);
 export const openFolder = (path: string) => invoke<void>("open_folder", { path });

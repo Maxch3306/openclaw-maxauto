@@ -181,6 +181,9 @@
       "modelCount_one": "{{count}} 個模型",
       "modelCount_other": "{{count}} 個模型",
       "setDefault": "設為預設",
+      "mcpServer": "MCP 服務",
+      "mcpServerDesc": "為代理啟用智譜 MCP 工具",
+      "getApiKey": "取得 API 金鑰",
       "custom": "自訂",
       "gatewayUrl": "閘道網址",
       "reasoning": "推理"
@@ -194,6 +197,8 @@
       "provider": "供應商",
       "noProviders": "無可用供應商",
       "alreadyConfigured": "此供應商已設定。提交後將更新 API 金鑰。",
+      "getApiKey": "取得 API 金鑰",
+      "modelCount": "{{count}} 個模型",
       "apiKey": "API 金鑰",
       "enterApiKey": "輸入 API 金鑰",
       "enterApiKeyOptional": "輸入 API 金鑰（選填）",
@@ -251,6 +256,19 @@
       "slackDesc": "安裝為 Slack 應用程式",
       "wechat": "WeChat",
       "wechatDesc": "連接微信公眾號"
+    },
+    "mcp": {
+      "title": "MCP 服務",
+      "loading": "載入 MCP 伺服器...",
+      "gatewayRequired": "閘道未連線",
+      "addServer": "新增伺服器",
+      "serverName": "伺服器名稱",
+      "command": "指令",
+      "args": "參數",
+      "argsHint": "每行一個參數",
+      "envVars": "環境變數",
+      "noServers": "尚未設定 MCP 伺服器",
+      "noServersHint": "新增 MCP 伺服器以擴展代理功能"
     },
     "skills": {
       "title": "技能",

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { gateway } from "../api/gateway-client";
-import { readConfig } from "../api/tauri-commands";
+import { readConfig, readProviderApiKey } from "../api/tauri-commands";
 import { patchConfig, waitForReconnect } from "../api/config-helpers";
 
 export type SettingsSection =
@@ -63,19 +63,68 @@ interface ProviderDefaults {
   models: ProviderModelDef[];
   /** Extra provider-level config fields (e.g. authHeader) written to openclaw.json */
   extraConfig?: Record<string, unknown>;
+  /** Display name for the provider */
+  displayName?: string;
+  /** Short description of the provider */
+  description?: string;
+  /** URL where users can sign up / get an API key */
+  signupUrl?: string;
 }
 
 const ZERO_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 
 export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
-  "maxauto-crs-openai": {
-    baseUrl: "https://claude-proxy.bsoltest.com/openai",
-    api: "openai-responses",
+  "maxauto-aliyun-cn": {
+    displayName: "Aliyun bailian (CN)",
+    description: "Alibaba Cloud (Qwen models)",
+    signupUrl: "https://bailian.console.aliyun.com",
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    api: "openai-completions",
     models: [
-      { id: "gpt-5.4", name: "GPT-5.4", reasoning: true, input: ["text","image"], cost: ZERO_COST, contextWindow: 1050000, maxTokens: 272000 },
+      { id: "qwen3.5-plus", name: "qwen3.5-plus", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536 },
+      { id: "qwen3-coder-next", name: "qwen3-coder-next", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 262144, maxTokens: 65536 },
+    ],
+  },
+  "bailian-coding-maxauto": {
+    displayName: "Bailian Coding (CN)",
+    description: "Aliyun Bailian Coding — multi-vendor models via single API key",
+    signupUrl: "https://bailian.console.aliyun.com",
+    baseUrl: "https://coding.dashscope.aliyuncs.com/v1",
+    api: "openai-completions",
+    models: [
+      { id: "qwen3.5-plus", name: "qwen3.5-plus", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536, compat: { thinkingFormat: "qwen" } },
+      { id: "MiniMax-M2.5", name: "MiniMax-M2.5", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 196608, maxTokens: 32768 },
+      { id: "glm-5", name: "glm-5", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 202752, maxTokens: 16384, compat: { thinkingFormat: "qwen" } },
+      { id: "kimi-k2.5", name: "kimi-k2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 262144, maxTokens: 32768, compat: { thinkingFormat: "qwen" } },
+    ],
+  },
+  "maxauto-glm-coding-plan": {
+    displayName: "GLM Coding (CN)",
+    description: "Zhipu AI (GLM models)",
+    signupUrl: "https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys",
+    baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4",
+    api: "openai-completions",
+    models: [
+      { id: "glm-5", name: "GLM-5", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 131072 },
+      { id: "glm-5-turbo", name: "GLM-5 Turbo", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 200000, maxTokens: 128000 },
+      { id: "glm-4.7", name: "GLM-4.7", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 131072 },
+      { id: "glm-4.6v", name: "GLM-4.6V", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 128000, maxTokens: 32768 },
+    ],
+  },
+  "glm-openclaw-plan": {
+    displayName: "GLM OpenClaw (CN)",
+    description: "Zhipu AI (GLM-5 Turbo)",
+    signupUrl: "https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys",
+    baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4",
+    api: "openai-completions",
+    models: [
+      { id: "glm-5-turbo", name: "GLM-5 Turbo", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 200000, maxTokens: 128000 },
     ],
   },
   "kimi-coding": {
+    displayName: "Kimi for Coding",
+    description: "Moonshot Kimi coding-optimized API",
+    signupUrl: "https://kimi.com/coding",
     baseUrl: "https://api.kimi.com/coding/",
     api: "anthropic-messages",
     models: [
@@ -90,23 +139,19 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
       },
     ],
   },
-  moonshot: {
-    baseUrl: "https://api.moonshot.ai/v1",
-    api: "openai-completions",
+  "maxauto-crs-openai": {
+    displayName: "MaxAuto Claude Proxy",
+    description: "Claude proxy via OpenAI-compatible API",
+    baseUrl: "https://claude-proxy.bsoltest.com/openai",
+    api: "openai-responses",
     models: [
-      { id: "kimi-k2.5", name: "Kimi K2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 256000, maxTokens: 8192 },
-    ],
-  },
-  minimax: {
-    baseUrl: "https://api.minimax.io/anthropic",
-    api: "anthropic-messages",
-    extraConfig: { authHeader: true },
-    models: [
-      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
-      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+      { id: "gpt-5.4", name: "GPT-5.4", reasoning: true, input: ["text","image"], cost: ZERO_COST, contextWindow: 1050000, maxTokens: 272000 },
     ],
   },
   "minimax-cn": {
+    displayName: "MiniMax (China)",
+    description: "MiniMax M2.5 — China endpoint",
+    signupUrl: "https://platform.minimaxi.com/user-center/basic-information/interface-key",
     baseUrl: "https://api.minimaxi.com/anthropic",
     api: "anthropic-messages",
     extraConfig: { authHeader: true },
@@ -115,85 +160,33 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
       { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
     ],
   },
-  "maxauto-aliyun-cn": {
-    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    api: "openai-completions",
+  minimax: {
+    displayName: "MiniMax (Global)",
+    description: "MiniMax M2.5 — global endpoint",
+    signupUrl: "https://platform.minimax.io/subscribe/coding-plan",
+    baseUrl: "https://api.minimax.io/anthropic",
+    api: "anthropic-messages",
+    extraConfig: { authHeader: true },
     models: [
-      { id: "qwen3.5-plus", name: "qwen3.5-plus", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 1000000, maxTokens: 65536 },
-      { id: "qwen3-coder-next", name: "qwen3-coder-next", reasoning: false, input: ["text"], cost: ZERO_COST, contextWindow: 262144, maxTokens: 65536 }    ],
-  },
-  "maxauto-glm-coding-plan": {
-    baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4",
-    api: "openai-completions",
-    models: [
-      { id: "glm-5", name: "GLM-5", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 131072 },
-      { id: "glm-4.7", name: "GLM-4.7", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 131072 },
-      { id: "glm-4.6v", name: "GLM-4.6V", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 128000, maxTokens: 32768 },
+      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
     ],
-  }
+  },
+  moonshot: {
+    displayName: "Moonshot / Kimi",
+    description: "Moonshot AI (Kimi K2.5)",
+    signupUrl: "https://platform.moonshot.cn/console/api-keys",
+    baseUrl: "https://api.moonshot.ai/v1",
+    api: "openai-completions",
+    models: [
+      { id: "kimi-k2.5", name: "Kimi K2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 256000, maxTokens: 8192 },
+    ],
+  },
 };
 
-/**
- * Quick-setup preset: Bailian Coding (阿里云百炼 Coding endpoint).
- * Includes multi-vendor models accessible through a single API key.
- */
-export const BAILIAN_CODING_PROVIDER_KEY = "bailian-coding-maxauto";
-
-export const BAILIAN_CODING_PRESET = {
-  baseUrl: "https://coding.dashscope.aliyuncs.com/v1",
-  api: "openai-completions",
-  models: [
-    {
-      id: "qwen3.5-plus",
-      name: "qwen3.5-plus",
-      reasoning: false,
-      input: ["text", "image"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 1000000,
-      maxTokens: 65536,
-      compat: { thinkingFormat: "qwen" },
-    },
-    {
-      id: "MiniMax-M2.5",
-      name: "MiniMax-M2.5",
-      reasoning: false,
-      input: ["text"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 196608,
-      maxTokens: 32768,
-    },
-    {
-      id: "glm-5",
-      name: "glm-5",
-      reasoning: false,
-      input: ["text"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 202752,
-      maxTokens: 16384,
-      compat: { thinkingFormat: "qwen" },
-    },
-    {
-      id: "kimi-k2.5",
-      name: "kimi-k2.5",
-      reasoning: false,
-      input: ["text", "image"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 262144,
-      maxTokens: 32768,
-      compat: { thinkingFormat: "qwen" },
-    },
-  ],
-} as const;
-
-export const BAILIAN_CODING_AGENTS_DEFAULTS = {
-  model: { primary: `${BAILIAN_CODING_PROVIDER_KEY}/qwen3.5-plus` },
-  models: {
-    [`${BAILIAN_CODING_PROVIDER_KEY}/qwen3.5-plus`]: {},
-    [`${BAILIAN_CODING_PROVIDER_KEY}/MiniMax-M2.5`]: {},
-    [`${BAILIAN_CODING_PROVIDER_KEY}/glm-5`]: {},
-    [`${BAILIAN_CODING_PROVIDER_KEY}/kimi-k2.5`]: {},
-  },
-} as const;
+/** GLM Coding provider key and MCP server key */
+export const GLM_MCP_PROVIDER_KEY = "maxauto-glm-coding-plan";
+export const GLM_MCP_SERVER_KEY = "zai-mcp-server";
 
 /** Map UI protocol label to OpenClaw `api` value */
 function mapProtocolToApi(protocol: string): string {
@@ -378,6 +371,8 @@ interface SettingsState {
   editingModel: CustomModel | null;
   editingProviderGroup: CustomModel[] | null;
   showQuickConfig: boolean;
+  /** Whether the GLM MCP server (zai-mcp-server) is configured */
+  glmMcpEnabled: boolean;
 
   setActiveSection: (section: SettingsSection) => void;
   setShowAddModelDialog: (v: boolean, editModel?: CustomModel | null, providerGroup?: CustomModel[] | null) => void;
@@ -391,9 +386,8 @@ interface SettingsState {
   removeCustomModel: (modelId: string) => Promise<void>;
   setProviderAuth: (providerKey: string, apiKey: string, baseUrl?: string) => Promise<void>;
   removeProvider: (providerKey: string) => Promise<void>;
-  addQuickProvider: (apiKey: string, baseUrl?: string) => Promise<void>;
-  removeQuickProvider: () => Promise<void>;
   replaceProviderModels: (providerName: string, oldModelIds: string[], newModels: CustomModel[]) => Promise<void>;
+  setGlmMcpServer: (enabled: boolean) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -408,6 +402,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   editingModel: null,
   editingProviderGroup: null,
   showQuickConfig: false,
+  glmMcpEnabled: false,
 
   setActiveSection: (section) => set({ activeSection: section }),
   setShowAddModelDialog: (v, editModel, providerGroup) =>
@@ -425,6 +420,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   loadConfig: async () => {
+    // agents.defaults.model can be a string or { primary, fallbacks } object
+    const resolveModelId = (model: unknown): string | null => {
+      if (typeof model === "string") return model;
+      if (model && typeof model === "object") {
+        const primary = (model as { primary?: string }).primary;
+        if (typeof primary === "string") return primary;
+      }
+      return null;
+    };
+
     try {
       // Try gateway first (has hash + runtime state)
       const result = await gateway.request<{
@@ -438,32 +443,44 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           providers?: Record<string, ProviderConfig>;
         };
         agents?: {
-          defaults?: { model?: string };
+          defaults?: { model?: unknown };
+        };
+        plugins?: {
+          entries?: {
+            acpx?: { config?: { mcpServers?: Record<string, unknown> } };
+          };
         };
       };
       const customModels = parseCustomProvidersOnly(cfg.models?.providers);
       const configuredProviders = new Set(Object.keys(cfg.models?.providers ?? {}));
-      const defaultModelId = cfg.agents?.defaults?.model ?? null;
+      const defaultModelId = resolveModelId(cfg.agents?.defaults?.model);
+      const glmMcpEnabled = !!(cfg.plugins?.entries?.acpx?.config?.mcpServers?.[GLM_MCP_SERVER_KEY]);
 
       // Parse resolved model definitions for built-in providers from config.get
       const builtInProviderModels = parseBuiltInProviderModels(cfg.models?.providers);
 
-      set({ customModels, configuredProviders, defaultModelId, builtInProviderModels });
+      set({ customModels, configuredProviders, defaultModelId, builtInProviderModels, glmMcpEnabled });
     } catch {
       // Gateway not ready — fall back to reading file directly
       try {
         const config = await readConfigFile();
         const cfg = config as {
           models?: { providers?: Record<string, ProviderConfig> };
-          agents?: { defaults?: { model?: string } };
+          agents?: { defaults?: { model?: unknown } };
+          plugins?: {
+            entries?: {
+              acpx?: { config?: { mcpServers?: Record<string, unknown> } };
+            };
+          };
         };
         const customModels = parseCustomProvidersOnly(cfg.models?.providers);
         const configuredProviders = new Set(Object.keys(cfg.models?.providers ?? {}));
-        const defaultModelId = cfg.agents?.defaults?.model ?? null;
+        const defaultModelId = resolveModelId(cfg.agents?.defaults?.model);
+        const glmMcpEnabled = !!(cfg.plugins?.entries?.acpx?.config?.mcpServers?.[GLM_MCP_SERVER_KEY]);
         const builtInProviderModels = parseBuiltInProviderModels(
           cfg.models?.providers as Record<string, ProviderConfig> | undefined,
         );
-        set({ customModels, configuredProviders, defaultModelId, builtInProviderModels });
+        set({ customModels, configuredProviders, defaultModelId, builtInProviderModels, glmMcpEnabled });
       } catch {
         // Config file not available either
       }
@@ -725,67 +742,50 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     await get().loadModels();
   },
 
-  addQuickProvider: async (apiKey, baseUrl) => {
-    const providerEntry = {
-      ...BAILIAN_CODING_PRESET,
-      ...(baseUrl ? { baseUrl } : {}),
-      apiKey,
-    };
+  setGlmMcpServer: async (enabled) => {
+    if (enabled) {
+      // Read the GLM provider's API key directly from disk (unredacted)
+      const apiKey = await readProviderApiKey(GLM_MCP_PROVIDER_KEY);
+      if (!apiKey) {
+        throw new Error("GLM provider API key not found. Set up the provider first.");
+      }
 
-    await patchConfig({
-      models: { providers: { [BAILIAN_CODING_PROVIDER_KEY]: providerEntry } },
-      agents: {
-        defaults: {
-          model: BAILIAN_CODING_AGENTS_DEFAULTS.model,
-          models: { ...BAILIAN_CODING_AGENTS_DEFAULTS.models },
+      await patchConfig({
+        plugins: {
+          entries: {
+            acpx: {
+              config: {
+                mcpServers: {
+                  [GLM_MCP_SERVER_KEY]: {
+                    command: "npx",
+                    args: ["-y", "@z_ai/mcp-server"],
+                    env: {
+                      Z_AI_API_KEY: apiKey,
+                      Z_AI_MODE: "ZHIPU",
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
-      },
-    });
+      });
+    } else {
+      await patchConfig({
+        plugins: {
+          entries: {
+            acpx: {
+              config: {
+                mcpServers: {
+                  [GLM_MCP_SERVER_KEY]: null,
+                },
+              },
+            },
+          },
+        },
+      });
+    }
     await waitForReconnect();
     await get().loadConfig();
-    await get().loadModels();
-  },
-
-  removeQuickProvider: async () => {
-    // Read config to find which model keys to null-out
-    const configResult = await gateway.request<{
-      config: Record<string, unknown>;
-      hash: string;
-    }>("config.get", {});
-    const cfg = configResult.config as {
-      agents?: { defaults?: { model?: unknown; models?: Record<string, unknown> } };
-    };
-
-    // Null-out the provider key
-    const prefix = `${BAILIAN_CODING_PROVIDER_KEY}/`;
-
-    // Null-out model entries belonging to this provider
-    const existingModelsMap = cfg.agents?.defaults?.models ?? {};
-    const modelsPatch: Record<string, unknown> = {};
-    for (const key of Object.keys(existingModelsMap)) {
-      if (key.startsWith(prefix)) {
-        modelsPatch[key] = null;
-      }
-    }
-
-    // Clear default model if it belongs to this provider
-    const defaultsPatch: Record<string, unknown> = { models: modelsPatch };
-    const primaryModel = cfg.agents?.defaults?.model;
-    if (typeof primaryModel === "object" && primaryModel !== null) {
-      const pm = primaryModel as { primary?: string };
-      if (pm.primary?.startsWith(prefix)) {
-        defaultsPatch.model = null;
-      }
-    } else if (typeof primaryModel === "string" && primaryModel.startsWith(prefix)) {
-      defaultsPatch.model = null;
-    }
-
-    await patchConfig({
-      models: { providers: { [BAILIAN_CODING_PROVIDER_KEY]: null } },
-      agents: { defaults: defaultsPatch },
-    });
-    await waitForReconnect();
-    await get().loadConfig();
-    await get().loadModels();
   },
 }));

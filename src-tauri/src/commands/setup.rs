@@ -333,72 +333,66 @@ pub async fn install_git(app: tauri::AppHandle) -> Result<String, String> {
             error: None,
         });
 
-        // Launch the installer (user clicks through the wizard)
-        let _child = tokio::process::Command::new(&installer_path)
+        // Launch the installer and wait for the user to finish the wizard
+        let mut child = tokio::process::Command::new(&installer_path)
             .spawn()
             .map_err(|e| format!("Failed to launch Git installer: {}", e))?;
 
-        // Poll for git availability (the user is clicking through the installer)
-        let max_wait = std::time::Duration::from_secs(600); // 10 min timeout
-        let start = std::time::Instant::now();
-        loop {
-            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        // Wait for the installer process to exit (user clicks through the wizard)
+        let _ = app.emit("setup-progress", SetupProgress {
+            step: "git".into(),
+            message: "Waiting for Git installer to finish...".into(),
+            progress: Some(0.5),
+            error: None,
+        });
 
-            // Refresh PATH from registry so we pick up the installer's changes
-            #[cfg(windows)]
-            refresh_path_from_registry();
+        let status = child.wait().await
+            .map_err(|e| format!("Git installer process error: {}", e))?;
 
-            // Try PATH-based lookup first
-            let mut git_ok = tokio::process::Command::new("git.exe")
-                .arg("--version")
-                .output()
-                .await
-                .map(|o| o.status.success())
-                .unwrap_or(false);
+        // Cleanup installer file
+        let _ = std::fs::remove_file(&installer_path);
+        let _ = std::fs::remove_dir_all(&temp_dir);
 
-            // Also check default install locations directly
-            #[cfg(windows)]
-            if !git_ok {
-                if let Some(git_path) = find_git_in_default_paths() {
-                    git_ok = tokio::process::Command::new(&git_path)
-                        .arg("--version")
-                        .output()
-                        .await
-                        .map(|o| o.status.success())
-                        .unwrap_or(false);
-                }
+        if !status.success() {
+            return Err("Git installer exited with an error. Please try again.".into());
+        }
+
+        // Installer finished — refresh PATH from registry and verify git works
+        #[cfg(windows)]
+        refresh_path_from_registry();
+
+        let mut git_ok = tokio::process::Command::new("git.exe")
+            .arg("--version")
+            .output()
+            .await
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+
+        // Also check default install locations directly
+        #[cfg(windows)]
+        if !git_ok {
+            if let Some(git_path) = find_git_in_default_paths() {
+                git_ok = tokio::process::Command::new(&git_path)
+                    .arg("--version")
+                    .output()
+                    .await
+                    .map(|o| o.status.success())
+                    .unwrap_or(false);
             }
+        }
 
-            if git_ok {
-                let _ = std::fs::remove_file(&installer_path);
-                let _ = std::fs::remove_dir_all(&temp_dir);
-                let _ = app.emit("setup-progress", SetupProgress {
-                    step: "git".into(),
-                    message: "Git installed".into(),
-                    progress: Some(1.0),
-                    error: None,
-                });
-                return Ok("Git installed successfully".into());
-            }
-
-            if start.elapsed() > max_wait {
-                let _ = std::fs::remove_file(&installer_path);
-                let _ = std::fs::remove_dir_all(&temp_dir);
-                return Err(
-                    "Timed out waiting for Git installation. \
-                     Please install Git manually from https://git-scm.com/downloads and restart MaxAuto."
-                        .into(),
-                );
-            }
-
-            let elapsed_pct = (start.elapsed().as_secs_f64() / max_wait.as_secs_f64()).min(0.9);
+        if git_ok {
             let _ = app.emit("setup-progress", SetupProgress {
                 step: "git".into(),
-                message: "Waiting for Git installation to complete...".into(),
-                progress: Some(0.4 + elapsed_pct * 0.6),
+                message: "Git installed".into(),
+                progress: Some(1.0),
                 error: None,
             });
+            return Ok("Git installed successfully".into());
         }
+
+        Err("Git installer completed but Git was not detected. \
+             Please install Git manually from https://git-scm.com/downloads and retry.".into())
     } else {
         // macOS: trigger Xcode Command Line Tools install
         let _ = app.emit("setup-progress", SetupProgress {

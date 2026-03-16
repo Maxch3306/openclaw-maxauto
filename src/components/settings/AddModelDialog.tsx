@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettingsStore, PROVIDER_DEFAULTS } from "../../stores/settings-store";
@@ -36,9 +36,13 @@ export function AddModelDialog() {
   const editingProviderGroup = useSettingsStore((s) => s.editingProviderGroup);
   const configuredProviders = useSettingsStore((s) => s.configuredProviders);
 
-  // Only show providers defined in PROVIDER_DEFAULTS
+  // Only show providers defined in PROVIDER_DEFAULTS, sorted by displayName A-Z
   const builtInProviders = useMemo(() => {
-    return Object.keys(PROVIDER_DEFAULTS).sort();
+    return Object.keys(PROVIDER_DEFAULTS).sort((a, b) => {
+      const nameA = PROVIDER_DEFAULTS[a]?.displayName ?? a;
+      const nameB = PROVIDER_DEFAULTS[b]?.displayName ?? b;
+      return nameA.localeCompare(nameB);
+    });
   }, []);
 
   const isEditing = !!editingModel;
@@ -250,13 +254,42 @@ export function AddModelDialog() {
                   {builtInProviders.length === 0 && (
                     <option value="">{t("settings.addModel.noProviders")}</option>
                   )}
-                  {builtInProviders.map((p: string) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
+                  {builtInProviders.map((p: string) => {
+                    const def = PROVIDER_DEFAULTS[p];
+                    return (
+                      <option key={p} value={p}>
+                        {def?.displayName ?? p}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
+
+              {/* Provider info */}
+              {selectedProvider && PROVIDER_DEFAULTS[selectedProvider] && (() => {
+                const def = PROVIDER_DEFAULTS[selectedProvider];
+                return (
+                  <div className="px-3 py-2.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] space-y-1.5">
+                    {def.description && (
+                      <p className="text-xs text-[var(--color-text-muted)]">{def.description}</p>
+                    )}
+                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                      {t("settings.addModel.modelCount", { count: def.models.length })}
+                    </p>
+                    {def.signupUrl && (
+                      <a
+                        href={def.signupUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-[var(--color-accent)] hover:underline"
+                      >
+                        <ExternalLink size={11} />
+                        {t("settings.addModel.getApiKey")}
+                      </a>
+                    )}
+                  </div>
+                );
+              })()}
 
               {isAlreadyConfigured && (
                 <div className="px-3 py-2 rounded-lg bg-[var(--color-success)]/10 border border-[var(--color-success)]/30">

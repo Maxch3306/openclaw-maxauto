@@ -1,12 +1,11 @@
-import { Loader2, RefreshCw } from "lucide-react";
+import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gateway } from "../../api/gateway-client";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "../../stores/chat-store";
-import { useSettingsStore, BAILIAN_CODING_PROVIDER_KEY, PROVIDER_DEFAULTS, type CustomModel } from "../../stores/settings-store";
+import { useSettingsStore, PROVIDER_DEFAULTS, GLM_MCP_PROVIDER_KEY, type CustomModel } from "../../stores/settings-store";
 import { AddModelDialog } from "./AddModelDialog";
-import { BailianCodingQuickSetup } from "./BailianCodingQuickSetup";
 
 export function ModelsAndApiSection() {
   const { t } = useTranslation();
@@ -21,7 +20,8 @@ export function ModelsAndApiSection() {
   const removeCustomModel = useSettingsStore((s) => s.removeCustomModel);
   const removeProvider = useSettingsStore((s) => s.removeProvider);
   const defaultModelId = useSettingsStore((s) => s.defaultModelId);
-  const setDefaultModelId = useSettingsStore((s) => s.setDefaultModelId);
+  const glmMcpEnabled = useSettingsStore((s) => s.glmMcpEnabled);
+  const setGlmMcpServer = useSettingsStore((s) => s.setGlmMcpServer);
   const gatewayConnected = useAppStore((s) => s.gatewayConnected);
   const gatewayPort = useAppStore((s) => s.gatewayPort);
   const setAgentModel = useChatStore((s) => s.setAgentModel);
@@ -36,6 +36,8 @@ export function ModelsAndApiSection() {
   };
 
   const [reloading, setReloading] = useState(false);
+  const [settingDefault, setSettingDefault] = useState<string | null>(null);
+  const [togglingMcp, setTogglingMcp] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
   const [removingProvider, setRemovingProvider] = useState<string | null>(null);
   const handleReload = async () => {
@@ -45,6 +47,18 @@ export function ModelsAndApiSection() {
       await loadModels();
     } finally {
       setReloading(false);
+    }
+  };
+
+  const handleSetDefault = async (qualifiedId: string) => {
+    setSettingDefault(qualifiedId);
+    try {
+      await setAgentModel("main", qualifiedId);
+      await loadConfig();
+    } catch (err) {
+      console.warn("Failed to set default model:", err);
+    } finally {
+      setSettingDefault(null);
     }
   };
 
@@ -68,8 +82,6 @@ export function ModelsAndApiSection() {
     for (const m of customModels) {
       keys.add(m.provider.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, ""));
     }
-    // Also exclude the quick-setup provider
-    keys.add(BAILIAN_CODING_PROVIDER_KEY);
     return keys;
   }, [customModels]);
 
@@ -82,15 +94,12 @@ export function ModelsAndApiSection() {
   const customProviderGroups = useMemo(() => {
     const map = new Map<string, CustomModel[]>();
     for (const m of customModels) {
-      if (m.provider === BAILIAN_CODING_PROVIDER_KEY) continue;
       const list = map.get(m.provider) ?? [];
       list.push(m);
       map.set(m.provider, list);
     }
     return map;
   }, [customModels]);
-
-  const isBailianConfigured = configuredProviders.has(BAILIAN_CODING_PROVIDER_KEY);
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -103,9 +112,6 @@ export function ModelsAndApiSection() {
           {t("common.reconnect")}
         </button>
       </div>
-
-      {/* Quick Setup */}
-      <BailianCodingQuickSetup isConfigured={isBailianConfigured} />
 
       {/* Configured providers */}
       <section className="mb-6">
@@ -162,7 +168,7 @@ export function ModelsAndApiSection() {
                   <div className="flex items-center justify-between px-3 py-2.5">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-[var(--color-text)]">
-                        {provKey}
+                        {PROVIDER_DEFAULTS[provKey]?.displayName ?? provKey}
                       </span>
                       <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
                         {t("settings.models.modelCount", { count: providerModels.length })}
@@ -206,6 +212,23 @@ export function ModelsAndApiSection() {
                       </button>
                     )}
                   </div>
+                  {/* Provider description and signup link */}
+                  {PROVIDER_DEFAULTS[provKey]?.signupUrl && (
+                    <div className="border-t border-[var(--color-border)] px-3 py-1.5 flex items-center justify-between">
+                      <span className="text-[10px] text-[var(--color-text-muted)]">
+                        {PROVIDER_DEFAULTS[provKey]?.description}
+                      </span>
+                      <a
+                        href={PROVIDER_DEFAULTS[provKey]!.signupUrl!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] text-[var(--color-accent)] hover:underline shrink-0"
+                      >
+                        <ExternalLink size={10} />
+                        {t("settings.models.getApiKey")}
+                      </a>
+                    </div>
+                  )}
                   {providerModels.length > 0 && (
                     <div className="border-t border-[var(--color-border)] px-3 py-2 space-y-1">
                       {providerModels.map((m) => {
@@ -240,13 +263,11 @@ export function ModelsAndApiSection() {
                                 </span>
                               ) : (
                                 <button
-                                  onClick={async () => {
-                                    await setAgentModel("main", qualifiedId);
-                                    setDefaultModelId(qualifiedId);
-                                  }}
-                                  className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
+                                  onClick={() => handleSetDefault(qualifiedId)}
+                                  disabled={settingDefault === qualifiedId}
+                                  className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
                                 >
-                                  {t("settings.models.setDefault")}
+                                  {settingDefault === qualifiedId ? "..." : t("settings.models.setDefault")}
                                 </button>
                               )}
                               {m.reasoning && (
@@ -258,6 +279,37 @@ export function ModelsAndApiSection() {
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                  {/* MCP Server toggle for GLM Coding provider */}
+                  {provKey === GLM_MCP_PROVIDER_KEY && (
+                    <div className="border-t border-[var(--color-border)] px-3 py-2 flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-[var(--color-text)]">{t("settings.models.mcpServer")}</span>
+                        <p className="text-[10px] text-[var(--color-text-muted)]">{t("settings.models.mcpServerDesc")}</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          setTogglingMcp(true);
+                          try {
+                            await setGlmMcpServer(!glmMcpEnabled);
+                          } catch (err) {
+                            console.warn("Failed to toggle MCP server:", err);
+                          } finally {
+                            setTogglingMcp(false);
+                          }
+                        }}
+                        disabled={togglingMcp}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                          glmMcpEnabled ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]"
+                        } ${togglingMcp ? "opacity-50" : ""}`}
+                      >
+                        <span
+                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
+                            glmMcpEnabled ? "translate-x-[18px]" : "translate-x-[2px]"
+                          }`}
+                        />
+                      </button>
                     </div>
                   )}
                 </div>
@@ -366,13 +418,11 @@ export function ModelsAndApiSection() {
                           </span>
                         ) : (
                           <button
-                            onClick={async () => {
-                              await setAgentModel("main", qualifiedId);
-                              setDefaultModelId(qualifiedId);
-                            }}
-                            className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
+                            onClick={() => handleSetDefault(qualifiedId)}
+                            disabled={settingDefault === qualifiedId}
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
                           >
-                            {t("settings.models.setDefault")}
+                            {settingDefault === qualifiedId ? "..." : t("settings.models.setDefault")}
                           </button>
                         )}
                       </div>
