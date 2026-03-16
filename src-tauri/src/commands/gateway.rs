@@ -3,6 +3,10 @@ use serde::Serialize;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, State};
 
+#[cfg(windows)]
+#[allow(unused_imports)]
+use std::os::windows::process::CommandExt;
+
 #[derive(Debug, Serialize)]
 pub struct GatewayStatus {
     pub running: bool,
@@ -247,7 +251,6 @@ async fn kill_process_on_port(port: u16) {
         cmd.args(["-NoProfile", "-Command", &script]);
         #[cfg(windows)]
         {
-            use std::os::windows::process::CommandExt;
             cmd.creation_flags(0x08000000);
         }
         let _ = cmd.output().await;
@@ -331,7 +334,6 @@ pub async fn start_gateway(
     // Hide the console window on Windows
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
 
@@ -460,7 +462,6 @@ pub async fn run_doctor() -> Result<String, String> {
 
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x08000000);
     }
 

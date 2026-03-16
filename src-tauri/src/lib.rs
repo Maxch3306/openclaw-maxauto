@@ -63,7 +63,7 @@ pub fn run() {
                     let _ = child.start_kill();
                 }
                 *child_lock = None;
-            }
+            };
         }
     });
 }
