@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { GeneralSection } from "../components/settings/GeneralSection";
 import { IMChannelsSection } from "../components/settings/IMChannelsSection";
 import { ModelsAndApiSection } from "../components/settings/ModelsAndApiSection";
+import { McpSection } from "../components/settings/McpSection";
 import { AboutSection } from "../components/settings/AboutSection";
 import { SkillsSection } from "../components/settings/SkillsSection";
 import { WorkspaceSection } from "../components/settings/WorkspaceSection";
@@ -48,6 +49,8 @@ function renderSection(section: SettingsSection) {
       return <GeneralSection />;
     case "models":
       return <ModelsAndApiSection />;
+    case "mcp":
+      return <McpSection />;
     case "im-channels":
       return <IMChannelsSection />;
     case "skills":

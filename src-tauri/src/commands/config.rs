@@ -53,3 +53,28 @@ pub async fn write_config(json: String) -> Result<String, String> {
 
     Ok("Config saved".into())
 }
+
+/// Read a provider's API key directly from the config file (unredacted).
+#[tauri::command]
+pub async fn read_provider_api_key(provider_key: String) -> Result<Option<String>, String> {
+    let path = config_path();
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let raw =
+        std::fs::read_to_string(&path).map_err(|e| format!("Failed to read config: {}", e))?;
+
+    let config: serde_json::Value =
+        serde_json::from_str(&raw).map_err(|e| format!("Failed to parse config: {}", e))?;
+
+    let api_key = config
+        .get("models")
+        .and_then(|m| m.get("providers"))
+        .and_then(|p| p.get(&provider_key))
+        .and_then(|prov| prov.get("apiKey"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    Ok(api_key)
+}

@@ -606,15 +606,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setAgentModel: async (_agentId, modelId) => {
-    try {
-      await patchConfig({
-        agents: { defaults: { model: modelId } },
-      });
-      await waitForReconnect();
-      console.log("[chat-store] setAgentModel: set agents.defaults.model =", modelId);
-    } catch (err) {
-      console.warn("[chat-store] setAgentModel failed:", err);
-    }
+    await patchConfig({
+      agents: { defaults: { model: modelId } },
+    });
+    await waitForReconnect();
+    console.log("[chat-store] setAgentModel: set agents.defaults.model =", modelId);
   },
 
   createAgent: async (params) => {

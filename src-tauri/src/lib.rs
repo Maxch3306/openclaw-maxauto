@@ -33,6 +33,7 @@ pub fn run() {
             // Config
             commands::config::read_config,
             commands::config::write_config,
+            commands::config::read_provider_api_key,
             // Pairing
             commands::pairing::list_pairing_requests,
             commands::pairing::approve_pairing_request,

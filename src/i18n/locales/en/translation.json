@@ -181,6 +181,9 @@
       "modelCount_one": "{{count}} model",
       "modelCount_other": "{{count}} models",
       "setDefault": "Set Default",
+      "mcpServer": "MCP Server",
+      "mcpServerDesc": "Enable Zhipu MCP tools for agents",
+      "getApiKey": "Get API Key",
       "custom": "Custom",
       "gatewayUrl": "Gateway URL",
       "reasoning": "Reasoning"
@@ -194,6 +197,8 @@
       "provider": "Provider",
       "noProviders": "No providers available",
       "alreadyConfigured": "This provider is already configured. Submitting will update the API key.",
+      "getApiKey": "Get API Key",
+      "modelCount": "{{count}} models",
       "apiKey": "API Key",
       "enterApiKey": "Enter API Key",
       "enterApiKeyOptional": "Enter API Key (optional)",
@@ -251,6 +256,19 @@
       "slackDesc": "Install as a Slack app",
       "wechat": "WeChat",
       "wechatDesc": "Connect WeChat Official Account"
+    },
+    "mcp": {
+      "title": "MCP Services",
+      "loading": "Loading MCP servers...",
+      "gatewayRequired": "Gateway not connected",
+      "addServer": "Add Server",
+      "serverName": "Server Name",
+      "command": "Command",
+      "args": "Arguments",
+      "argsHint": "One argument per line",
+      "envVars": "Environment Variables",
+      "noServers": "No MCP servers configured",
+      "noServersHint": "Add an MCP server to extend agent capabilities"
     },
     "skills": {
       "title": "Skills",
