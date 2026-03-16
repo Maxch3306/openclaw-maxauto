@@ -1,11 +1,11 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useChatStore } from "../../stores/chat-store";
+import { useChatStore } from "@/stores/chat-store";
 import { AgentCard } from "./AgentCard";
 import { CreateAgentDialog } from "./CreateAgentDialog";
 import { EditAgentDialog } from "./EditAgentDialog";
-import type { Agent } from "../../stores/chat-store";
+import type { Agent } from "@/stores/chat-store";
 
 export function AgentList() {
   const { t } = useTranslation();
@@ -40,7 +40,7 @@ export function AgentList() {
         <div className="p-3">
           <button
             onClick={() => setShowCreate(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[var(--color-border)] text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-hover)] transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary hover:bg-secondary transition-colors"
           >
             <Plus size={16} />
             {t("sidebar.newAgent")}
@@ -60,7 +60,7 @@ export function AgentList() {
             />
           ))}
           {agents.length === 0 && (
-            <p className="text-xs text-[var(--color-text-muted)] px-3 py-4 text-center">
+            <p className="text-xs text-muted-foreground px-3 py-4 text-center">
               {t("sidebar.noAgents")}
             </p>
           )}

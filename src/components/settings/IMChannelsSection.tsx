@@ -11,12 +11,15 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   listPairingRequests,
   approvePairingRequest,
   rejectPairingRequest,
   type PairingRequest,
-} from "../../api/tauri-commands";
+} from "@/api/tauri-commands";
 import { BotCardList } from "./BotCardList";
 import { AddBotDialog } from "./AddBotDialog";
 import { RemoveBotDialog } from "./RemoveBotDialog";
@@ -82,16 +85,16 @@ export function IMChannelsSection() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-semibold text-[var(--color-text)]">
+        <h1 className="text-lg font-semibold text-foreground">
           {t("settings.channels.title")}
         </h1>
-        <button
+        <Button
           onClick={() => setShowAddDialog(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--color-accent)] hover:opacity-90 transition-opacity"
+          size="sm"
         >
           <Plus size={14} />
           {t("settings.channels.addBot")}
-        </button>
+        </Button>
       </div>
 
       {/* Telegram Bot Cards */}
@@ -107,17 +110,17 @@ export function IMChannelsSection() {
 
       {/* Pairing Requests */}
       <section className="mb-6">
-        <div className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
-              <Clock size={16} className="text-[var(--color-warning)]" />
-              <h2 className="text-sm font-medium text-[var(--color-text)]">
+              <Clock size={16} className="text-warning" />
+              <h2 className="text-sm font-medium text-foreground">
                 {t("settings.channels.pendingPairing")}
               </h2>
               {pairingRequests.length > 0 && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full bg-[var(--color-warning)]/20 text-[var(--color-warning)] font-medium">
+                <Badge variant="warning" className="text-xs px-1.5 py-0.5 rounded-full">
                   {pairingRequests.length}
-                </span>
+                </Badge>
               )}
             </div>
             <button
@@ -128,7 +131,7 @@ export function IMChannelsSection() {
                 );
               }}
               disabled={pairingLoading}
-              className="p-1.5 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
               title={t("settings.channels.refresh")}
             >
               <RefreshCw
@@ -141,10 +144,10 @@ export function IMChannelsSection() {
           <div className="px-4 py-3">
             {pairingRequests.length === 0 ? (
               <div className="text-center py-4">
-                <p className="text-xs text-[var(--color-text-muted)]">
+                <p className="text-xs text-muted-foreground">
                   {t("settings.channels.noPairing")}
                 </p>
-                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                <p className="text-[10px] text-muted-foreground mt-1">
                   {t("settings.channels.pairingHint")}
                 </p>
               </div>
@@ -168,27 +171,27 @@ export function IMChannelsSection() {
                   return (
                     <div
                       key={req.code}
-                      className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)]"
+                      className="flex items-center justify-between p-3 rounded-lg bg-background border border-border"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-[var(--color-text)] truncate">
+                          <span className="text-sm font-medium text-foreground truncate">
                             {displayName}
                           </span>
                           {username && (
-                            <span className="text-xs text-[var(--color-text-muted)]">
+                            <span className="text-xs text-muted-foreground">
                               @{username}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-xs font-mono text-[var(--color-accent)]">
+                          <span className="text-xs font-mono text-primary">
                             {req.code}
                           </span>
-                          <span className="text-[10px] text-[var(--color-text-muted)]">
+                          <span className="text-[10px] text-muted-foreground">
                             ID: {req.id}
                           </span>
-                          <span className="text-[10px] text-[var(--color-text-muted)]">
+                          <span className="text-[10px] text-muted-foreground">
                             {ageMin < 1
                               ? t("settings.channels.justNow")
                               : ageMin < 60
@@ -202,7 +205,7 @@ export function IMChannelsSection() {
                           onClick={() => handleApprovePairing(req.code)}
                           disabled={isActing}
                           title={t("settings.channels.approve")}
-                          className="p-1.5 rounded-md text-[var(--color-success)] hover:bg-[var(--color-success)]/10 transition-colors disabled:opacity-50"
+                          className="p-1.5 rounded-md text-success hover:bg-success/10 transition-colors disabled:opacity-50"
                         >
                           <UserCheck size={16} />
                         </button>
@@ -210,7 +213,7 @@ export function IMChannelsSection() {
                           onClick={() => handleRejectPairing(req.code)}
                           disabled={isActing}
                           title={t("settings.channels.reject")}
-                          className="p-1.5 rounded-md text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors disabled:opacity-50"
+                          className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
                         >
                           <UserX size={16} />
                         </button>
@@ -221,12 +224,12 @@ export function IMChannelsSection() {
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </section>
 
       {/* Other Channels - Coming Soon */}
       <section>
-        <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">
+        <h2 className="text-sm font-medium text-muted-foreground mb-3">
           {t("settings.channels.otherChannels")}
         </h2>
         <div className="space-y-2">
@@ -252,21 +255,21 @@ export function IMChannelsSection() {
               desc: t("settings.channels.wechatDesc"),
             },
           ].map((ch) => (
-            <div
+            <Card
               key={ch.name}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] opacity-60"
+              className="flex items-center gap-3 px-4 py-3 opacity-60"
             >
-              <span className="text-[var(--color-text-muted)]">{ch.icon}</span>
+              <span className="text-muted-foreground">{ch.icon}</span>
               <div className="flex-1">
-                <p className="text-sm text-[var(--color-text)]">{ch.name}</p>
-                <p className="text-xs text-[var(--color-text-muted)]">
+                <p className="text-sm text-foreground">{ch.name}</p>
+                <p className="text-xs text-muted-foreground">
                   {ch.desc}
                 </p>
               </div>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <span className="text-xs text-muted-foreground">
                 {t("common.comingSoon")}
               </span>
-            </div>
+            </Card>
           ))}
         </div>
       </section>

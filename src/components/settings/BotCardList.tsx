@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
-import { gateway } from "../../api/gateway-client";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { gateway } from "@/api/gateway-client";
 import {
   type TelegramConfig,
   type TelegramAccountConfig,
   type BindingEntry,
   getAccountConfigs,
-} from "../../api/telegram-accounts";
+} from "@/api/telegram-accounts";
 import { BotCard } from "./BotCard";
 
 /** Per-account status snapshot from channels.status probe. */
@@ -127,7 +129,7 @@ export function BotCardList({ onAddBot, onRemoveBot }: BotCardListProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8 text-[var(--color-text-muted)]">
+      <div className="flex items-center justify-center py-8 text-muted-foreground">
         <Loader2 size={16} className="animate-spin mr-2" />
         <span className="text-sm">Loading bots...</span>
       </div>
@@ -136,21 +138,22 @@ export function BotCardList({ onAddBot, onRemoveBot }: BotCardListProps) {
 
   if (accounts.size === 0) {
     return (
-      <div className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] p-8 text-center">
-        <p className="text-sm text-[var(--color-text)]">
+      <Card className="p-8 text-center">
+        <p className="text-sm text-foreground">
           No Telegram bots configured
         </p>
-        <p className="text-xs text-[var(--color-text-muted)] mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Add a bot to connect your agent to Telegram
         </p>
-        <button
+        <Button
           onClick={onAddBot}
-          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--color-accent)] hover:opacity-90 transition-opacity"
+          className="mt-4"
+          size="sm"
         >
           <Plus size={14} />
           Add Bot
-        </button>
-      </div>
+        </Button>
+      </Card>
     );
   }
 

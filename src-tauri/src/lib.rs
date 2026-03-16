@@ -30,6 +30,7 @@ pub fn run() {
             commands::setup::install_node,
             commands::setup::install_git,
             commands::setup::install_openclaw,
+            commands::setup::install_winget_package,
             // Config
             commands::config::read_config,
             commands::config::write_config,

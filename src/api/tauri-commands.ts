@@ -73,6 +73,9 @@ export const installGit = () => invoke<string>("install_git");
 
 export const installOpenclaw = () => invoke<string>("install_openclaw");
 
+export const installWingetPackage = (packageId: string) =>
+  invoke<string>("install_winget_package", { packageId });
+
 // Config
 export const readConfig = () => invoke<ConfigData>("read_config");
 

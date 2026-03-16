@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Loader2, CheckCircle } from "lucide-react";
-import { useChatStore } from "../../stores/chat-store";
-import { gateway } from "../../api/gateway-client";
+import { useChatStore } from "@/stores/chat-store";
+import { gateway } from "@/api/gateway-client";
 import {
   type TelegramConfig,
   type BindingEntry,
@@ -10,8 +10,20 @@ import {
   getAccountConfigs,
   needsMigration,
   migrateToMultiAccount,
-} from "../../api/telegram-accounts";
-import { patchConfig, waitForReconnect } from "../../api/config-helpers";
+} from "@/api/telegram-accounts";
+import { patchConfig, waitForReconnect } from "@/api/config-helpers";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface AddBotDialogProps {
   open: boolean;
@@ -66,8 +78,6 @@ export function AddBotDialog({
   // Save state
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  if (!open) return null;
 
   const tokenFormatValid = TOKEN_REGEX.test(token.trim());
   const isValidated = validationResult?.valid === true;
@@ -217,30 +227,24 @@ export function AddBotDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[440px] bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
-          <h2 className="text-base font-semibold text-[var(--color-text)]">
-            Add Telegram Bot
-          </h2>
-          <button
-            onClick={handleClose}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-lg"
-          >
-            x
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <DialogContent className="max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>Add Telegram Bot</DialogTitle>
+          <DialogDescription className="sr-only">
+            Add a new Telegram bot by validating its token and selecting an agent
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Content */}
-        <div className="px-6 py-4 space-y-4">
+        <div className="space-y-4">
           {/* Token input */}
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
               Bot Token
             </label>
             <div className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 value={token}
                 onChange={(e) => {
@@ -249,30 +253,30 @@ export function AddBotDialog({
                 }}
                 placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyz..."
                 disabled={isValidated}
-                className="flex-1 px-3 py-2 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-70"
+                className="flex-1 bg-background"
                 autoFocus
               />
               {!isValidated && (
-                <button
+                <Button
                   onClick={handleValidate}
                   disabled={!tokenFormatValid || validating}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--color-accent)] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5"
+                  size="sm"
                 >
                   {validating && (
                     <Loader2 size={14} className="animate-spin" />
                   )}
                   Validate
-                </button>
+                </Button>
               )}
             </div>
-            <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+            <p className="text-[10px] text-muted-foreground mt-1">
               Get a bot token from @BotFather on Telegram
             </p>
           </div>
 
           {/* Validation result */}
           {validationResult && !validationResult.valid && (
-            <p className="text-xs text-[var(--color-error)]">
+            <p className="text-xs text-destructive">
               {validationResult.error}
             </p>
           )}
@@ -280,21 +284,21 @@ export function AddBotDialog({
           {/* Validated bot info + agent selection */}
           {isValidated && (
             <>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]">
+              <Card className="flex items-center gap-2 px-3 py-2">
                 <CheckCircle
                   size={16}
-                  className="text-[var(--color-success)] flex-shrink-0"
+                  className="text-success flex-shrink-0"
                 />
-                <span className="text-sm font-medium text-[var(--color-text)]">
+                <span className="text-sm font-medium text-foreground">
                   @{validatedUsername}
                 </span>
-                <span className="text-xs text-[var(--color-success)]">
+                <Badge variant="success" className="text-[10px]">
                   Verified
-                </span>
-              </div>
+                </Badge>
+              </Card>
 
               <div>
-                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   * Agent
                 </label>
                 <select
@@ -302,7 +306,7 @@ export function AddBotDialog({
                   onChange={(e) =>
                     setSelectedAgentId(e.target.value || null)
                   }
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+                  className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="">Select an agent...</option>
                   {agents.map((a) => {
@@ -322,7 +326,7 @@ export function AddBotDialog({
                     );
                   })}
                 </select>
-                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                <p className="text-[10px] text-muted-foreground mt-1">
                   Choose which agent handles messages from this bot
                 </p>
               </div>
@@ -331,32 +335,29 @@ export function AddBotDialog({
 
           {/* Error display */}
           {error && (
-            <p className="text-xs text-[var(--color-error)]">{error}</p>
+            <p className="text-xs text-destructive">{error}</p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border)]">
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 text-sm rounded-lg border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
-          >
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={handleClose}>
             Cancel
-          </button>
+          </Button>
           {isValidated && (
-            <button
+            <Button
               onClick={handleSave}
               disabled={!selectedAgentId || saving}
-              className="px-4 py-2 text-sm rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5"
+              size="sm"
             >
               {saving && (
                 <Loader2 size={14} className="animate-spin" />
               )}
               {saving ? "Saving..." : "Save"}
-            </button>
+            </Button>
           )}
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

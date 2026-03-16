@@ -1,24 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
-import { gateway } from "../../api/gateway-client";
+import { gateway } from "@/api/gateway-client";
 import {
   getGatewayStatus,
   getGatewayToken,
   startGateway,
   dockerGatewayStatus,
   startDockerGateway,
-} from "../../api/tauri-commands";
-import { SettingsPage } from "../../pages/SettingsPage";
-import { useAppStore } from "../../stores/app-store";
-import { useChatStore } from "../../stores/chat-store";
-import { useSettingsStore } from "../../stores/settings-store";
-import { useUpdateStore } from "../../stores/update-store";
-import { ChatPanel } from "../chat/ChatPanel";
-import { Sidebar } from "../chat/Sidebar";
-import { GatewayStatus } from "../common/GatewayStatus";
-import { UpdateBanner } from "../common/UpdateBanner";
-import { QuickConfigModal } from "../settings/QuickConfigModal";
+} from "@/api/tauri-commands";
+import { SettingsPage } from "@/pages/SettingsPage";
+import { useAppStore } from "@/stores/app-store";
+import { useChatStore } from "@/stores/chat-store";
+import { useSettingsStore } from "@/stores/settings-store";
+import { useUpdateStore } from "@/stores/update-store";
+import { ChatPanel } from "@/components/chat/ChatPanel";
+import { Sidebar } from "@/components/chat/Sidebar";
+import { GatewayStatus } from "@/components/common/GatewayStatus";
+import { UpdateBanner } from "@/components/common/UpdateBanner";
+import { QuickConfigModal } from "@/components/settings/QuickConfigModal";
 
 export function AppShell() {
   const { t } = useTranslation();
@@ -298,10 +298,10 @@ export function AppShell() {
   if (!ready) {
     return (
       <div className="flex flex-col h-screen items-center justify-center gap-4 px-8">
-        <h1 className="text-xl font-semibold text-[var(--color-text)]">{t("app.title")}</h1>
+        <h1 className="text-xl font-semibold text-foreground">{t("app.title")}</h1>
         <div className="flex items-center gap-3">
           <svg
-            className="animate-spin h-5 w-5 text-[var(--color-accent)]"
+            className="animate-spin h-5 w-5 text-primary"
             viewBox="0 0 24 24"
             fill="none"
           >
@@ -319,12 +319,12 @@ export function AppShell() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
             />
           </svg>
-          <span className="text-sm text-[var(--color-text-muted)]">
+          <span className="text-sm text-muted-foreground">
             {t(`app.${startupStatus}`)}
           </span>
         </div>
         {logs.length > 0 && (
-          <div className="w-full max-w-lg mt-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-xs text-[var(--color-text-muted)]">
+          <div className="w-full max-w-lg mt-2 bg-card border border-border rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-xs text-muted-foreground">
             {logs.map((line, i) => (
               <div key={i} className="whitespace-pre-wrap break-all leading-relaxed">
                 {line}

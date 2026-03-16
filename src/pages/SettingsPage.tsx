@@ -12,15 +12,16 @@ import {
 } from "lucide-react";
 import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { GeneralSection } from "../components/settings/GeneralSection";
-import { IMChannelsSection } from "../components/settings/IMChannelsSection";
-import { ModelsAndApiSection } from "../components/settings/ModelsAndApiSection";
-import { McpSection } from "../components/settings/McpSection";
-import { AboutSection } from "../components/settings/AboutSection";
-import { SkillsSection } from "../components/settings/SkillsSection";
-import { WorkspaceSection } from "../components/settings/WorkspaceSection";
-import { useAppStore } from "../stores/app-store";
-import { useSettingsStore, type SettingsSection } from "../stores/settings-store";
+import { Button } from "@/components/ui/button";
+import { GeneralSection } from "@/components/settings/GeneralSection";
+import { IMChannelsSection } from "@/components/settings/IMChannelsSection";
+import { ModelsAndApiSection } from "@/components/settings/ModelsAndApiSection";
+import { McpSection } from "@/components/settings/McpSection";
+import { AboutSection } from "@/components/settings/AboutSection";
+import { SkillsSection } from "@/components/settings/SkillsSection";
+import { WorkspaceSection } from "@/components/settings/WorkspaceSection";
+import { useAppStore } from "@/stores/app-store";
+import { useSettingsStore, type SettingsSection } from "@/stores/settings-store";
 
 const NAV_ITEMS: { key: SettingsSection; labelKey: string; icon: ReactNode }[] = [
   { key: "general", labelKey: "settings.nav.general", icon: <Settings size={16} /> },
@@ -37,7 +38,7 @@ const NAV_ITEMS: { key: SettingsSection; labelKey: string; icon: ReactNode }[] =
 function SectionPlaceholder({ label }: { label: string }) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
+    <div className="flex items-center justify-center h-full text-muted-foreground">
       <p>{label} - {t("common.comingSoon")}</p>
     </div>
   );
@@ -75,14 +76,15 @@ export function SettingsPage() {
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Settings sidebar */}
-      <aside className="w-56 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col overflow-y-auto">
-        <button
+      <aside className="w-56 bg-card border-r border-border flex flex-col overflow-y-auto">
+        <Button
+          variant="ghost"
           onClick={() => setCurrentPage("home")}
-          className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--color-accent)] hover:bg-[var(--color-surface-hover)] transition-colors"
+          className="flex items-center gap-2 px-4 py-3 text-sm text-primary justify-start rounded-none"
         >
           <ArrowLeft size={14} />
           <span>{t("settings.backToApp")}</span>
-        </button>
+        </Button>
         <div className="flex-1 px-2 py-1">
           {NAV_ITEMS.map((item) => (
             <button
@@ -90,8 +92,8 @@ export function SettingsPage() {
               onClick={() => setActiveSection(item.key)}
               className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg mb-0.5 text-sm transition-colors ${
                 activeSection === item.key
-                  ? "bg-[var(--color-surface-hover)] text-[var(--color-text)]"
-                  : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:bg-secondary"
               }`}
             >
               <span>{item.icon}</span>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Monitor, Container, RefreshCw, ExternalLink, Download } from "lucide-react";
-import { TitleBar } from "../components/layout/TitleBar";
-import { useAppStore } from "../stores/app-store";
+import { Button } from "@/components/ui/button";
+import { TitleBar } from "@/components/layout/TitleBar";
+import { useAppStore } from "@/stores/app-store";
 import {
   checkNode,
   checkGit,
@@ -15,8 +16,8 @@ import {
   pullOpenclawImage,
   startDockerGateway,
   openUrl,
-} from "../api/tauri-commands";
-import type { DockerStatus } from "../api/tauri-commands";
+} from "@/api/tauri-commands";
+import type { DockerStatus } from "@/api/tauri-commands";
 
 export function SetupPage() {
   const {
@@ -179,7 +180,7 @@ export function SetupPage() {
         <TitleBar />
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
           <h1 className="text-3xl font-bold">{t("setup.title")}</h1>
-          <p className="text-[var(--color-text-muted)] text-center max-w-md">
+          <p className="text-muted-foreground text-center max-w-md">
             {t("setup.chooseMode")}
           </p>
 
@@ -187,17 +188,17 @@ export function SetupPage() {
             {/* Native Install Card */}
             <button
               onClick={() => handleSelectMode("native")}
-              className="flex-1 p-5 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-hover)] transition-all text-left cursor-pointer group"
+              className="flex-1 p-5 rounded-xl border-2 border-border bg-card hover:border-primary hover:bg-secondary transition-all text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
                   <Monitor size={20} />
                 </div>
-                <h3 className="text-base font-semibold text-[var(--color-text)]">
+                <h3 className="text-base font-semibold text-foreground">
                   {t("setup.modeNative")}
                 </h3>
               </div>
-              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {t("setup.modeNativeDesc")}
               </p>
             </button>
@@ -209,25 +210,25 @@ export function SetupPage() {
                 disabled={!dockerAvailable}
                 className={`w-full h-full p-5 rounded-xl border-2 text-left transition-all ${
                   dockerAvailable
-                    ? "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-hover)] cursor-pointer"
-                    : "border-[var(--color-border)] bg-[var(--color-surface)] opacity-60 cursor-not-allowed"
+                    ? "border-border bg-card hover:border-primary hover:bg-secondary cursor-pointer"
+                    : "border-border bg-card opacity-60 cursor-not-allowed"
                 }`}
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`p-2 rounded-lg ${dockerAvailable ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-500"}`}>
                     <Container size={20} />
                   </div>
-                  <h3 className="text-base font-semibold text-[var(--color-text)]">
+                  <h3 className="text-base font-semibold text-foreground">
                     {t("setup.modeDocker")}
                   </h3>
                 </div>
-                <p className="text-xs text-[var(--color-text-muted)] leading-relaxed mb-3">
+                <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                   {t("setup.modeDockerDesc")}
                 </p>
 
                 {/* Docker status indicator */}
                 {checkingDocker ? (
-                  <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <RefreshCw size={12} className="animate-spin" />
                     {t("setup.checkingDocker")}
                   </div>
@@ -238,8 +239,8 @@ export function SetupPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-[var(--color-error)]">
-                      <span className="w-2 h-2 rounded-full bg-[var(--color-error)]" />
+                    <div className="flex items-center gap-2 text-xs text-destructive">
+                      <span className="w-2 h-2 rounded-full bg-destructive" />
                       {dockerStatus?.available && !dockerStatus?.daemon_running
                         ? t("setup.dockerNotRunning")
                         : t("setup.dockerNotDetected")}
@@ -253,14 +254,14 @@ export function SetupPage() {
                 <div className="flex items-center gap-3 mt-2 px-1">
                   <button
                     onClick={() => openUrl("https://www.docker.com/products/docker-desktop/")}
-                    className="flex items-center gap-1 text-xs text-[var(--color-accent)] hover:underline"
+                    className="flex items-center gap-1 text-xs text-primary hover:underline"
                   >
                     <ExternalLink size={11} />
                     {t("setup.dockerDownload")}
                   </button>
                   <button
                     onClick={detectDocker}
-                    className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                   >
                     <RefreshCw size={11} />
                     {t("setup.dockerRefresh")}
@@ -284,30 +285,29 @@ export function SetupPage() {
             <Download size={32} className="text-orange-400" />
           </div>
           <h1 className="text-2xl font-bold">{t("setup.gitRequired")}</h1>
-          <p className="text-[var(--color-text-muted)] text-center max-w-md text-sm leading-relaxed">
+          <p className="text-muted-foreground text-center max-w-md text-sm leading-relaxed">
             {t("setup.gitRequiredDesc")}
           </p>
 
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={() => openUrl("https://git-scm.com/downloads/win")}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-lg text-sm transition-colors"
             >
               <ExternalLink size={14} />
               {t("setup.gitDownload")}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => {
                 setNeedsGit(false);
                 setSetupError(null);
                 setProgress(0);
                 runNativeSetup();
               }}
-              className="flex items-center gap-2 px-5 py-2.5 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] rounded-lg text-sm transition-colors"
             >
               <RefreshCw size={14} />
               {t("setup.gitRetry")}
-            </button>
+            </Button>
           </div>
 
           <button
@@ -317,7 +317,7 @@ export function SetupPage() {
               setProgress(0);
               setSetupStep("choosing-mode");
             }}
-            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             {t("setup.backToModeSelection")}
           </button>
@@ -332,19 +332,19 @@ export function SetupPage() {
       <TitleBar />
       <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
         <h1 className="text-3xl font-bold">{t("setup.title")}</h1>
-        <p className="text-[var(--color-text-muted)] text-center max-w-md">
+        <p className="text-muted-foreground text-center max-w-md">
           {t("setup.subtitle")}
         </p>
 
         <div className="w-full max-w-sm">
           {/* Progress bar */}
-          <div className="w-full h-2 bg-[var(--color-surface)] rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-card rounded-full overflow-hidden">
             <div
-              className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-300"
+              className="h-full bg-primary rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-sm text-[var(--color-text-muted)] mt-3 text-center">
+          <p className="text-sm text-muted-foreground mt-3 text-center">
             {statusMessage}
           </p>
         </div>
@@ -354,7 +354,7 @@ export function SetupPage() {
             <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4">
               <p className="text-red-400 text-sm">{setupError}</p>
               <div className="flex gap-2 mt-3">
-                <button
+                <Button
                   onClick={() => {
                     setSetupError(null);
                     setProgress(0);
@@ -364,20 +364,21 @@ export function SetupPage() {
                       runDockerSetup();
                     }
                   }}
-                  className="px-4 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-lg text-sm transition-colors"
+                  size="sm"
                 >
                   {t("common.retry")}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setSetupError(null);
                     setProgress(0);
                     setSetupStep("choosing-mode");
                   }}
-                  className="px-4 py-2 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] rounded-lg text-sm transition-colors"
                 >
                   {t("setup.backToModeSelection")}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

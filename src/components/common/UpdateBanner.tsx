@@ -1,6 +1,7 @@
 import { Download, RefreshCw, X } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
-import { useUpdateStore } from "../../stores/update-store";
+import { useUpdateStore } from "@/stores/update-store";
+import { Button } from "@/components/ui/button";
 
 export function UpdateBanner() {
   const { t } = useTranslation();
@@ -18,35 +19,38 @@ export function UpdateBanner() {
   }
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 text-sm border-b border-[var(--color-border)] bg-[var(--color-accent)]/10">
+    <div className="flex items-center gap-3 px-4 py-2 text-sm border-b border-border bg-primary/10">
       {status === "available" && (
         <>
-          <Download size={14} className="text-[var(--color-accent)] shrink-0" />
-          <span className="text-[var(--color-text)]">
+          <Download size={14} className="text-primary shrink-0" />
+          <span className="text-foreground">
             <Trans i18nKey="update.available" values={{ version: availableVersion }} components={{ strong: <strong /> }} />
           </span>
-          <button
+          <Button
             onClick={() => void downloadAndInstall()}
-            className="ml-auto px-3 py-1 rounded-md text-xs font-medium bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
+            size="xs"
+            className="ml-auto"
           >
             {t("update.button")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={dismiss}
-            className="p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+            className="h-7 w-7"
           >
             <X size={14} />
-          </button>
+          </Button>
         </>
       )}
 
       {status === "downloading" && (
         <>
-          <RefreshCw size={14} className="text-[var(--color-accent)] shrink-0 animate-spin" />
-          <span className="text-[var(--color-text)]">{t("update.downloading", { progress: downloadProgress })}</span>
-          <div className="flex-1 h-1.5 rounded-full bg-[var(--color-surface)] overflow-hidden">
+          <RefreshCw size={14} className="text-primary shrink-0 animate-spin" />
+          <span className="text-foreground">{t("update.downloading", { progress: downloadProgress })}</span>
+          <div className="flex-1 h-1.5 rounded-full bg-card overflow-hidden">
             <div
-              className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300"
               style={{ width: `${downloadProgress}%` }}
             />
           </div>
@@ -55,26 +59,30 @@ export function UpdateBanner() {
 
       {status === "installing" && (
         <>
-          <RefreshCw size={14} className="text-[var(--color-accent)] shrink-0 animate-spin" />
-          <span className="text-[var(--color-text)]">{t("update.installing")}</span>
+          <RefreshCw size={14} className="text-primary shrink-0 animate-spin" />
+          <span className="text-foreground">{t("update.installing")}</span>
         </>
       )}
 
       {status === "error" && (
         <>
-          <span className="text-[var(--color-error)] text-xs">{t("update.failed", { error })}</span>
-          <button
+          <span className="text-destructive text-xs">{t("update.failed", { error })}</span>
+          <Button
+            variant="outline"
+            size="xs"
             onClick={() => void checkForUpdate()}
-            className="ml-auto px-3 py-1 rounded-md text-xs font-medium border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
+            className="ml-auto"
           >
             {t("common.retry")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={dismiss}
-            className="p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+            className="h-7 w-7"
           >
             <X size={14} />
-          </button>
+          </Button>
         </>
       )}
     </div>

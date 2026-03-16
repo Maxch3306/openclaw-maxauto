@@ -1,7 +1,19 @@
 import { ExternalLink, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSettingsStore, PROVIDER_DEFAULTS } from "../../stores/settings-store";
+import { useSettingsStore, PROVIDER_DEFAULTS } from "@/stores/settings-store";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+
 
 const DEFAULT_BASE_URL = "https://coding.dashscope.aliyuncs.com/v1";
 const API_PROTOCOLS = ["OpenAI", "Anthropic"];
@@ -184,29 +196,22 @@ export function AddModelDialog() {
     }
   };
 
-  const inputClass =
-    "w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[480px] max-h-[90vh] overflow-y-auto bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
-          <h2 className="text-base font-semibold text-[var(--color-text)]">
+    <Dialog open={true} onOpenChange={(v) => { if (!v) setShowAddDialog(false); }}>
+      <DialogContent className="max-w-[480px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
             {isEditingProvider ? t("settings.addModel.editProvider") : isEditing ? t("settings.addModel.editModel") : t("settings.addModel.setupProvider")}
-          </h2>
-          <button
-            onClick={() => setShowAddDialog(false)}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-lg"
-          >
-            ×
-          </button>
-        </div>
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEditing ? t("settings.addModel.editModel") : t("settings.addModel.setupProvider")}
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="space-y-4">
           {/* Mode tabs (only when not editing) */}
           {!isEditing && (
-            <div className="flex rounded-lg border border-[var(--color-border)] overflow-hidden">
+            <div className="flex rounded-lg border border-border overflow-hidden">
               <button
                 onClick={() => {
                   setMode("builtin");
@@ -214,8 +219,8 @@ export function AddModelDialog() {
                 }}
                 className={`flex-1 px-3 py-2 text-sm transition-colors ${
                   mode === "builtin"
-                    ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border-r border-[var(--color-border)]"
-                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] border-r border-[var(--color-border)]"
+                    ? "bg-primary/10 text-primary border-r border-border"
+                    : "text-muted-foreground hover:bg-secondary border-r border-border"
                 }`}
               >
                 {t("settings.addModel.builtinProvider")}
@@ -227,8 +232,8 @@ export function AddModelDialog() {
                 }}
                 className={`flex-1 px-3 py-2 text-sm transition-colors ${
                   mode === "custom"
-                    ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
-                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-secondary"
                 }`}
               >
                 {t("settings.addModel.customProvider")}
@@ -240,7 +245,7 @@ export function AddModelDialog() {
           {mode === "builtin" && !isEditing && (
             <>
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">
+                <label className="block text-sm text-muted-foreground mb-1">
                   {t("settings.addModel.provider")}
                 </label>
                 <select
@@ -249,7 +254,7 @@ export function AddModelDialog() {
                     setSelectedProvider(e.target.value);
                     setError("");
                   }}
-                  className={inputClass}
+                  className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {builtInProviders.length === 0 && (
                     <option value="">{t("settings.addModel.noProviders")}</option>
@@ -269,11 +274,11 @@ export function AddModelDialog() {
               {selectedProvider && PROVIDER_DEFAULTS[selectedProvider] && (() => {
                 const def = PROVIDER_DEFAULTS[selectedProvider];
                 return (
-                  <div className="px-3 py-2.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] space-y-1.5">
+                  <Card className="px-3 py-2.5 space-y-1.5">
                     {def.description && (
-                      <p className="text-xs text-[var(--color-text-muted)]">{def.description}</p>
+                      <p className="text-xs text-muted-foreground">{def.description}</p>
                     )}
-                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                    <p className="text-[10px] text-muted-foreground">
                       {t("settings.addModel.modelCount", { count: def.models.length })}
                     </p>
                     {def.signupUrl && (
@@ -281,38 +286,38 @@ export function AddModelDialog() {
                         href={def.signupUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-[var(--color-accent)] hover:underline"
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                       >
                         <ExternalLink size={11} />
                         {t("settings.addModel.getApiKey")}
                       </a>
                     )}
-                  </div>
+                  </Card>
                 );
               })()}
 
               {isAlreadyConfigured && (
-                <div className="px-3 py-2 rounded-lg bg-[var(--color-success)]/10 border border-[var(--color-success)]/30">
-                  <p className="text-xs text-[var(--color-success)]">
+                <div className="px-3 py-2 rounded-lg bg-success/15 border border-success/30">
+                  <p className="text-xs text-success">
                     {t("settings.addModel.alreadyConfigured")}
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("settings.addModel.apiKey")}</label>
+                <label className="block text-sm text-muted-foreground mb-1">{t("settings.addModel.apiKey")}</label>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showKey ? "text" : "password"}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder={t("settings.addModel.enterApiKey")}
-                    className={`${inputClass} pr-14`}
+                    className="pr-14 bg-background"
                   />
                   <button
                     type="button"
                     onClick={() => setShowKey(!showKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
                   >
                     {showKey ? t("common.hide") : t("common.show")}
                   </button>
@@ -321,13 +326,13 @@ export function AddModelDialog() {
 
               {selectedProvider === "modelstudio" && (
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("settings.addModel.baseUrl")}</label>
-                <input
+                <label className="block text-sm text-muted-foreground mb-1">{t("settings.addModel.baseUrl")}</label>
+                <Input
                   type="text"
                   value={builtInBaseUrl}
                   onChange={(e) => setBuiltInBaseUrl(e.target.value)}
                   placeholder={DEFAULT_BASE_URL}
-                  className={inputClass}
+                  className="bg-background"
                 />
               </div>
               )}
@@ -338,8 +343,8 @@ export function AddModelDialog() {
           {(mode === "custom" || isEditing) && (
             <>
               {!isEditing && (
-                <div className="px-3 py-2 rounded-lg bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30">
-                  <p className="text-xs text-[var(--color-warning)]">
+                <div className="px-3 py-2 rounded-lg bg-warning/15 border border-warning/30">
+                  <p className="text-xs text-warning">
                     {t("settings.addModel.customWarning")}
                   </p>
                 </div>
@@ -347,84 +352,88 @@ export function AddModelDialog() {
 
               {/* Provider Name */}
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">
+                <label className="block text-sm text-muted-foreground mb-1">
                   * {t("settings.addModel.providerName")}
                 </label>
-                <input
+                <Input
                   type="text"
                   value={providerName}
                   onChange={(e) => setProviderName(e.target.value)}
                   placeholder={t("settings.addModel.providerNamePlaceholder")}
-                  className={inputClass}
+                  className="bg-background"
                 />
               </div>
 
               {/* Models list */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm text-[var(--color-text-muted)]">* {t("settings.addModel.models")}</label>
-                  <button
+                  <label className="text-sm text-muted-foreground">* {t("settings.addModel.models")}</label>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="xs"
                     onClick={addModelEntry}
-                    className="flex items-center gap-1 text-xs text-[var(--color-accent)] hover:opacity-80 transition-opacity"
+                    className="text-primary"
                   >
                     <Plus size={12} />
                     {t("settings.addModel.addModel")}
-                  </button>
+                  </Button>
                 </div>
                 <div className="space-y-3">
                   {modelEntries.map((entry, i) => (
-                    <div key={i} className="rounded-lg border border-[var(--color-border)] p-3 space-y-2">
+                    <div key={i} className="rounded-lg border border-border p-3 space-y-2">
                       <div className="flex items-center gap-2">
-                        <input
+                        <Input
                           type="text"
                           value={entry.id}
                           onChange={(e) => updateModelEntry(i, "id", e.target.value)}
                           placeholder={t("settings.addModel.modelId")}
-                          className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
+                          className="flex-1 bg-background"
                         />
-                        <input
+                        <Input
                           type="text"
                           value={entry.displayName}
                           onChange={(e) => updateModelEntry(i, "displayName", e.target.value)}
                           placeholder={t("settings.addModel.displayName")}
-                          className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
+                          className="flex-1 bg-background"
                         />
                         {modelEntries.length > 1 && (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => removeModelEntry(i)}
-                            className="p-1.5 text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-md transition-colors shrink-0"
+                            className="text-destructive hover:bg-destructive/10 shrink-0 h-8 w-8"
                           >
                             <Trash2 size={14} />
-                          </button>
+                          </Button>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1">
-                          <label className="block text-[10px] text-[var(--color-text-muted)] mb-0.5">{t("settings.addModel.contextWindow")}</label>
-                          <input
+                          <label className="block text-[10px] text-muted-foreground mb-0.5">{t("settings.addModel.contextWindow")}</label>
+                          <Input
                             type="number"
                             value={entry.contextWindow}
                             onChange={(e) => updateModelEntry(i, "contextWindow", e.target.value)}
                             placeholder="128000"
-                            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-2 py-1.5 text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
+                            className="h-8 px-2 py-1.5 text-xs bg-background"
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="block text-[10px] text-[var(--color-text-muted)] mb-0.5">{t("settings.addModel.maxTokens")}</label>
-                          <input
+                          <label className="block text-[10px] text-muted-foreground mb-0.5">{t("settings.addModel.maxTokens")}</label>
+                          <Input
                             type="number"
                             value={entry.maxTokens}
                             onChange={(e) => updateModelEntry(i, "maxTokens", e.target.value)}
                             placeholder="8192"
-                            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-2 py-1.5 text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
+                            className="h-8 px-2 py-1.5 text-xs bg-background"
                           />
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <label className="block text-[10px] text-[var(--color-text-muted)]">{t("settings.addModel.options")}</label>
-                        <label className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] cursor-pointer">
+                        <label className="block text-[10px] text-muted-foreground">{t("settings.addModel.options")}</label>
+                        <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
                           <input
                             type="checkbox"
                             checked={entry.inputText}
@@ -433,7 +442,7 @@ export function AddModelDialog() {
                           />
                           {t("settings.addModel.text")}
                         </label>
-                        <label className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] cursor-pointer">
+                        <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
                           <input
                             type="checkbox"
                             checked={entry.inputImage}
@@ -442,7 +451,7 @@ export function AddModelDialog() {
                           />
                           {t("settings.addModel.image")}
                         </label>
-                        <label className="flex items-center gap-1 text-xs text-[var(--color-warning)] cursor-pointer">
+                        <label className="flex items-center gap-1 text-xs text-warning cursor-pointer">
                           <input
                             type="checkbox"
                             checked={entry.reasoning}
@@ -458,19 +467,19 @@ export function AddModelDialog() {
               </div>
 
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("settings.addModel.apiKey")}</label>
+                <label className="block text-sm text-muted-foreground mb-1">{t("settings.addModel.apiKey")}</label>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showCustomKey ? "text" : "password"}
                     value={customApiKey}
                     onChange={(e) => setCustomApiKey(e.target.value)}
                     placeholder={t("settings.addModel.enterApiKeyOptional")}
-                    className={`${inputClass} pr-14`}
+                    className="pr-14 bg-background"
                   />
                   <button
                     type="button"
                     onClick={() => setShowCustomKey(!showCustomKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
                   >
                     {showCustomKey ? t("common.hide") : t("common.show")}
                   </button>
@@ -478,13 +487,13 @@ export function AddModelDialog() {
               </div>
 
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">
+                <label className="block text-sm text-muted-foreground mb-1">
                   {t("settings.addModel.apiProtocol")}
                 </label>
                 <select
                   value={apiProtocol}
                   onChange={(e) => setApiProtocol(e.target.value)}
-                  className={inputClass}
+                  className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {API_PROTOCOLS.map((p) => (
                     <option key={p} value={p}>
@@ -495,35 +504,32 @@ export function AddModelDialog() {
               </div>
 
               <div>
-                <label className="block text-sm text-[var(--color-text-muted)] mb-1">
+                <label className="block text-sm text-muted-foreground mb-1">
                   * {t("settings.addModel.baseUrl")}
                 </label>
-                <input
+                <Input
                   type="text"
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
                   placeholder="https://api.example.com/v1"
-                  className={inputClass}
+                  className="bg-background"
                 />
               </div>
             </>
           )}
 
-          {error && <p className="text-xs text-[var(--color-error)]">{error}</p>}
+          {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border)]">
-          <button
-            onClick={() => setShowAddDialog(false)}
-            className="px-4 py-2 text-sm rounded-lg border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
-          >
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => setShowAddDialog(false)}>
             {t("common.cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
             onClick={mode === "builtin" && !isEditing ? handleSubmitBuiltIn : handleSubmitCustom}
             disabled={saving}
-            className="px-4 py-2 text-sm rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {saving
               ? t("common.saving")
@@ -532,9 +538,9 @@ export function AddModelDialog() {
                 : isAlreadyConfigured && mode === "builtin"
                   ? t("common.update")
                   : t("common.add")}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -8,11 +8,15 @@ import {
   type TelegramAccountConfig,
   type BindingEntry,
   buildUpdatedBindings,
-} from "../../api/telegram-accounts";
-import { patchConfig, waitForReconnect } from "../../api/config-helpers";
-import { useChatStore } from "../../stores/chat-store";
+} from "@/api/telegram-accounts";
+import { patchConfig, waitForReconnect } from "@/api/config-helpers";
+import { useChatStore } from "@/stores/chat-store";
 import { TagInput } from "./TagInput";
 import type { ChannelAccountSnapshot } from "./BotCardList";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 interface BotCardProps {
   accountId: string;
@@ -40,42 +44,42 @@ function getStatusDisplay(
   if (!isConfigured) {
     return {
       label: "Not Set Up",
-      colorClass: "text-[var(--color-text-muted)]",
-      dotClass: "bg-[var(--color-text-muted)]",
+      colorClass: "text-muted-foreground",
+      dotClass: "bg-muted-foreground",
     };
   }
   if (!isEnabled) {
     return {
       label: "Disabled",
-      colorClass: "text-[var(--color-text-muted)]",
-      dotClass: "bg-[var(--color-text-muted)]",
+      colorClass: "text-muted-foreground",
+      dotClass: "bg-muted-foreground",
     };
   }
   if (status?.lastError) {
     return {
       label: "Error",
-      colorClass: "text-[var(--color-error)]",
-      dotClass: "bg-[var(--color-error)]",
+      colorClass: "text-destructive",
+      dotClass: "bg-destructive",
     };
   }
   if (status?.connected || status?.linked || status?.running) {
     return {
       label: "Connected",
-      colorClass: "text-[var(--color-success)]",
-      dotClass: "bg-[var(--color-success)]",
+      colorClass: "text-success",
+      dotClass: "bg-success",
     };
   }
   if (isConfigured && isEnabled) {
     return {
       label: "Disconnected",
-      colorClass: "text-[var(--color-warning)]",
-      dotClass: "bg-[var(--color-warning)]",
+      colorClass: "text-warning",
+      dotClass: "bg-warning",
     };
   }
   return {
     label: "Unknown",
-    colorClass: "text-[var(--color-text-muted)]",
-    dotClass: "bg-[var(--color-text-muted)]",
+    colorClass: "text-muted-foreground",
+    dotClass: "bg-muted-foreground",
   };
 }
 
@@ -149,8 +153,8 @@ export function BotCard({
   // Handlers
   // ---------------------------------------------------------------------------
 
-  async function handleToggleEnabled(e: React.MouseEvent) {
-    e.stopPropagation();
+  async function handleToggleEnabled(e?: React.MouseEvent) {
+    e?.stopPropagation();
     setToggling(true);
     try {
       await patchConfig({
@@ -235,12 +239,12 @@ export function BotCard({
   const isEnabled = config.enabled !== false && !!config.botToken;
 
   return (
-    <div className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden">
+    <Card className="overflow-hidden">
       {/* Compact header */}
       <button
         type="button"
         onClick={onToggleExpand}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[var(--color-surface-hover)] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-secondary transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0">
           {/* Status dot */}
@@ -248,12 +252,12 @@ export function BotCard({
             className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${statusDisplay.dotClass}`}
           />
           {/* Bot name */}
-          <span className="text-sm font-medium text-[var(--color-text)] truncate">
+          <span className="text-sm font-medium text-foreground truncate">
             {displayName}
           </span>
           {/* Bound agent */}
           {boundAgent && (
-            <span className="text-xs text-[var(--color-text-muted)] truncate">
+            <span className="text-xs text-muted-foreground truncate">
               {boundAgent.emoji ? `${boundAgent.emoji} ` : ""}
               {boundAgent.name}
             </span>
@@ -267,43 +271,22 @@ export function BotCard({
             {statusDisplay.label}
           </span>
           {/* Enable/disable toggle */}
-          <div
-            role="switch"
-            aria-checked={isEnabled}
-            tabIndex={0}
-            onClick={handleToggleEnabled}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleToggleEnabled(
-                  e as unknown as React.MouseEvent,
-                );
-              }
-            }}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${
-              toggling
-                ? "opacity-50"
-                : isEnabled
-                  ? "bg-[var(--color-accent)]"
-                  : "bg-[var(--color-border)]"
-            }`}
-          >
-            <span
-              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
-                isEnabled ? "translate-x-[18px]" : "translate-x-[2px]"
-              }`}
-            />
-          </div>
+          <Switch
+            checked={isEnabled}
+            disabled={toggling}
+            onCheckedChange={() => handleToggleEnabled()}
+            onClick={(e) => e.stopPropagation()}
+          />
           {/* Expand chevron */}
           {expanded ? (
             <ChevronUp
               size={14}
-              className="text-[var(--color-text-muted)]"
+              className="text-muted-foreground"
             />
           ) : (
             <ChevronDown
               size={14}
-              className="text-[var(--color-text-muted)]"
+              className="text-muted-foreground"
             />
           )}
         </div>
@@ -311,26 +294,26 @@ export function BotCard({
 
       {/* Expanded form */}
       {expanded && (
-        <div className="border-t border-[var(--color-border)] px-4 py-4 space-y-4">
+        <div className="border-t border-border px-4 py-4 space-y-4">
           {/* Bot Token (read-only display) */}
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
               Bot Token
             </label>
-            <input
+            <Input
               type="password"
               value={config.botToken ?? ""}
               readOnly
-              className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] opacity-70 cursor-default"
+              className="h-9 opacity-70 cursor-default"
             />
-            <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+            <p className="text-[10px] text-muted-foreground mt-1">
               Token is set during bot creation. Remove and re-add to change.
             </p>
           </div>
 
           {/* Agent Binding with 1:1 enforcement */}
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
               Agent
             </label>
             <select
@@ -338,7 +321,7 @@ export function BotCard({
               onChange={(e) =>
                 setSelectedAgentId(e.target.value || null)
               }
-              className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+              className="w-full px-3 py-2 rounded-lg bg-background border border-input text-sm text-foreground focus:outline-none focus:border-primary"
             >
               <option value="">Select an agent...</option>
               {agents.map((a) => {
@@ -359,7 +342,7 @@ export function BotCard({
               })}
             </select>
             {!selectedAgentId && (
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+              <p className="text-[10px] text-muted-foreground mt-1">
                 Choose which agent handles messages from this
                 bot
               </p>
@@ -368,13 +351,13 @@ export function BotCard({
 
           {/* DM Policy */}
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
               DM Policy
             </label>
             <select
               value={dmPolicy}
               onChange={(e) => setDmPolicy(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+              className="w-full px-3 py-2 rounded-lg bg-background border border-input text-sm text-foreground focus:outline-none focus:border-primary"
             >
               <option value="open">
                 Open -- anyone can DM the bot
@@ -394,7 +377,7 @@ export function BotCard({
           {/* DM Allow-List */}
           {dmPolicy === "allowlist" && (
             <div>
-              <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                 DM Allow-List
               </label>
               <TagInput
@@ -402,7 +385,7 @@ export function BotCard({
                 onChange={setAllowFromList}
                 placeholder="Enter user ID..."
               />
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+              <p className="text-[10px] text-muted-foreground mt-1">
                 Telegram user IDs allowed to message the bot
                 directly.
               </p>
@@ -411,13 +394,13 @@ export function BotCard({
 
           {/* Group Policy */}
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
               Group Policy
             </label>
             <select
               value={groupPolicy}
               onChange={(e) => setGroupPolicy(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+              className="w-full px-3 py-2 rounded-lg bg-background border border-input text-sm text-foreground focus:outline-none focus:border-primary"
             >
               <option value="open">
                 Open -- respond in any group
@@ -435,7 +418,7 @@ export function BotCard({
           {groupPolicy === "allowlist" && (
             <>
               <div>
-                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Allowed Groups
                 </label>
                 <TagInput
@@ -443,14 +426,14 @@ export function BotCard({
                   onChange={setGroupIds}
                   placeholder="Enter group chat ID..."
                 />
-                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                <p className="text-[10px] text-muted-foreground mt-1">
                   Group chat IDs where the bot will respond.
                 </p>
               </div>
 
               {/* Group Sender Allow-List */}
               <div>
-                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Group Sender Allow-List
                 </label>
                 <TagInput
@@ -458,7 +441,7 @@ export function BotCard({
                   onChange={setGroupAllowFromList}
                   placeholder="Enter user ID..."
                 />
-                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                <p className="text-[10px] text-muted-foreground mt-1">
                   User IDs allowed to interact in group chats.
                   Leave empty to allow all.
                 </p>
@@ -468,23 +451,25 @@ export function BotCard({
 
           {/* Actions */}
           <div className="flex items-center gap-3 pt-2">
-            <button
+            <Button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--color-accent)] hover:opacity-90 transition-opacity disabled:opacity-50"
+              size="sm"
             >
               {saving ? "Saving..." : "Save"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove();
               }}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--color-error)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] transition-colors inline-flex items-center gap-1.5"
+              className="text-destructive hover:text-destructive"
             >
               <Trash2 size={14} />
               Remove
-            </button>
+            </Button>
           </div>
 
           {/* Save feedback */}
@@ -492,8 +477,8 @@ export function BotCard({
             <p
               className={`text-xs ${
                 savedMsg.startsWith("Error")
-                  ? "text-[var(--color-error)]"
-                  : "text-[var(--color-success)]"
+                  ? "text-destructive"
+                  : "text-success"
               }`}
             >
               {savedMsg}
@@ -501,6 +486,6 @@ export function BotCard({
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
