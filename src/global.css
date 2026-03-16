@@ -2,18 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-bg: #1a1a2e;
-  --color-surface: #16213e;
-  --color-surface-hover: #1a2745;
-  --color-border: #2a3a5c;
-  --color-text: #e0e0e0;
-  --color-text-muted: #8892a4;
-  --color-accent: #4f8cff;
-  --color-accent-hover: #3a7af0;
-  --color-success: #4caf50;
-  --color-warning: #ff9800;
-  --color-error: #f44336;
+@layer base {
+  :root {
+    --background: 240 27% 14%;
+    --foreground: 0 0% 88%;
+    --card: 220 45% 16%;
+    --card-foreground: 0 0% 88%;
+    --popover: 220 45% 16%;
+    --popover-foreground: 0 0% 88%;
+    --primary: 217 100% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 218 44% 19%;
+    --secondary-foreground: 0 0% 88%;
+    --muted: 220 45% 16%;
+    --muted-foreground: 218 12% 59%;
+    --accent: 218 44% 19%;
+    --accent-foreground: 0 0% 88%;
+    --destructive: 4 90% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 37% 26%;
+    --input: 218 37% 26%;
+    --ring: 217 100% 65%;
+    --radius: 0.5rem;
+
+    --success: 122 39% 49%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 100% 50%;
+    --warning-foreground: 0 0% 100%;
+
+  }
 }
 
 * {
@@ -27,11 +44,10 @@ html, body, #root {
   width: 100%;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -41,10 +57,10 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: hsl(var(--border));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
+  background: hsl(var(--muted-foreground));
 }

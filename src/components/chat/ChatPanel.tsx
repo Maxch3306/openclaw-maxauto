@@ -1,10 +1,12 @@
 import { Shell, ChevronRight, ChevronDown, FileText, Terminal, Pencil, Search, Globe, Code2, Wrench } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAppStore } from "../../stores/app-store";
-import { useChatStore, type ChatMessage as ChatMsg, type ContentBlock } from "../../stores/chat-store";
-import { useSettingsStore } from "../../stores/settings-store";
-import { AddModelDialog } from "../settings/AddModelDialog";
+import { useAppStore } from "@/stores/app-store";
+import { useChatStore, type ChatMessage as ChatMsg, type ContentBlock } from "@/stores/chat-store";
+import { useSettingsStore } from "@/stores/settings-store";
+import { AddModelDialog } from "@/components/settings/AddModelDialog";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChatInput } from "./ChatInput";
 
 const TOOL_LABEL_KEYS: Record<string, string> = {
@@ -44,7 +46,7 @@ function ToolActivityIndicator() {
     : t("tools.using", { name: toolActivity.name });
 
   return (
-    <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-[var(--color-text-muted)] animate-pulse">
+    <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-muted-foreground animate-pulse">
       <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -80,59 +82,64 @@ function ToolCallCard({ block }: { block: ContentBlock }) {
   }
 
   return (
-    <div className="my-1.5 rounded-lg border border-[var(--color-border)] overflow-hidden">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--color-surface-hover)] transition-colors"
-      >
-        <Icon size={14} className={`shrink-0 ${isError ? "text-[var(--color-error)]" : "text-[var(--color-accent)]"}`} />
-        <span className="text-xs font-medium text-[var(--color-text)]">
-          {toolLabel}
-        </span>
-        {summary && (
-          <span className="text-xs text-[var(--color-text-muted)] truncate">
-            {summary}
-          </span>
-        )}
-        {hasResult && (
-          <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${
-            isError
-              ? "bg-[var(--color-error)]/15 text-[var(--color-error)]"
-              : "bg-[var(--color-success)]/15 text-[var(--color-success)]"
-          }`}>
-            {isError ? t("common.error") : t("common.done")}
-          </span>
-        )}
-        {!hasResult && (
-          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-warning)]/15 text-[var(--color-warning)]">
-            {t("common.pending")}
-          </span>
-        )}
-        <span className="shrink-0 text-[var(--color-text-muted)]">
-          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        </span>
-      </button>
-      {expanded && (
-        <div className="px-3 py-2 border-t border-[var(--color-border)] bg-black/20 text-[11px] font-mono space-y-2 max-h-60 overflow-y-auto">
-          {block.args && (
-            <div>
-              <div className="text-[var(--color-text-muted)] mb-0.5">{t("chat.arguments")}</div>
-              <pre className="text-[var(--color-text)] whitespace-pre-wrap break-all">
-                {JSON.stringify(block.args, null, 2)}
-              </pre>
-            </div>
-          )}
-          {hasResult && (
-            <div>
-              <div className="text-[var(--color-text-muted)] mb-0.5">{t("chat.result")}</div>
-              <pre className={`whitespace-pre-wrap break-all ${isError ? "text-[var(--color-error)]" : "text-[var(--color-text)]"}`}>
-                {block.result}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <Collapsible open={expanded} onOpenChange={setExpanded}>
+      <div className="my-1.5 rounded-lg border border-border overflow-hidden">
+        <CollapsibleTrigger asChild>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-secondary transition-colors"
+          >
+            <Icon size={14} className={`shrink-0 ${isError ? "text-destructive" : "text-primary"}`} />
+            <span className="text-xs font-medium text-foreground">
+              {toolLabel}
+            </span>
+            {summary && (
+              <span className="text-xs text-muted-foreground truncate">
+                {summary}
+              </span>
+            )}
+            {hasResult && (
+              <Badge
+                variant={isError ? "destructive" : "success"}
+                className="ml-auto text-[10px] px-1.5 py-0.5"
+              >
+                {isError ? t("common.error") : t("common.done")}
+              </Badge>
+            )}
+            {!hasResult && (
+              <Badge
+                variant="warning"
+                className="ml-auto text-[10px] px-1.5 py-0.5"
+              >
+                {t("common.pending")}
+              </Badge>
+            )}
+            <span className="shrink-0 text-muted-foreground">
+              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            </span>
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-3 py-2 border-t border-border bg-black/20 text-[11px] font-mono space-y-2 max-h-60 overflow-y-auto">
+            {block.args && (
+              <div>
+                <div className="text-muted-foreground mb-0.5">{t("chat.arguments")}</div>
+                <pre className="text-foreground whitespace-pre-wrap break-all">
+                  {JSON.stringify(block.args, null, 2)}
+                </pre>
+              </div>
+            )}
+            {hasResult && (
+              <div>
+                <div className="text-muted-foreground mb-0.5">{t("chat.result")}</div>
+                <pre className={`whitespace-pre-wrap break-all ${isError ? "text-destructive" : "text-foreground"}`}>
+                  {block.result}
+                </pre>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   );
 }
 
@@ -151,7 +158,7 @@ function ChatMessage({ msg }: { msg: ChatMsg }) {
               return (
                 <div
                   key={i}
-                  className="rounded-xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] mb-1.5"
+                  className="rounded-xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap bg-card text-foreground border border-border mb-1.5"
                 >
                   {block.text}
                 </div>
@@ -173,8 +180,8 @@ function ChatMessage({ msg }: { msg: ChatMsg }) {
       <div
         className={`max-w-[75%] rounded-xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
           isUser
-            ? "bg-[var(--color-accent)] text-white"
-            : "bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)]"
+            ? "bg-primary text-primary-foreground"
+            : "bg-card text-foreground border border-border"
         }`}
       >
         {msg.content || (msg.streaming ? <TypingIndicator /> : "")}
@@ -186,9 +193,9 @@ function ChatMessage({ msg }: { msg: ChatMsg }) {
 function TypingIndicator() {
   return (
     <div className="flex items-center gap-1 py-1 px-1">
-      <span className="w-2 h-2 rounded-full bg-[var(--color-text-muted)] animate-bounce [animation-delay:0ms]" />
-      <span className="w-2 h-2 rounded-full bg-[var(--color-text-muted)] animate-bounce [animation-delay:150ms]" />
-      <span className="w-2 h-2 rounded-full bg-[var(--color-text-muted)] animate-bounce [animation-delay:300ms]" />
+      <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
+      <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
+      <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:300ms]" />
     </div>
   );
 }
@@ -217,9 +224,9 @@ function WelcomeScreen() {
     <div className="flex flex-col items-center justify-center h-full gap-6 px-4">
       {/* Branding */}
       <div className="flex flex-col items-center text-center">
-        <Shell size={40} className="text-[var(--color-accent)] mb-3" />
-        <h1 className="text-xl font-semibold text-[var(--color-text)]">{t("chat.welcome.title")}</h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-2 max-w-md">
+        <Shell size={40} className="text-primary mb-3" />
+        <h1 className="text-xl font-semibold text-foreground">{t("chat.welcome.title")}</h1>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md">
           {t("chat.welcome.subtitle")}
         </p>
       </div>
@@ -229,17 +236,17 @@ function WelcomeScreen() {
         <div className="flex flex-col items-center gap-3 w-80">
           <button
             onClick={goToModelSettings}
-            className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors text-left"
+            className="w-full px-4 py-3 rounded-xl bg-card border border-border hover:border-primary transition-colors text-left"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[var(--color-text-muted)]">{t("chat.welcome.configuredProviders")}</p>
-                <p className="text-sm font-medium text-[var(--color-text)] mt-0.5">
+                <p className="text-xs text-muted-foreground">{t("chat.welcome.configuredProviders")}</p>
+                <p className="text-sm font-medium text-foreground mt-0.5">
                   {t("chat.welcome.providerCount", { count: providerCount })} ·{" "}
                   {t("chat.welcome.modelCount", { count: availableModels.length })}
                 </p>
               </div>
-              <ChevronRight size={16} className="text-[var(--color-text-muted)]" />
+              <ChevronRight size={16} className="text-muted-foreground" />
             </div>
           </button>
         </div>
@@ -249,10 +256,10 @@ function WelcomeScreen() {
       {!hasProvider && (
         <button
           onClick={() => setShowAddDialog(true)}
-          className="w-80 p-4 rounded-xl bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 hover:border-[var(--color-warning)] transition-colors text-left group"
+          className="w-80 p-4 rounded-xl bg-warning/10 border border-warning/30 hover:border-warning transition-colors text-left group"
         >
-          <h3 className="text-sm font-medium text-[var(--color-warning)]">{t("chat.welcome.setupProvider")}</h3>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">
+          <h3 className="text-sm font-medium text-warning">{t("chat.welcome.setupProvider")}</h3>
+          <p className="text-xs text-muted-foreground mt-1">
             {t("chat.welcome.noProvider")}
           </p>
         </button>
@@ -277,7 +284,7 @@ export function ChatPanel() {
 
   if (!selectedAgentId) {
     return (
-      <div className="flex-1 flex items-center justify-center text-[var(--color-text-muted)]">
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <p>{t("chat.selectAgent")}</p>
       </div>
     );

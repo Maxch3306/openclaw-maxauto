@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { gateway } from "../../api/gateway-client";
-import { useAppStore } from "../../stores/app-store";
+import { gateway } from "@/api/gateway-client";
+import { useAppStore } from "@/stores/app-store";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 let debugWindow: Window | null = null;
 
 function openDebugWindow() {
-  // If already open and not closed, focus it
   if (debugWindow && !debugWindow.closed) {
     debugWindow.focus();
     return;
@@ -26,7 +27,6 @@ function openDebugWindow() {
   </style>`;
   w.document.body.innerHTML = `<div id="status"></div><div id="log"></div>`;
 
-  // Render current state + start polling
   const render = () => {
     if (!w || w.closed) {
       debugWindow = null;
@@ -50,7 +50,6 @@ function openDebugWindow() {
             return cls ? `<div class="${cls}">${escaped}</div>` : `<div>${escaped}</div>`;
           }).join("");
       logEl.innerHTML = html;
-      // Auto-scroll to bottom
       w.scrollTo(0, w.document.body.scrollHeight);
     }
   };
@@ -58,7 +57,6 @@ function openDebugWindow() {
   render();
   gateway.setDebugCallback(render);
 
-  // Restore default callback when window closes
   w.addEventListener("beforeunload", () => {
     debugWindow = null;
     gateway.setDebugCallback(() => {});
@@ -70,7 +68,6 @@ export function GatewayStatus() {
   const connected = useAppStore((s) => s.gatewayConnected);
   const prevConnectedRef = useRef(connected);
 
-  // Update debug window status line when connection state changes
   const updateDebugStatus = useCallback(() => {
     if (debugWindow && !debugWindow.closed) {
       const statusEl = debugWindow.document.getElementById("status");
@@ -92,21 +89,23 @@ export function GatewayStatus() {
       <div className="flex items-center gap-1.5">
         <div
           className={`w-2 h-2 rounded-full ${
-            connected ? "bg-[var(--color-success)]" : "bg-[var(--color-error)]"
+            connected ? "bg-success" : "bg-destructive"
           }`}
         />
-        <span className="text-xs text-[var(--color-text-muted)]">
+        <Badge variant={connected ? "success" : "destructive"} className="text-[10px] px-1.5 py-0">
           {connected ? t("common.connected") : t("common.disconnected")}
-        </span>
-        <span className="text-xs text-[var(--color-text-muted)] opacity-50 ml-1">
+        </Badge>
+        <span className="text-xs text-muted-foreground opacity-50 ml-1">
           WS: {gateway.wsState}
         </span>
-        <button
+        <Button
+          variant="link"
+          size="xs"
           onClick={openDebugWindow}
-          className="text-xs text-[var(--color-accent)] ml-auto hover:underline"
+          className="ml-auto p-0 h-auto"
         >
           {t("common.debug")}
-        </button>
+        </Button>
       </div>
     </div>
   );

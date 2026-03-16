@@ -2,10 +2,20 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FolderOpen, RotateCcw } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { Agent } from "../../stores/chat-store";
-import { useChatStore } from "../../stores/chat-store";
-import { gateway } from "../../api/gateway-client";
-import { patchConfig, waitForReconnect } from "../../api/config-helpers";
+import type { Agent } from "@/stores/chat-store";
+import { useChatStore } from "@/stores/chat-store";
+import { gateway } from "@/api/gateway-client";
+import { patchConfig, waitForReconnect } from "@/api/config-helpers";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface EditAgentDialogProps {
   agent: Agent;
@@ -25,9 +35,6 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  const inputClass =
-    "w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]";
 
   async function handleBrowse() {
     const selected = await open({ directory: true, title: "Select Agent Workspace" });
@@ -108,52 +115,43 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[400px] bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
-          <h2 className="text-base font-semibold text-[var(--color-text)]">{t("agent.edit.title")}</h2>
-          <button
-            onClick={onClose}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-lg"
-          >
-            ×
-          </button>
-        </div>
+    <Dialog open={true} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{t("agent.edit.title")}</DialogTitle>
+        </DialogHeader>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("agent.create.name")}</label>
-            <input
+            <Label className="mb-1 text-muted-foreground">{t("agent.create.name")}</Label>
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("agent.edit.namePlaceholder")}
-              className={inputClass}
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1">{t("agent.create.emoji")}</label>
-            <input
+            <Label className="mb-1 text-muted-foreground">{t("agent.create.emoji")}</Label>
+            <Input
               type="text"
               value={emoji}
               onChange={(e) => setEmoji(e.target.value)}
               placeholder={t("agent.create.emojiPlaceholder")}
-              className={inputClass}
               maxLength={4}
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm text-[var(--color-text-muted)]">{t("agent.edit.workspace")}</label>
+              <Label className="text-muted-foreground">{t("agent.edit.workspace")}</Label>
               {(workspace || agent.workspace) && !resetWorkspace && (
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <RotateCcw size={10} />
                   {t("common.reset")}
@@ -161,61 +159,52 @@ export function EditAgentDialog({ agent, onClose }: EditAgentDialogProps) {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex-1 min-w-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2">
+              <div className="flex-1 min-w-0 bg-card border border-border rounded-md px-3 py-2">
                 {workspace && !resetWorkspace ? (
-                  <span className="block font-mono text-sm text-[var(--color-text)] truncate">
+                  <span className="block font-mono text-sm text-foreground truncate">
                     {workspace}
                   </span>
                 ) : (
-                  <span className="block text-sm text-[var(--color-text-muted)]/50 truncate">
+                  <span className="block text-sm text-muted-foreground/50 truncate">
                     {t("agent.edit.usingDefault")}
                   </span>
                 )}
               </div>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => void handleBrowse()}
-                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors shrink-0"
+                className="shrink-0"
               >
                 <FolderOpen size={14} />
                 {t("common.browse")}
-              </button>
+              </Button>
             </div>
           </div>
 
-          {error && <p className="text-xs text-[var(--color-error)]">{error}</p>}
+          {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--color-border)]">
-          <button
+        <DialogFooter className="flex items-center justify-between sm:justify-between">
+          <Button
+            variant={confirmDelete ? "destructive" : "ghost"}
             onClick={handleDelete}
             disabled={saving}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-              confirmDelete
-                ? "bg-[var(--color-error)] text-white hover:opacity-90"
-                : "text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
-            } disabled:opacity-50`}
+            className={!confirmDelete ? "text-destructive hover:text-destructive hover:bg-destructive/10" : ""}
           >
             {confirmDelete ? t("agent.edit.confirmDelete") : t("common.delete")}
-          </button>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm rounded-lg border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
-            >
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onClose}>
               {t("common.cancel")}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-4 py-2 text-sm rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
               {saving ? t("common.saving") : t("common.save")}
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,5 +1,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 interface TagInputProps {
   tags: string[];
@@ -33,9 +35,10 @@ export function TagInput({ tags, onChange, placeholder, validate }: TagInputProp
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-1.5">
           {tags.map((tag) => (
-            <span
+            <Badge
               key={tag}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
+              variant="default"
+              className="gap-1 bg-primary/15 text-primary border-0"
             >
               {tag}
               <button
@@ -45,20 +48,20 @@ export function TagInput({ tags, onChange, placeholder, validate }: TagInputProp
               >
                 <X size={12} />
               </button>
-            </span>
+            </Badge>
           ))}
         </div>
       )}
-      <input
+      <Input
         type="text"
         value={input}
         onChange={(e) => { setInput(e.target.value); setError(null); }}
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
         onBlur={addTag}
         placeholder={placeholder}
-        className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]"
+        className="bg-background"
       />
-      {error && <p className="text-[10px] text-[var(--color-error)] mt-1">{error}</p>}
+      {error && <p className="text-[10px] text-destructive mt-1">{error}</p>}
     </div>
   );
 }

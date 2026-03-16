@@ -1,9 +1,20 @@
 import { Shield, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { gateway } from "../../api/gateway-client";
-import { useChatStore } from "../../stores/chat-store";
-import { useSettingsStore } from "../../stores/settings-store";
+import { gateway } from "@/api/gateway-client";
+import { useChatStore } from "@/stores/chat-store";
+import { useSettingsStore } from "@/stores/settings-store";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const SCENARIOS = [
   "Coding",
@@ -86,73 +97,53 @@ export function QuickConfigModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[480px] max-h-[90vh] overflow-y-auto bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
-          <div>
-            <h2 className="text-base font-semibold text-[var(--color-text)]">{t("settings.quickConfig.title")}</h2>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-              {t("settings.quickConfig.subtitle")}
-            </p>
-          </div>
-          <button
-            onClick={() => setShowQuickConfig(false)}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-lg"
-          >
-            ×
-          </button>
-        </div>
+    <Dialog open={true} onOpenChange={(v) => { if (!v) setShowQuickConfig(false); }}>
+      <DialogContent className="w-[480px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t("settings.quickConfig.title")}</DialogTitle>
+          <DialogDescription>
+            {t("settings.quickConfig.subtitle")}
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Form */}
-        <div className="px-6 py-4 space-y-4">
+        <div className="space-y-4">
           {/* User name */}
           <div>
-            <label className="block text-sm text-[var(--color-text)] mb-1">
-              {t("settings.quickConfig.whatCallYou")}
-            </label>
-            <input
+            <Label className="mb-1">{t("settings.quickConfig.whatCallYou")}</Label>
+            <Input
               type="text"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder={t("settings.quickConfig.enterName")}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
 
           {/* User role */}
           <div>
-            <label className="block text-sm text-[var(--color-text)] mb-1">
-              {t("settings.quickConfig.yourRole")}
-            </label>
-            <input
+            <Label className="mb-1">{t("settings.quickConfig.yourRole")}</Label>
+            <Input
               type="text"
               value={userRole}
               onChange={(e) => setUserRole(e.target.value)}
               placeholder={t("settings.quickConfig.rolePlaceholder")}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
 
           {/* Agent nickname */}
           <div>
-            <label className="block text-sm text-[var(--color-text)] mb-1">
-              {t("settings.quickConfig.agentName")}
-            </label>
-            <input
+            <Label className="mb-1">{t("settings.quickConfig.agentName")}</Label>
+            <Input
               type="text"
               value={agentNickname}
               onChange={(e) => setAgentNickname(e.target.value)}
               placeholder={t("settings.quickConfig.agentNamePlaceholder")}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
 
           {/* Usage scenarios */}
           <div>
-            <label className="block text-sm text-[var(--color-text)] mb-2">
-              {t("settings.quickConfig.scenarios")}
-            </label>
+            <Label className="mb-2">{t("settings.quickConfig.scenarios")}</Label>
             <div className="flex flex-wrap gap-2">
               {SCENARIOS.map((s) => (
                 <button
@@ -160,14 +151,14 @@ export function QuickConfigModal() {
                   onClick={() => toggleScenario(s)}
                   className={`px-3 py-1 rounded-full text-xs transition-colors ${
                     selectedScenarios.includes(s)
-                      ? "bg-[var(--color-accent)] text-white"
-                      : "bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary border border-border text-muted-foreground hover:border-primary"
                   }`}
                 >
                   {t(SCENARIO_LABELS[s] ?? s)}
                 </button>
               ))}
-              <button className="px-3 py-1 rounded-full text-xs bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]">
+              <button className="px-3 py-1 rounded-full text-xs bg-secondary border border-border text-muted-foreground hover:border-primary">
                 {t("settings.quickConfig.other")}
               </button>
             </div>
@@ -175,17 +166,17 @@ export function QuickConfigModal() {
 
           {/* Work directory */}
           <div>
-            <label className="block text-sm text-[var(--color-text)] mb-1">{t("settings.quickConfig.workDir")}</label>
+            <Label className="mb-1">{t("settings.quickConfig.workDir")}</Label>
             <div className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 value={workDir}
                 onChange={(e) => setWorkDir(e.target.value)}
-                className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] font-mono focus:outline-none focus:border-[var(--color-accent)]"
+                className="flex-1 font-mono"
               />
-              <button className="px-3 py-2 text-sm rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors whitespace-nowrap">
+              <Button variant="outline" size="sm" className="whitespace-nowrap">
                 {t("settings.quickConfig.browseDots")}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -194,10 +185,10 @@ export function QuickConfigModal() {
             {/* Limit file access */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Shield size={16} />
+                <Shield size={16} className="text-foreground" />
                 <div>
-                  <p className="text-sm text-[var(--color-text)]">{t("settings.quickConfig.limitFileAccess")}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
+                  <p className="text-sm text-foreground">{t("settings.quickConfig.limitFileAccess")}</p>
+                  <p className="text-xs text-muted-foreground">
                     {t("settings.quickConfig.limitFileAccessDesc")}
                   </p>
                 </div>
@@ -205,7 +196,7 @@ export function QuickConfigModal() {
               <button
                 onClick={() => setLimitFileAccess(!limitFileAccess)}
                 className={`w-10 h-5 rounded-full transition-colors relative ${
-                  limitFileAccess ? "bg-[var(--color-warning)]" : "bg-[var(--color-border)]"
+                  limitFileAccess ? "bg-primary" : "bg-border"
                 }`}
               >
                 <span
@@ -219,13 +210,13 @@ export function QuickConfigModal() {
             {/* Optimize plan */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles size={16} />
-                <p className="text-sm text-[var(--color-text)]">{t("settings.quickConfig.optimizePlan")}</p>
+                <Sparkles size={16} className="text-foreground" />
+                <p className="text-sm text-foreground">{t("settings.quickConfig.optimizePlan")}</p>
               </div>
               <button
                 onClick={() => setOptimizePlan(!optimizePlan)}
                 className={`w-10 h-5 rounded-full transition-colors relative ${
-                  optimizePlan ? "bg-[var(--color-warning)]" : "bg-[var(--color-border)]"
+                  optimizePlan ? "bg-primary" : "bg-border"
                 }`}
               >
                 <span
@@ -238,17 +229,16 @@ export function QuickConfigModal() {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-[var(--color-border)]">
-          <button
+        <DialogFooter>
+          <Button
             onClick={handleSave}
             disabled={saving}
-            className="w-full py-2.5 text-sm rounded-lg bg-[var(--color-warning)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full"
           >
             {saving ? t("common.saving") : t("settings.quickConfig.completeSetup")}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

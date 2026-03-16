@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { gateway } from "../../api/gateway-client";
-import { useAppStore } from "../../stores/app-store";
+import { gateway } from "@/api/gateway-client";
+import { useAppStore } from "@/stores/app-store";
 import {
   type SkillStatusReport,
   type SkillStatusEntry,
@@ -25,24 +25,26 @@ import {
   canInstallSkill,
   isOsIncompatible,
 } from "./skills-utils";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 
-const STATUS_BADGE_KEYS: Record<
+const STATUS_BADGE_VARIANT: Record<
   "enabled" | "disabled" | "unavailable",
-  { bg: string; text: string; labelKey: string }
+  { variant: "success" | "secondary" | "warning"; labelKey: string }
 > = {
   enabled: {
-    bg: "bg-[var(--color-success)]/20",
-    text: "text-[var(--color-success)]",
+    variant: "success",
     labelKey: "common.enabled",
   },
   disabled: {
-    bg: "bg-[var(--color-text-muted)]/20",
-    text: "text-[var(--color-text-muted)]",
+    variant: "secondary",
     labelKey: "common.disabled",
   },
   unavailable: {
-    bg: "bg-[var(--color-warning)]/20",
-    text: "text-[var(--color-warning)]",
+    variant: "warning",
     labelKey: "common.unavailable",
   },
 };
@@ -54,43 +56,9 @@ function isShortcode(emoji: string): boolean {
 
 function SkillEmoji({ emoji }: { emoji?: string }) {
   if (!emoji || isShortcode(emoji)) {
-    return <BookOpen size={18} className="text-[var(--color-text-muted)]" />;
+    return <BookOpen size={18} className="text-muted-foreground" />;
   }
   return <span className="text-lg leading-none">{emoji}</span>;
-}
-
-function ToggleSwitch({
-  checked,
-  disabled,
-  busy,
-  onChange,
-}: {
-  checked: boolean;
-  disabled: boolean;
-  busy: boolean;
-  onChange: () => void;
-}) {
-  const isDisabled = disabled || busy;
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      disabled={isDisabled}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!isDisabled) onChange();
-      }}
-      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none ${
-        isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
-      } ${checked ? "bg-[var(--color-success)]" : "bg-[var(--color-text-muted)]/30"}`}
-    >
-      <span
-        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
-          checked ? "translate-x-[18px]" : "translate-x-[2px]"
-        }`}
-      />
-    </button>
-  );
 }
 
 function SkillCard({
@@ -130,7 +98,7 @@ function SkillCard({
 }) {
   const { t } = useTranslation();
   const status = getSkillDisplayStatus(skill);
-  const badge = STATUS_BADGE_KEYS[status];
+  const badgeInfo = STATUS_BADGE_VARIANT[status];
   const missingItems = computeSkillMissing(skill);
   const toggleDisabled = isToggleDisabled(skill) || skill.always;
   const isChecked = !skill.disabled;
@@ -139,8 +107,8 @@ function SkillCard({
   const isEditing = apiKeyEdit !== undefined;
 
   return (
-    <div
-      className={`bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors ${
+    <Card
+      className={`cursor-pointer hover:bg-secondary transition-colors ${
         status === "unavailable" ? "opacity-60" : ""
       }`}
       onClick={onCardClick}
@@ -149,52 +117,52 @@ function SkillCard({
       <div className="p-3">
         <div className="flex items-center gap-2">
           <SkillEmoji emoji={skill.emoji} />
-          <span className="flex-1 text-sm font-medium text-[var(--color-text)] truncate">
+          <span className="flex-1 text-sm font-medium text-foreground truncate">
             {skill.name}
           </span>
-          <span
-            className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${badge.bg} ${badge.text}`}
-          >
-            {t(badge.labelKey)}
-          </span>
+          <Badge variant={badgeInfo.variant} className="text-[10px] px-2 py-0.5">
+            {t(badgeInfo.labelKey)}
+          </Badge>
           {canInstallSkill(skill) && (
             installingSkill === skill.skillKey ? (
-              <span className="inline-flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]">
+              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                 <Loader2 size={12} className="animate-spin" />
                 {t("settings.skills.installing")}
               </span>
             ) : (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-primary hover:text-primary/80"
                 title={skill.install[0].label}
                 disabled={installingSkill !== null}
                 onClick={(e) => {
                   e.stopPropagation();
                   onInstall(skill);
                 }}
-                className="p-1 text-[var(--color-accent)] hover:text-[var(--color-accent)]/80 transition-colors disabled:opacity-40"
               >
                 <Download size={14} />
-              </button>
+              </Button>
             )
           )}
-          <ToggleSwitch
+          <Switch
             checked={isChecked}
-            disabled={toggleDisabled}
-            busy={busy}
-            onChange={() => onSkillToggle(skill)}
+            disabled={toggleDisabled || busy}
+            onCheckedChange={() => onSkillToggle(skill)}
+            onClick={(e) => e.stopPropagation()}
           />
           <ChevronDown
             size={14}
-            className={`text-[var(--color-text-muted)] transition-transform ${
+            className={`text-muted-foreground transition-transform ${
               expanded ? "rotate-180" : ""
             }`}
           />
         </div>
-        <p className="text-xs text-[var(--color-text-muted)] mt-1 line-clamp-1">
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
           {skill.description}
         </p>
         {skillError && (
-          <p className="text-xs text-[var(--color-error)] mt-1 font-medium">
+          <p className="text-xs text-destructive mt-1 font-medium">
             {skillError}
           </p>
         )}
@@ -202,18 +170,18 @@ function SkillCard({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-[var(--color-border)] px-3 py-3 space-y-3">
-          <p className="text-xs text-[var(--color-text)]">{skill.description}</p>
+        <div className="border-t border-border px-3 py-3 space-y-3">
+          <p className="text-xs text-foreground">{skill.description}</p>
 
           {/* API Key section */}
           {needsApiKey && (
             <div>
-              <p className="text-[10px] font-medium text-[var(--color-text-muted)] mb-1.5">
+              <p className="text-[10px] font-medium text-muted-foreground mb-1.5">
                 {t("settings.skills.apiKey")}
               </p>
               {hasKey && !isEditing ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[var(--color-success)]">
+                  <span className="text-[10px] text-success">
                     {t("settings.skills.keySaved")}
                   </span>
                   <button
@@ -221,14 +189,14 @@ function SkillCard({
                       e.stopPropagation();
                       onStartEdit(skill.skillKey);
                     }}
-                    className="text-[10px] text-[var(--color-accent)] hover:underline"
+                    className="text-[10px] text-primary hover:underline"
                   >
                     {t("settings.skills.change")}
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5">
-                  <input
+                  <Input
                     type={apiKeyRevealed ? "text" : "password"}
                     value={apiKeyEdit ?? ""}
                     placeholder={hasKey ? t("settings.skills.enterNewKey") : t("settings.skills.enterKey")}
@@ -238,35 +206,37 @@ function SkillCard({
                     }}
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
-                    className="bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-2 py-1 text-xs font-mono flex-1 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent)]"
+                    className="h-7 text-xs font-mono flex-1"
                   />
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     onClick={(e) => {
                       e.stopPropagation();
                       onApiKeyRevealToggle(skill.skillKey);
                     }}
-                    className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
                   >
                     {apiKeyRevealed ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    size="xs"
                     onClick={(e) => {
                       e.stopPropagation();
                       onSaveApiKey(skill.skillKey);
                     }}
                     disabled={!apiKeyEdit || savingApiKey}
-                    className="text-xs px-2 py-1 rounded bg-[var(--color-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
                   >
                     {savingApiKey ? t("common.saving") : t("common.save")}
-                  </button>
+                  </Button>
                 </div>
               )}
               {skillMessage && (
                 <p
                   className={`text-[10px] mt-1 ${
                     skillMessage.kind === "success"
-                      ? "text-[var(--color-success)]"
-                      : "text-[var(--color-error)]"
+                      ? "text-success"
+                      : "text-destructive"
                   }`}
                 >
                   {skillMessage.message}
@@ -277,11 +247,11 @@ function SkillCard({
 
           {/* Install error in expanded view */}
           {skillError && (
-            <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded px-3 py-2">
-              <p className="text-xs text-[var(--color-error)] font-medium">
+            <div className="bg-destructive/10 border border-destructive/30 rounded px-3 py-2">
+              <p className="text-xs text-destructive font-medium">
                 {t("settings.skills.installFailed")}
               </p>
-              <p className="text-[10px] text-[var(--color-error)]/80 mt-0.5">
+              <p className="text-[10px] text-destructive/80 mt-0.5">
                 {skillError}
               </p>
             </div>
@@ -290,14 +260,14 @@ function SkillCard({
           {/* Why unavailable */}
           {status === "unavailable" && missingItems.length > 0 && (
             <div>
-              <p className="text-[10px] font-medium text-[var(--color-warning)] mb-1.5">
+              <p className="text-[10px] font-medium text-warning mb-1.5">
                 {t("settings.skills.whyUnavailable")}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {missingItems.map((item) => (
                   <span
                     key={item}
-                    className="font-mono text-[10px] bg-[var(--color-bg)] text-[var(--color-text-muted)] px-2 py-0.5 rounded"
+                    className="font-mono text-[10px] bg-background text-muted-foreground px-2 py-0.5 rounded"
                   >
                     {item}
                   </span>
@@ -313,7 +283,7 @@ function SkillCard({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1 text-[10px] text-[var(--color-accent)] hover:underline"
+              className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
             >
               <ExternalLink size={10} />
               {t("settings.skills.homepage")}
@@ -321,7 +291,7 @@ function SkillCard({
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -542,7 +512,7 @@ export function SkillsSection() {
   // Gateway disconnected
   if (!gatewayConnected) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] gap-2">
+      <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
         <WifiOff size={32} />
         <p className="text-sm font-medium">{t("settings.skills.gatewayNotConnected")}</p>
         <p className="text-xs">
@@ -555,7 +525,7 @@ export function SkillsSection() {
   // Loading
   if (loading && !report) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] gap-2">
+      <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
         <Loader2 size={24} className="animate-spin" />
         <p className="text-sm">{t("settings.skills.loadingSkills")}</p>
       </div>
@@ -566,14 +536,15 @@ export function SkillsSection() {
   if (error && !report) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3">
-        <p className="text-sm text-[var(--color-error)]">{error}</p>
-        <button
+        <p className="text-sm text-destructive">{error}</p>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => void loadSkills()}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
         >
           <RefreshCw size={12} />
           {t("common.retry")}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -587,11 +558,11 @@ export function SkillsSection() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-semibold text-[var(--color-text)]">
+        <h1 className="text-lg font-semibold text-foreground">
           {t("settings.skills.title")}
         </h1>
         {report && (
-          <span className="text-xs text-[var(--color-text-muted)]">
+          <span className="text-xs text-muted-foreground">
             {t("settings.skills.skillCount", { count: compatibleSkills.length })}
             {hiddenCount > 0 && ` · ${t("settings.skills.hiddenCount", { count: hiddenCount })}`}
           </span>
@@ -602,10 +573,10 @@ export function SkillsSection() {
         {groups.map((group) => (
           <section key={group.id}>
             <div className="flex items-baseline gap-2 mb-3">
-              <h2 className="text-sm font-semibold text-[var(--color-text)]">
+              <h2 className="text-sm font-semibold text-foreground">
                 {group.label}
               </h2>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <span className="text-xs text-muted-foreground">
                 {group.skills.length}
               </span>
             </div>

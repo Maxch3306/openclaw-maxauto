@@ -1,7 +1,8 @@
 import { MoreHorizontal } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent } from "../../stores/chat-store";
+import type { Agent } from "@/stores/chat-store";
+import { Button } from "@/components/ui/button";
 
 function hashColor(str: string): string {
   let hash = 0;
@@ -42,8 +43,8 @@ export function AgentCard({ agent, selected, onSelect, onEdit, onDelete }: Agent
     <div
       className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group ${
         selected
-          ? "bg-[var(--color-accent)]/10 border-l-3 border-[var(--color-accent)]"
-          : "hover:bg-[var(--color-surface-hover)]"
+          ? "bg-primary/10 border-l-3 border-primary"
+          : "hover:bg-secondary"
       }`}
       onClick={onSelect}
     >
@@ -55,17 +56,16 @@ export function AgentCard({ agent, selected, onSelect, onEdit, onDelete }: Agent
         >
           {agent.emoji || agent.name?.charAt(0)?.toUpperCase() || "?"}
         </div>
-        {/* Online indicator */}
-        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--color-success)] border-2 border-[var(--color-surface)]" />
+        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-success border-2 border-card" />
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-[var(--color-text)] truncate">
+        <div className="text-sm font-medium text-foreground truncate">
           {agent.name || agent.agentId}
         </div>
         {agent.workspace && (
-          <div className="text-[11px] text-[var(--color-text-muted)] truncate">
+          <div className="text-[11px] text-muted-foreground truncate">
             {agent.workspace}
           </div>
         )}
@@ -73,24 +73,26 @@ export function AgentCard({ agent, selected, onSelect, onEdit, onDelete }: Agent
 
       {/* Menu button */}
       <div className="relative" ref={menuRef}>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={(e) => {
             e.stopPropagation();
             setMenuOpen(!menuOpen);
           }}
-          className="hidden group-hover:flex items-center justify-center p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
+          className="hidden group-hover:flex h-7 w-7"
         >
           <MoreHorizontal size={14} />
-        </button>
+        </Button>
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-1 w-32 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg shadow-lg z-10 py-1">
+          <div className="absolute right-0 top-full mt-1 w-32 bg-background border border-border rounded-lg shadow-lg z-10 py-1">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setMenuOpen(false);
                 onEdit();
               }}
-              className="w-full text-left px-3 py-1.5 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
+              className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-secondary transition-colors"
             >
               {t("common.edit")}
             </button>
@@ -100,7 +102,7 @@ export function AgentCard({ agent, selected, onSelect, onEdit, onDelete }: Agent
                 setMenuOpen(false);
                 onDelete();
               }}
-              className="w-full text-left px-3 py-1.5 text-sm text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors"
+              className="w-full text-left px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
             >
               {t("common.delete")}
             </button>

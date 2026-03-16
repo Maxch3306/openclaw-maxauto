@@ -1,11 +1,15 @@
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { gateway } from "../../api/gateway-client";
-import { useAppStore } from "../../stores/app-store";
-import { useChatStore } from "../../stores/chat-store";
-import { useSettingsStore, PROVIDER_DEFAULTS, GLM_MCP_PROVIDER_KEY, type CustomModel } from "../../stores/settings-store";
+import { gateway } from "@/api/gateway-client";
+import { useAppStore } from "@/stores/app-store";
+import { useChatStore } from "@/stores/chat-store";
+import { useSettingsStore, PROVIDER_DEFAULTS, GLM_MCP_PROVIDER_KEY, type CustomModel } from "@/stores/settings-store";
 import { AddModelDialog } from "./AddModelDialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 
 export function ModelsAndApiSection() {
   const { t } = useTranslation();
@@ -104,48 +108,51 @@ export function ModelsAndApiSection() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-semibold text-[var(--color-text)]">{t("settings.models.title")}</h1>
-        <button
+        <h1 className="text-lg font-semibold text-foreground">{t("settings.models.title")}</h1>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={handleReconnect}
-          className="text-sm px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors"
         >
           {t("common.reconnect")}
-        </button>
+        </Button>
       </div>
 
       {/* Configured providers */}
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)]">{t("settings.models.providers")}</h2>
-            <button
+            <h2 className="text-sm font-medium text-muted-foreground">{t("settings.models.providers")}</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
               onClick={handleReload}
               disabled={reloading}
-              className="p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50"
               title="Reload providers"
             >
               <RefreshCw size={14} className={reloading ? "animate-spin" : ""} />
-            </button>
+            </Button>
           </div>
-          <button
+          <Button
+            size="sm"
             onClick={() => setShowAddDialog(true)}
-            className="text-sm px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
           >
             {t("settings.models.setupProvider")}
-          </button>
+          </Button>
         </div>
 
         {configuredProviders.size === 0 && customModels.length === 0 ? (
-          <div className="text-center py-8 rounded-lg border border-dashed border-[var(--color-border)]">
-            <p className="text-sm text-[var(--color-text-muted)] mb-3">
+          <div className="text-center py-8 rounded-lg border border-dashed border-border">
+            <p className="text-sm text-muted-foreground mb-3">
               {t("settings.models.noProviders")}
             </p>
-            <button
+            <Button
+              size="sm"
               onClick={() => setShowAddDialog(true)}
-              className="text-sm px-4 py-2 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
             >
               {t("settings.models.setupProvider")}
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="space-y-3">
@@ -153,13 +160,13 @@ export function ModelsAndApiSection() {
             {builtInProviderKeys.map((provKey) => {
               const providerModels = modelsByProvider.get(provKey) ?? [];
               return (
-                <div
+                <Card
                   key={provKey}
-                  className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden relative"
+                  className="overflow-hidden relative"
                 >
                   {removingProvider === provKey && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-surface)]/80 backdrop-blur-sm rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/80 backdrop-blur-sm rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 size={16} className="animate-spin" />
                         <span>{t("settings.models.updatingConfig")}</span>
                       </div>
@@ -167,27 +174,30 @@ export function ModelsAndApiSection() {
                   )}
                   <div className="flex items-center justify-between px-3 py-2.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-[var(--color-text)]">
+                      <span className="text-sm font-medium text-foreground">
                         {PROVIDER_DEFAULTS[provKey]?.displayName ?? provKey}
                       </span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
+                      <Badge variant="success" className="text-[10px] px-1.5 py-0.5">
                         {t("settings.models.modelCount", { count: providerModels.length })}
-                      </span>
+                      </Badge>
                     </div>
                     {removingProvider === provKey ? (
-                      <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Loader2 size={12} className="animate-spin" />
                         <span>{t("common.removing")}</span>
                       </div>
                     ) : confirmingRemove === provKey ? (
                       <div className="flex items-center gap-2">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="xs"
                           onClick={() => setConfirmingRemove(null)}
-                          className="text-xs text-[var(--color-text-muted)] hover:underline"
                         >
                           {t("common.cancel")}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="xs"
                           onClick={async () => {
                             setConfirmingRemove(null);
                             setRemovingProvider(provKey);
@@ -198,15 +208,14 @@ export function ModelsAndApiSection() {
                             }
                             setRemovingProvider(null);
                           }}
-                          className="text-xs text-white bg-[var(--color-error)] px-2 py-0.5 rounded hover:opacity-90"
                         >
                           {t("common.confirm")}
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <button
                         onClick={() => setConfirmingRemove(provKey)}
-                        className="text-xs text-[var(--color-error)] hover:underline"
+                        className="text-xs text-destructive hover:underline"
                       >
                         {t("common.remove")}
                       </button>
@@ -214,15 +223,15 @@ export function ModelsAndApiSection() {
                   </div>
                   {/* Provider description and signup link */}
                   {PROVIDER_DEFAULTS[provKey]?.signupUrl && (
-                    <div className="border-t border-[var(--color-border)] px-3 py-1.5 flex items-center justify-between">
-                      <span className="text-[10px] text-[var(--color-text-muted)]">
+                    <div className="border-t border-border px-3 py-1.5 flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">
                         {PROVIDER_DEFAULTS[provKey]?.description}
                       </span>
                       <a
                         href={PROVIDER_DEFAULTS[provKey]!.signupUrl!}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] text-[var(--color-accent)] hover:underline shrink-0"
+                        className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline shrink-0"
                       >
                         <ExternalLink size={10} />
                         {t("settings.models.getApiKey")}
@@ -230,7 +239,7 @@ export function ModelsAndApiSection() {
                     </div>
                   )}
                   {providerModels.length > 0 && (
-                    <div className="border-t border-[var(--color-border)] px-3 py-2 space-y-1">
+                    <div className="border-t border-border px-3 py-2 space-y-1">
                       {providerModels.map((m) => {
                         const qualifiedId = `${provKey}/${m.id}`;
                         const isDefault = defaultModelId === qualifiedId;
@@ -244,36 +253,39 @@ export function ModelsAndApiSection() {
                         return (
                           <div key={m.id} className="flex items-center justify-between py-1">
                             <div className="flex items-center gap-2 truncate">
-                              <span className="text-xs text-[var(--color-text-muted)] truncate">
+                              <span className="text-xs text-muted-foreground truncate">
                                 {m.name || m.id}
                               </span>
                               {inputTypes.map((type) => (
-                                <span
+                                <Badge
                                   key={type}
-                                  className="text-[10px] px-1 py-0.5 rounded bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                                  variant="outline"
+                                  className="text-[10px] px-1 py-0.5 bg-primary/10 text-primary border-transparent"
                                 >
                                   {type}
-                                </span>
+                                </Badge>
                               ))}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               {isDefault ? (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
+                                <Badge variant="success" className="text-[10px] px-1.5 py-0.5">
                                   {t("common.default")}
-                                </span>
+                                </Badge>
                               ) : (
-                                <button
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  className="text-[10px] h-5"
                                   onClick={() => handleSetDefault(qualifiedId)}
                                   disabled={settingDefault === qualifiedId}
-                                  className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
                                 >
                                   {settingDefault === qualifiedId ? "..." : t("settings.models.setDefault")}
-                                </button>
+                                </Button>
                               )}
                               {m.reasoning && (
-                                <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)]">
+                                <Badge variant="warning" className="text-[10px] px-1 py-0.5">
                                   {t("settings.models.reasoning")}
-                                </span>
+                                </Badge>
                               )}
                             </div>
                           </div>
@@ -283,13 +295,15 @@ export function ModelsAndApiSection() {
                   )}
                   {/* MCP Server toggle for GLM Coding provider */}
                   {provKey === GLM_MCP_PROVIDER_KEY && (
-                    <div className="border-t border-[var(--color-border)] px-3 py-2 flex items-center justify-between">
+                    <div className="border-t border-border px-3 py-2 flex items-center justify-between">
                       <div>
-                        <span className="text-xs text-[var(--color-text)]">{t("settings.models.mcpServer")}</span>
-                        <p className="text-[10px] text-[var(--color-text-muted)]">{t("settings.models.mcpServerDesc")}</p>
+                        <span className="text-xs text-foreground">{t("settings.models.mcpServer")}</span>
+                        <p className="text-[10px] text-muted-foreground">{t("settings.models.mcpServerDesc")}</p>
                       </div>
-                      <button
-                        onClick={async () => {
+                      <Switch
+                        checked={glmMcpEnabled}
+                        disabled={togglingMcp}
+                        onCheckedChange={async () => {
                           setTogglingMcp(true);
                           try {
                             await setGlmMcpServer(!glmMcpEnabled);
@@ -299,20 +313,10 @@ export function ModelsAndApiSection() {
                             setTogglingMcp(false);
                           }
                         }}
-                        disabled={togglingMcp}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                          glmMcpEnabled ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]"
-                        } ${togglingMcp ? "opacity-50" : ""}`}
-                      >
-                        <span
-                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
-                            glmMcpEnabled ? "translate-x-[18px]" : "translate-x-[2px]"
-                          }`}
-                        />
-                      </button>
+                      />
                     </div>
                   )}
-                </div>
+                </Card>
               );
             })}
 
@@ -320,13 +324,13 @@ export function ModelsAndApiSection() {
             {Array.from(customProviderGroups.entries()).map(([providerName, group]) => {
               const provSlug = providerName.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
               return (
-              <div
+              <Card
                 key={providerName}
-                className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden relative"
+                className="overflow-hidden relative"
               >
                 {removingProvider === `custom:${providerName}` && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-surface)]/80 backdrop-blur-sm rounded-lg">
-                    <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/80 backdrop-blur-sm rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 size={16} className="animate-spin" />
                       <span>{t("settings.models.updatingConfig")}</span>
                     </div>
@@ -334,35 +338,38 @@ export function ModelsAndApiSection() {
                 )}
                 <div className="flex items-center justify-between px-3 py-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-[var(--color-text)]">{providerName}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-accent)]/20 text-[var(--color-accent)]">
+                    <span className="text-sm font-medium text-foreground">{providerName}</span>
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary">
                       {t("settings.models.modelCount", { count: group.length })}
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)]">
+                    </Badge>
+                    <Badge variant="warning" className="text-[10px] px-1.5 py-0.5">
                       {t("settings.models.custom")}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowAddDialog(true, group[0], group)}
-                      className="text-xs text-[var(--color-accent)] hover:underline"
+                      className="text-xs text-primary hover:underline"
                     >
                       {t("common.edit")}
                     </button>
                     {removingProvider === `custom:${providerName}` ? (
-                      <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Loader2 size={12} className="animate-spin" />
                         <span>{t("common.removing")}</span>
                       </div>
                     ) : confirmingRemove === `custom:${providerName}` ? (
                       <div className="flex items-center gap-2">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="xs"
                           onClick={() => setConfirmingRemove(null)}
-                          className="text-xs text-[var(--color-text-muted)] hover:underline"
                         >
                           {t("common.cancel")}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="xs"
                           onClick={async () => {
                             const removeKey = `custom:${providerName}`;
                             setConfirmingRemove(null);
@@ -376,22 +383,21 @@ export function ModelsAndApiSection() {
                             }
                             setRemovingProvider(null);
                           }}
-                          className="text-xs text-white bg-[var(--color-error)] px-2 py-0.5 rounded hover:opacity-90"
                         >
                           {t("common.confirm")}
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <button
                         onClick={() => setConfirmingRemove(`custom:${providerName}`)}
-                        className="text-xs text-[var(--color-error)] hover:underline"
+                        className="text-xs text-destructive hover:underline"
                       >
                         {t("common.remove")}
                       </button>
                     )}
                   </div>
                 </div>
-                <div className="border-t border-[var(--color-border)] px-3 py-2 space-y-1">
+                <div className="border-t border-border px-3 py-2 space-y-1">
                   {group.map((m) => {
                     const qualifiedId = `${provSlug}/${m.id}`;
                     const isDefault = defaultModelId === qualifiedId;
@@ -399,38 +405,41 @@ export function ModelsAndApiSection() {
                     return (
                     <div key={m.id} className="flex items-center justify-between py-1">
                       <div className="flex items-center gap-2 truncate">
-                        <span className="text-xs text-[var(--color-text-muted)] truncate">
+                        <span className="text-xs text-muted-foreground truncate">
                           {m.displayName || m.id}
                         </span>
                         {inputTypes.map((type) => (
-                          <span
+                          <Badge
                             key={type}
-                            className="text-[10px] px-1 py-0.5 rounded bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                            variant="outline"
+                            className="text-[10px] px-1 py-0.5 bg-primary/10 text-primary border-transparent"
                           >
                             {type}
-                          </span>
+                          </Badge>
                         ))}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {isDefault ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-success)]/20 text-[var(--color-success)]">
+                          <Badge variant="success" className="text-[10px] px-1.5 py-0.5">
                             {t("common.default")}
-                          </span>
+                          </Badge>
                         ) : (
-                          <button
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            className="text-[10px] h-5"
                             onClick={() => handleSetDefault(qualifiedId)}
                             disabled={settingDefault === qualifiedId}
-                            className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
                           >
                             {settingDefault === qualifiedId ? "..." : t("settings.models.setDefault")}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
                     );
                   })}
                 </div>
-              </div>
+              </Card>
               );
             })}
           </div>
@@ -439,31 +448,29 @@ export function ModelsAndApiSection() {
 
       {/* Gateway URL */}
       <section>
-        <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-3">{t("settings.models.gatewayUrl")}</h2>
-        <div className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]">
+        <h2 className="text-sm font-medium text-muted-foreground mb-3">{t("settings.models.gatewayUrl")}</h2>
+        <Card className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <span
-              className={`text-xs px-2 py-0.5 rounded ${
-                gatewayConnected
-                  ? "bg-[var(--color-success)]/20 text-[var(--color-success)]"
-                  : "bg-[var(--color-error)]/20 text-[var(--color-error)]"
-              }`}
+            <Badge
+              variant={gatewayConnected ? "success" : "destructive"}
+              className="text-xs"
             >
               {gatewayConnected ? t("common.connected") : t("common.disconnected")}
-            </span>
+            </Badge>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="xs"
                 onClick={handleReconnect}
-                className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
                 {t("common.reconnect")}
-              </button>
+              </Button>
             </div>
           </div>
-          <div className="px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text-muted)] font-mono">
+          <div className="px-3 py-2 rounded bg-background border border-border text-sm text-muted-foreground font-mono">
             ws://127.0.0.1:{gatewayPort}
           </div>
-        </div>
+        </Card>
       </section>
 
       {showAddDialog && <AddModelDialog />}

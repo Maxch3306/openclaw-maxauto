@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { gateway } from "../../api/gateway-client";
+import { gateway } from "@/api/gateway-client";
 import {
   type TelegramConfig,
   type TelegramAccountConfig,
@@ -9,9 +9,20 @@ import {
   getAccountConfigs,
   getTelegramBindingForAccount,
   isMultiAccountConfig,
-} from "../../api/telegram-accounts";
-import { patchConfig, waitForReconnect } from "../../api/config-helpers";
-import { useChatStore } from "../../stores/chat-store";
+} from "@/api/telegram-accounts";
+import { patchConfig, waitForReconnect } from "@/api/config-helpers";
+import { useChatStore } from "@/stores/chat-store";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface RemoveBotDialogProps {
   open: boolean;
@@ -82,8 +93,6 @@ export function RemoveBotDialog({
     })();
   }, [open, accountId, agents]);
 
-  if (!open) return null;
-
   async function handleRemove() {
     setRemoving(true);
     setError("");
@@ -144,35 +153,29 @@ export function RemoveBotDialog({
   const displayUsername = username.startsWith("@") ? username : `@${username}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[400px] bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
-          <h2 className="text-base font-semibold text-[var(--color-text)]">
-            Remove Telegram Bot
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-lg"
-          >
-            x
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>Remove Telegram Bot</DialogTitle>
+          <DialogDescription className="sr-only">
+            Confirm removal of Telegram bot {displayUsername}
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Content */}
-        <div className="px-6 py-4 space-y-4">
+        <div className="space-y-4">
           {/* Warning icon */}
           <div className="flex justify-center">
-            <div className="w-12 h-12 rounded-full bg-[var(--color-error)]/10 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
               <AlertTriangle
                 size={24}
-                className="text-[var(--color-error)]"
+                className="text-destructive"
               />
             </div>
           </div>
 
           {/* Bot info */}
-          <p className="text-sm text-center text-[var(--color-text)]">
+          <p className="text-sm text-center text-foreground">
             Are you sure you want to remove{" "}
             <span className="font-semibold">{displayUsername}</span>?
           </p>
@@ -182,93 +185,91 @@ export function RemoveBotDialog({
             <div className="flex items-center justify-center py-2">
               <Loader2
                 size={14}
-                className="animate-spin text-[var(--color-text-muted)]"
+                className="animate-spin text-muted-foreground"
               />
             </div>
           ) : (
             summary && (
-              <div className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] p-3 space-y-1.5">
+              <Card className="p-3 space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-[var(--color-text-muted)]">
+                  <span className="text-muted-foreground">
                     Bot
                   </span>
-                  <span className="text-[var(--color-text)]">
+                  <span className="text-foreground">
                     {displayUsername}
                   </span>
                 </div>
                 {summary.boundAgentName && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-[var(--color-text-muted)]">
+                    <span className="text-muted-foreground">
                       Bound Agent
                     </span>
-                    <span className="text-[var(--color-text)]">
+                    <span className="text-foreground">
                       {summary.boundAgentName}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between text-xs">
-                  <span className="text-[var(--color-text-muted)]">
+                  <span className="text-muted-foreground">
                     DM Policy
                   </span>
-                  <span className="text-[var(--color-text)]">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                     {summary.dmPolicy}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[var(--color-text-muted)]">
+                  <span className="text-muted-foreground">
                     Group Policy
                   </span>
-                  <span className="text-[var(--color-text)]">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                     {summary.groupPolicy}
-                  </span>
+                  </Badge>
                 </div>
                 {(summary.allowFromCount > 0 ||
                   summary.groupAllowFromCount > 0) && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-[var(--color-text-muted)]">
+                    <span className="text-muted-foreground">
                       Access List Entries
                     </span>
-                    <span className="text-[var(--color-text)]">
+                    <span className="text-foreground">
                       {summary.allowFromCount + summary.groupAllowFromCount}
                     </span>
                   </div>
                 )}
-              </div>
+              </Card>
             )
           )}
 
           {/* Warning text */}
-          <p className="text-xs text-[var(--color-text-muted)] text-center">
+          <p className="text-xs text-muted-foreground text-center">
             This will permanently remove the bot configuration and its agent
             binding. This cannot be undone.
           </p>
 
           {/* Error display */}
           {error && (
-            <p className="text-xs text-[var(--color-error)]">{error}</p>
+            <p className="text-xs text-destructive">{error}</p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border)]">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
-          >
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={handleRemove}
             disabled={removing}
-            className="px-4 py-2 text-sm rounded-lg bg-[var(--color-error)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5"
           >
             {removing && (
               <Loader2 size={14} className="animate-spin" />
             )}
             {removing ? "Removing..." : "Remove"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
