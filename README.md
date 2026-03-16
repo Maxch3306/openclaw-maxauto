@@ -6,6 +6,19 @@ A vendor-free, open-source desktop app that wraps [OpenClaw](https://github.com/
 
 Please join our discord community: https://discord.gg/QfS4Sa8h
 
+## Features
+
+- **One-click setup** — choose Native or Docker mode; MaxAuto handles Node.js, Git, and OpenClaw installation automatically
+- **Chat with AI agents** — create, configure, and chat with agents using any supported model provider
+- **Multi-provider support** — bring your own API key for Aliyun Bailian, GLM, Kimi, MiniMax, Moonshot, Claude proxy, and custom providers
+- **MCP services** — add local (stdio) or remote (URL) MCP servers to extend agent capabilities; browse [Smithery](https://smithery.ai/servers) directory for servers; OAuth support via mcp-remote bridge
+- **Skills management** — enable/disable 40+ built-in skills with winget install support on Windows
+- **Telegram integration** — multi-account bot management with pairing flow
+- **Appearance customization** — 5 theme presets (dark/light), custom accent/background/foreground colors, contrast slider
+- **System tray** — minimize to tray on close, gateway keeps running in background
+- **Auto-updates** — check and install updates from GitHub Releases in one click
+- **Internationalization** — English and Traditional Chinese
+
 ## Install
 
 Download the latest installer from the [Releases](https://github.com/Maxch3306/openclaw-maxauto/releases) page:
@@ -70,14 +83,6 @@ Runs OpenClaw inside a Docker container for full isolation. OpenClaw and its dep
 - The container only listens on `127.0.0.1` — it is not accessible from other devices on your network.
 - You can switch between Native and Docker mode from **Settings → General → Installation Mode**.
 
-## What It Does
-
-1. **First-run setup** — choose Native or Docker mode; MaxAuto handles the rest
-2. **Starts the OpenClaw gateway** — manages the background process (or Docker container) for you
-3. **Chat with AI agents** — create, configure, and chat with agents using any supported model provider
-4. **Model providers** — bring your own API key for OpenAI, Anthropic, DeepSeek, Moonshot, MiniMax, Bailian, and more
-5. **Auto-updates** — the app checks for updates and can install them in one click
-
 ## Build From Source
 
 Prerequisites: [Node.js 22+](https://nodejs.org/), [pnpm](https://pnpm.io/), [Rust](https://rustup.rs/)
@@ -95,10 +100,11 @@ pnpm tauri build
 
 ## Tech Stack
 
-- **Frontend:** React 19, TypeScript, Tailwind CSS, Zustand
+- **Frontend:** React 19, TypeScript, Tailwind CSS 3.4, shadcn/ui (Radix primitives), Zustand 5
 - **Backend:** Tauri v2 (Rust)
 - **Runtime:** OpenClaw via WebSocket (`ws://127.0.0.1:51789`)
+- **i18n:** i18next (English, Traditional Chinese)
 
 ## License
 
-MIT
+[MIT](LICENSE)
