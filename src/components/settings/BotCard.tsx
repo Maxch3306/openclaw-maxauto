@@ -195,9 +195,18 @@ export function BotCard({
         botToken: config.botToken ?? undefined,
         dmPolicy,
         groupPolicy,
-        allowFrom: allowFromList.length > 0 ? allowFromList : null,
+        allowFrom:
+          dmPolicy === "open"
+            ? ["*"]
+            : allowFromList.length > 0
+              ? allowFromList
+              : null,
         groupAllowFrom:
-          groupAllowFromList.length > 0 ? groupAllowFromList : null,
+          groupPolicy === "open"
+            ? ["*"]
+            : groupAllowFromList.length > 0
+              ? groupAllowFromList
+              : null,
         groups:
           Object.keys(groupsRecord).length > 0 ? groupsRecord : undefined,
       };

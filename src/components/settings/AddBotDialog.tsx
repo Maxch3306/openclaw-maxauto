@@ -196,7 +196,7 @@ export function AddBotDialog({
       const newAccount = {
         enabled: true,
         botToken: token.trim(),
-        dmPolicy: "open",
+        dmPolicy: "pairing",
         groupPolicy: "disabled",
       };
 
