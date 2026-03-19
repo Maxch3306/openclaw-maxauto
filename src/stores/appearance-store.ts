@@ -3,6 +3,7 @@ import {
   THEME_PRESETS,
   deriveThemeVariables,
   applyThemeVariables,
+  hexToHsl,
 } from "@/lib/theme-utils";
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -55,6 +56,13 @@ function persist(data: AppearanceData) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+function resolveEffectiveMode(mode: ThemeMode): "light" | "dark" {
+  if (mode === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  return mode;
+}
+
 function applyTheme(data: AppearanceData) {
   const vars = deriveThemeVariables(
     data.accentColor,
@@ -68,7 +76,28 @@ function applyTheme(data: AppearanceData) {
 /** Call before React render to prevent flash of wrong theme. */
 export function initializeTheme() {
   const data = loadFromStorage();
-  applyTheme(data);
+  const effectiveMode = resolveEffectiveMode(data.themeMode);
+  const isDark = hexToHsl(data.backgroundColor).l < 50;
+  const modeIsDark = effectiveMode === "dark";
+
+  // If stored colors don't match the effective mode, use a matching preset
+  if (modeIsDark !== isDark) {
+    const preset = modeIsDark
+      ? THEME_PRESETS.find((p) => p.id === "default-dark")!
+      : THEME_PRESETS.find((p) => p.id === "default-light")!;
+    const corrected: AppearanceData = {
+      ...data,
+      activePresetId: preset.id,
+      accentColor: preset.accent,
+      backgroundColor: preset.background,
+      foregroundColor: preset.foreground,
+      contrast: preset.contrast,
+    };
+    applyTheme(corrected);
+    persist(corrected);
+  } else {
+    applyTheme(data);
+  }
 }
 
 export const useAppearanceStore = create<AppearanceState>((set, get) => {
@@ -95,7 +124,29 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => {
   return {
     ...initial,
 
-    setThemeMode: (mode) => update({ themeMode: mode }),
+    setThemeMode: (mode) => {
+      const effectiveMode = resolveEffectiveMode(mode);
+      const state = get();
+      const isDark = hexToHsl(state.backgroundColor).l < 50;
+      const modeIsDark = effectiveMode === "dark";
+
+      if (modeIsDark !== isDark) {
+        // Switch to matching default preset
+        const preset = modeIsDark
+          ? THEME_PRESETS.find((p) => p.id === "default-dark")!
+          : THEME_PRESETS.find((p) => p.id === "default-light")!;
+        update({
+          themeMode: mode,
+          activePresetId: preset.id,
+          accentColor: preset.accent,
+          backgroundColor: preset.background,
+          foregroundColor: preset.foreground,
+          contrast: preset.contrast,
+        });
+      } else {
+        update({ themeMode: mode });
+      }
+    },
 
     applyPreset: (presetId) => {
       const preset = THEME_PRESETS.find((p) => p.id === presetId);

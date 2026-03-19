@@ -138,7 +138,15 @@
       "workspace": "Workspace",
       "usingDefault": "Using default workspace",
       "confirmDelete": "Confirm Delete",
-      "nameRequired": "Name is required"
+      "nameRequired": "Name is required",
+      "subagents": "Sub-agents",
+      "allowAgents": "Allowed Agents",
+      "allowAgentsAll": "All agents",
+      "allowAgentsSelf": "Self only (default)",
+      "subagentModel": "Sub-agent Model",
+      "inheritModel": "Inherit from caller",
+      "maxSpawnDepth": "Max Nesting Depth",
+      "maxSpawnDepthHint": "How deep sub-agents can nest (1 = no nesting)"
     }
   },
   "settings": {

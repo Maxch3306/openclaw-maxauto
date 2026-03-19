@@ -1,9 +1,10 @@
-import { ArrowLeft, Plus, Settings, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Settings, Trash2, MessageSquare, Users2, Bot } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { gateway } from "@/api/gateway-client";
 import { useAppStore } from "@/stores/app-store";
 import { useChatStore } from "@/stores/chat-store";
+import type { SessionItem } from "@/stores/chat-store";
 import { Button } from "@/components/ui/button";
 import { AgentList } from "./AgentList";
 import { SidebarTabs } from "./SidebarTabs";
@@ -25,6 +26,74 @@ function formatTime(ts: number | null, t: (key: string) => string): string {
     return d.toLocaleDateString([], { weekday: "short" });
   }
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+/** Known channel display labels */
+const CHANNEL_LABELS: Record<string, string> = {
+  telegram: "Telegram",
+  discord: "Discord",
+  slack: "Slack",
+  whatsapp: "WhatsApp",
+  signal: "Signal",
+  line: "LINE",
+  irc: "IRC",
+  twitch: "Twitch",
+  feishu: "Feishu",
+  webchat: "Webchat",
+  imessage: "iMessage",
+  googlechat: "Google Chat",
+};
+
+/**
+ * Derive channel from session data or key.
+ * Session key format: agent:{agentId}:{channel}:{scope}:...
+ * e.g. agent:main:telegram:direct:12345
+ */
+function resolveChannel(session: SessionItem): string | null {
+  if (session.channel) return session.channel;
+  // Try to extract from key: agent:{id}:{channel}:...
+  const parts = session.key.split(":");
+  if (parts.length >= 3) {
+    const scope = parts[2];
+    // "main" and timestamp-based scopes are not channels
+    if (scope !== "main" && !/^\d/.test(scope) && scope !== "subagent" && scope !== "dashboard" && scope !== "cron") {
+      if (CHANNEL_LABELS[scope] || scope.length > 2) {
+        return scope;
+      }
+    }
+  }
+  return null;
+}
+
+function ChannelBadge({ session }: { session: SessionItem }) {
+  const channel = resolveChannel(session);
+  if (!channel) return null;
+
+  const label = CHANNEL_LABELS[channel] || channel;
+  const isGroup = session.chatType === "group";
+
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+      {isGroup ? <Users2 size={10} /> : <MessageSquare size={10} />}
+      {label}
+    </span>
+  );
+}
+
+function SessionIcon({ session }: { session: SessionItem }) {
+  const channel = resolveChannel(session);
+  // Subagent session
+  if (session.key.includes(":subagent:")) {
+    return <Bot size={14} className="shrink-0 text-muted-foreground" />;
+  }
+  // Channel session
+  if (channel) {
+    const isGroup = session.chatType === "group";
+    return isGroup
+      ? <Users2 size={14} className="shrink-0 text-muted-foreground" />
+      : <MessageSquare size={14} className="shrink-0 text-muted-foreground" />;
+  }
+  return null;
 }
 
 function ChatsView() {
@@ -85,12 +154,18 @@ function ChatsView() {
               onClick={() => switchSession(s.key)}
               className="flex-1 text-left px-3 py-2 min-w-0"
             >
-              <div className="text-sm text-foreground truncate">{s.title}</div>
-              {s.updatedAt && (
-                <div className="text-[10px] text-muted-foreground mt-0.5">
-                  {formatTime(s.updatedAt, t)}
-                </div>
-              )}
+              <div className="flex items-center gap-1.5">
+                <SessionIcon session={s} />
+                <span className="text-sm text-foreground truncate">{s.title}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <ChannelBadge session={s} />
+                {s.updatedAt && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatTime(s.updatedAt, t)}
+                  </span>
+                )}
+              </div>
             </button>
             <Button
               variant="ghost"

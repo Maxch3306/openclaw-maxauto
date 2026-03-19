@@ -138,7 +138,15 @@
       "workspace": "工作區",
       "usingDefault": "使用預設工作區",
       "confirmDelete": "確認刪除",
-      "nameRequired": "名稱為必填"
+      "nameRequired": "名稱為必填",
+      "subagents": "子助理",
+      "allowAgents": "允許的助理",
+      "allowAgentsAll": "所有助理",
+      "allowAgentsSelf": "僅限自身（預設）",
+      "subagentModel": "子助理模型",
+      "inheritModel": "繼承呼叫者",
+      "maxSpawnDepth": "最大巢狀深度",
+      "maxSpawnDepthHint": "子助理可巢狀的層級數（1 = 不巢狀）"
     }
   },
   "settings": {

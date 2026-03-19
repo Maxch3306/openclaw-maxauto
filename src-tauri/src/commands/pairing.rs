@@ -128,6 +128,14 @@ pub async fn approve_pairing_request(code: String) -> Result<String, String> {
     let request = store.requests.remove(idx);
     let user_id = request.id.clone();
 
+    // Extract accountId from request meta (e.g., Telegram bot account)
+    let account_id = request
+        .meta
+        .as_ref()
+        .and_then(|m| m.get("accountId"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
     // Write back the updated pairing store
     let updated = serde_json::json!({
         "version": store.version,
@@ -137,7 +145,7 @@ pub async fn approve_pairing_request(code: String) -> Result<String, String> {
         .map_err(|e| format!("Failed to write pairing file: {}", e))?;
 
     // Add user ID to allowFrom list (format: { "version": 1, "allowFrom": [...] })
-    let allow_path = allow_from_file_path(None);
+    let allow_path = allow_from_file_path(account_id.as_deref());
     let mut allow_list: Vec<String> = if allow_path.exists() {
         let raw = std::fs::read_to_string(&allow_path).unwrap_or_default();
         let store: serde_json::Value = serde_json::from_str(&raw).unwrap_or_default();

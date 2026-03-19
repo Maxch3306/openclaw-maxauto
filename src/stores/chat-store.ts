@@ -34,6 +34,8 @@ export interface SessionItem {
   key: string;
   title: string;
   updatedAt: number | null;
+  channel?: string;
+  chatType?: string;
 }
 
 export interface ToolActivity {
@@ -199,6 +201,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return { messages: msgs };
     }),
   finalizeStreaming: () => {
+    const state = get();
+    const lastMsg = state.messages[state.messages.length - 1];
+    // Check if the streaming message has tool calls but no trailing text —
+    // the final assistant text may not arrive via streaming events, so reload history.
+    const hasToolCalls = lastMsg?.streaming && lastMsg.contentBlocks?.some((b) => b.type === "toolCall");
+    const lastBlock = lastMsg?.contentBlocks?.[lastMsg.contentBlocks.length - 1];
+    const missingTrailingText = hasToolCalls && (!lastBlock || lastBlock.type !== "text" || !lastBlock.text?.trim());
+
     set((s) => {
       const msgs = [...s.messages];
       const last = msgs[msgs.length - 1];
@@ -209,6 +219,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
     // Refresh session list so new/updated sessions appear in sidebar
     void get().loadSessions();
+    // Reload history to pick up the final assistant text after tool calls
+    if (missingTrailingText && state.sessionKey) {
+      void get().loadHistory(state.sessionKey);
+    }
   },
   finalizeWithContent: (message) => {
     set((s) => {
@@ -510,6 +524,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
           label?: string;
           lastMessagePreview?: string;
           updatedAt?: number | null;
+          channel?: string;
+          chatType?: string;
         }>;
       }>("sessions.list", {
         limit: 50,
@@ -549,6 +565,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             key: s.key,
             title,
             updatedAt: s.updatedAt ?? null,
+            channel: s.channel,
+            chatType: s.chatType,
           };
         })
         .sort((a: { updatedAt: number | null }, b: { updatedAt: number | null }) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
