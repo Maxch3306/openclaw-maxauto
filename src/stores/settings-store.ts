@@ -157,8 +157,10 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
     api: "anthropic-messages",
     extraConfig: { authHeader: true },
     models: [
-      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
-      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+      { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 200000, maxTokens: 8192 },
+      { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 200000, maxTokens: 8192 },
+      { id: "MiniMax-M2.7", name: "MiniMax M2.7", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 8192 },
+      { id: "MiniMax-M2.7-highspeed", name: "MiniMax M2.7 Highspeed", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 8192 },
     ],
   },
   minimax: {
@@ -171,6 +173,8 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
     models: [
       { id: "MiniMax-M2.5", name: "MiniMax M2.5", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
       { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 200000, maxTokens: 8192 },
+      { id: "MiniMax-M2.7", name: "MiniMax M2.7", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 204800, maxTokens: 8192 },
+      { id: "MiniMax-M2.7-highspeed", name: "MiniMax M2.7 Highspeed", reasoning: true, input: ["text"], cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 }, contextWindow: 204800, maxTokens: 8192 },
     ],
   },
   moonshot: {
