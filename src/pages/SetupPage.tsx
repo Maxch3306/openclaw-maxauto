@@ -1,7 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Monitor, Container, RefreshCw, ExternalLink, Download } from "lucide-react";
+import { listen } from "@tauri-apps/api/event";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { useAppStore } from "@/stores/app-store";
 import {
@@ -38,6 +46,24 @@ export function SetupPage() {
   // Docker detection state
   const [dockerStatus, setDockerStatus] = useState<DockerStatus | null>(null);
   const [checkingDocker, setCheckingDocker] = useState(true);
+
+  // Debug log
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const debugBottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unlisten = listen<string>("gateway-log", (event) => {
+      setDebugLogs((prev) => [...prev.slice(-200), event.payload]);
+    });
+    return () => { void unlisten.then((fn) => fn()); };
+  }, []);
+
+  useEffect(() => {
+    if (debugOpen) {
+      debugBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [debugLogs, debugOpen]);
 
   // Check Docker availability on mount
   useEffect(() => {
@@ -173,6 +199,42 @@ export function SetupPage() {
 
   const dockerAvailable = dockerStatus?.available && dockerStatus?.daemon_running;
 
+  const debugButton = (
+    <button
+      onClick={() => setDebugOpen(true)}
+      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+    >
+      {t("common.debug")}
+    </button>
+  );
+
+  const debugDialog = (
+    <Dialog open={debugOpen} onOpenChange={setDebugOpen}>
+      <DialogContent className="max-w-2xl h-[500px] flex flex-col gap-0 p-0">
+        <DialogHeader className="px-4 pt-4 pb-2 border-b border-border">
+          <DialogTitle className="text-sm font-mono">{t("common.debug")}</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="flex-1 px-4 py-2">
+          <div className="font-mono text-[11px] leading-relaxed space-y-0.5">
+            {debugLogs.length === 0 ? (
+              <span className="text-muted-foreground">No messages yet...</span>
+            ) : (
+              debugLogs.map((line, i) => {
+                const isError = line.toLowerCase().includes("error") || line.includes("FAILED");
+                return (
+                  <div key={i} className={isError ? "text-destructive" : "text-green-400"}>
+                    {line}
+                  </div>
+                );
+              })
+            )}
+            <div ref={debugBottomRef} />
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+
   // Show mode selection screen
   if (setupStep === "choosing-mode") {
     return (
@@ -204,73 +266,71 @@ export function SetupPage() {
             </button>
 
             {/* Docker Install Card */}
-            <div className="flex flex-col">
-              <button
-                onClick={() => dockerAvailable && handleSelectMode("docker")}
-                disabled={!dockerAvailable}
-                className={`flex flex-col flex-1 p-5 rounded-xl border-2 text-left transition-all ${
-                  dockerAvailable
-                    ? "border-border bg-card hover:border-primary hover:bg-secondary cursor-pointer"
-                    : "border-border bg-card opacity-60 cursor-not-allowed"
-                }`}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`p-2 rounded-lg ${dockerAvailable ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-500"}`}>
-                    <Container size={20} />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">
-                    {t("setup.modeDocker")}
-                  </h3>
+            <div
+              onClick={() => dockerAvailable && handleSelectMode("docker")}
+              className={`flex flex-col p-5 rounded-xl border-2 text-left transition-all ${
+                dockerAvailable
+                  ? "border-border bg-card hover:border-primary hover:bg-secondary cursor-pointer"
+                  : "border-border bg-card opacity-60"
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-2 rounded-lg ${dockerAvailable ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-500"}`}>
+                  <Container size={20} />
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-3 flex-1">
-                  {t("setup.modeDockerDesc")}
-                </p>
+                <h3 className="text-base font-semibold text-foreground">
+                  {t("setup.modeDocker")}
+                </h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3 flex-1">
+                {t("setup.modeDockerDesc")}
+              </p>
 
-                {/* Docker status indicator */}
-                {checkingDocker ? (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <RefreshCw size={12} className="animate-spin" />
-                    {t("setup.checkingDocker")}
+              {/* Docker status indicator */}
+              {checkingDocker ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <RefreshCw size={12} className="animate-spin" />
+                  {t("setup.checkingDocker")}
+                </div>
+              ) : dockerAvailable ? (
+                <div className="flex items-center gap-2 text-xs text-green-400">
+                  <span className="w-2 h-2 rounded-full bg-green-400" />
+                  {t("setup.dockerDetected", { version: dockerStatus?.version ?? "" })}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-destructive mb-2">
+                    <span className="w-2 h-2 rounded-full bg-destructive" />
+                    {dockerStatus?.available && !dockerStatus?.daemon_running
+                      ? t("setup.dockerNotRunning")
+                      : t("setup.dockerNotDetected")}
                   </div>
-                ) : dockerAvailable ? (
-                  <div className="flex items-center gap-2 text-xs text-green-400">
-                    <span className="w-2 h-2 rounded-full bg-green-400" />
-                    {t("setup.dockerDetected", { version: dockerStatus?.version ?? "" })}
+                  {/* Actions inside the card */}
+                  <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => openUrl("https://www.docker.com/products/docker-desktop/")}
+                      className="flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink size={11} />
+                      {t("setup.dockerDownload")}
+                    </button>
+                    <button
+                      onClick={detectDocker}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <RefreshCw size={11} />
+                      {t("setup.dockerRefresh")}
+                    </button>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-destructive">
-                      <span className="w-2 h-2 rounded-full bg-destructive" />
-                      {dockerStatus?.available && !dockerStatus?.daemon_running
-                        ? t("setup.dockerNotRunning")
-                        : t("setup.dockerNotDetected")}
-                    </div>
-                  </div>
-                )}
-              </button>
-
-              {/* Actions below the card when Docker not available */}
-              {!checkingDocker && !dockerAvailable && (
-                <div className="flex items-center gap-3 mt-2 px-1">
-                  <button
-                    onClick={() => openUrl("https://www.docker.com/products/docker-desktop/")}
-                    className="flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    <ExternalLink size={11} />
-                    {t("setup.dockerDownload")}
-                  </button>
-                  <button
-                    onClick={detectDocker}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <RefreshCw size={11} />
-                    {t("setup.dockerRefresh")}
-                  </button>
                 </div>
               )}
             </div>
           </div>
         </div>
+        <div className="pb-3 flex justify-end px-4">
+          {debugButton}
+        </div>
+        {debugDialog}
       </div>
     );
   }
@@ -322,6 +382,10 @@ export function SetupPage() {
             {t("setup.backToModeSelection")}
           </button>
         </div>
+        <div className="pb-3 flex justify-end px-4">
+          {debugButton}
+        </div>
+        {debugDialog}
       </div>
     );
   }
@@ -384,6 +448,10 @@ export function SetupPage() {
           </div>
         )}
       </div>
+      <div className="pb-3 flex justify-end px-4">
+        {debugButton}
+      </div>
+      {debugDialog}
     </div>
   );
 }

@@ -10,11 +10,16 @@ export interface ThemePreset {
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
-  { id: "default-dark", name: "settings.appearance.defaultDark", accent: "#4f8cff", background: "#1a1a2e", foreground: "#e0e0e0", contrast: 40 },
+  { id: "default-dark",  name: "settings.appearance.defaultDark",  accent: "#4f8cff", background: "#1a1a2e", foreground: "#e0e0e0", contrast: 40 },
   { id: "default-light", name: "settings.appearance.defaultLight", accent: "#2563eb", background: "#ffffff", foreground: "#1a1a1a", contrast: 35 },
-  { id: "ocean", name: "settings.appearance.ocean", accent: "#06b6d4", background: "#0f172a", foreground: "#e2e8f0", contrast: 45 },
-  { id: "rosewood", name: "settings.appearance.rosewood", accent: "#f43f5e", background: "#1c1917", foreground: "#e7e5e4", contrast: 40 },
-  { id: "monochrome", name: "settings.appearance.monochrome", accent: "#ffffff", background: "#111111", foreground: "#d4d4d4", contrast: 50 },
+  { id: "ocean",         name: "settings.appearance.ocean",        accent: "#06b6d4", background: "#0f172a", foreground: "#e2e8f0", contrast: 45 },
+  { id: "rosewood",      name: "settings.appearance.rosewood",     accent: "#f43f5e", background: "#1c1917", foreground: "#e7e5e4", contrast: 40 },
+  { id: "monochrome",    name: "settings.appearance.monochrome",   accent: "#ffffff", background: "#111111", foreground: "#d4d4d4", contrast: 50 },
+  { id: "forest",        name: "settings.appearance.forest",       accent: "#22c55e", background: "#0a1a0f", foreground: "#d1fae5", contrast: 42 },
+  { id: "amber",         name: "settings.appearance.amber",        accent: "#f59e0b", background: "#1c1209", foreground: "#fef3c7", contrast: 40 },
+  { id: "violet",        name: "settings.appearance.violet",       accent: "#8b5cf6", background: "#0f0b1e", foreground: "#ede9fe", contrast: 42 },
+  { id: "nord",          name: "settings.appearance.nord",         accent: "#5e81ac", background: "#2e3440", foreground: "#eceff4", contrast: 38 },
+  { id: "dracula",       name: "settings.appearance.dracula",      accent: "#bd93f9", background: "#282a36", foreground: "#f8f8f2", contrast: 40 },
 ];
 
 export function hexToHsl(hex: string): { h: number; s: number; l: number } {

@@ -1,42 +1,10 @@
-import { RotateCcw, Sun, Moon, Monitor } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAppearanceStore } from "@/stores/appearance-store";
 import { THEME_PRESETS } from "@/lib/theme-utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { ThemeMode } from "@/stores/appearance-store";
-
-function ThemeModeToggle() {
-  const { t } = useTranslation();
-  const themeMode = useAppearanceStore((s) => s.themeMode);
-  const setThemeMode = useAppearanceStore((s) => s.setThemeMode);
-
-  const modes: { value: ThemeMode; label: string; icon: React.ReactNode }[] = [
-    { value: "light", label: t("settings.appearance.light"), icon: <Sun size={14} /> },
-    { value: "dark", label: t("settings.appearance.dark"), icon: <Moon size={14} /> },
-    { value: "system", label: t("settings.appearance.system"), icon: <Monitor size={14} /> },
-  ];
-
-  return (
-    <div className="flex rounded-lg border border-border overflow-hidden">
-      {modes.map((m) => (
-        <button
-          key={m.value}
-          onClick={() => setThemeMode(m.value)}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
-            themeMode === m.value
-              ? "bg-primary text-primary-foreground"
-              : "bg-card text-muted-foreground hover:text-foreground hover:bg-secondary"
-          }`}
-        >
-          {m.icon}
-          {m.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function PresetGrid() {
   const { t } = useTranslation();
@@ -158,14 +126,6 @@ export function AppearanceSection() {
       </h1>
 
       <div className="space-y-6">
-        {/* Theme Mode */}
-        <section>
-          <h2 className="text-sm font-medium text-muted-foreground mb-3">
-            {t("settings.appearance.themeMode")}
-          </h2>
-          <ThemeModeToggle />
-        </section>
-
         {/* Presets */}
         <section>
           <h2 className="text-sm font-medium text-muted-foreground mb-3">

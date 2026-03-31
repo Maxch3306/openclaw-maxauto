@@ -11,9 +11,17 @@ import {
   Info,
   ArrowLeft,
 } from "lucide-react";
-import { type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { gateway } from "@/api/gateway-client";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { GeneralSection } from "@/components/settings/GeneralSection";
 import { AppearanceSection } from "@/components/settings/AppearanceSection";
 import { IMChannelsSection } from "@/components/settings/IMChannelsSection";
@@ -78,6 +86,30 @@ export function SettingsPage() {
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
   const { t } = useTranslation();
 
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const debugBottomRef = useRef<HTMLDivElement>(null);
+
+  const refreshDebug = useCallback(() => {
+    setDebugLogs([...gateway.debugLog]);
+  }, []);
+
+  useEffect(() => {
+    if (!debugOpen) {
+      gateway.setDebugCallback(() => {});
+      return;
+    }
+    refreshDebug();
+    gateway.setDebugCallback(refreshDebug);
+    return () => gateway.setDebugCallback(() => {});
+  }, [debugOpen, refreshDebug]);
+
+  useEffect(() => {
+    if (debugOpen) {
+      debugBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [debugLogs, debugOpen]);
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Settings sidebar */}
@@ -106,10 +138,49 @@ export function SettingsPage() {
             </button>
           ))}
         </div>
+        <div className="px-4 pb-3">
+          <button
+            onClick={() => setDebugOpen(true)}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {t("common.debug")}
+          </button>
+        </div>
       </aside>
 
       {/* Content area */}
       <div className="flex-1 overflow-y-auto">{renderSection(activeSection)}</div>
+
+      <Dialog open={debugOpen} onOpenChange={setDebugOpen}>
+        <DialogContent className="max-w-2xl h-[500px] flex flex-col gap-0 p-0">
+          <DialogHeader className="px-4 pt-4 pb-2 border-b border-border">
+            <DialogTitle className="text-sm font-mono">
+              {t("common.debug")} — WS: {gateway.wsState} | Connected: {String(gateway.connected)}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 px-4 py-2">
+            <div className="font-mono text-[11px] leading-relaxed space-y-0.5">
+              {debugLogs.length === 0 ? (
+                <span className="text-muted-foreground">No messages yet...</span>
+              ) : (
+                debugLogs.map((line, i) => {
+                  const isError = line.includes("ERROR") || line.includes("error") || line.includes("FAILED");
+                  const isEvent = line.includes("EVENT chat") || line.includes("EVENT agent");
+                  return (
+                    <div
+                      key={i}
+                      className={isError ? "text-destructive" : isEvent ? "text-cyan-400" : "text-green-400"}
+                    >
+                      {line}
+                    </div>
+                  );
+                })
+              )}
+              <div ref={debugBottomRef} />
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

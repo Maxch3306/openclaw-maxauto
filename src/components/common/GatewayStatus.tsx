@@ -1,112 +1,116 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gateway } from "@/api/gateway-client";
 import { useAppStore } from "@/stores/app-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-let debugWindow: Window | null = null;
-
-function openDebugWindow() {
-  if (debugWindow && !debugWindow.closed) {
-    debugWindow.focus();
-    return;
-  }
-
-  const w = window.open("", "maxauto-debug", "width=800,height=600,menubar=no,toolbar=no,status=no");
-  if (!w) return;
-  debugWindow = w;
-
-  w.document.title = "MaxAuto — Gateway Debug Log";
-  w.document.head.innerHTML = `<style>
-    body { margin: 0; padding: 12px; background: #0a0a0a; color: #4ade80; font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; line-height: 1.5; }
-    #status { color: #facc15; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #333; }
-    #log { white-space: pre-wrap; word-break: break-all; }
-    .line-error { color: #f87171; }
-    .line-event { color: #22d3ee; }
-  </style>`;
-  w.document.body.innerHTML = `<div id="status"></div><div id="log"></div>`;
-
-  const render = () => {
-    if (!w || w.closed) {
-      debugWindow = null;
-      return;
-    }
-    const statusEl = w.document.getElementById("status");
-    const logEl = w.document.getElementById("log");
-    if (statusEl) {
-      statusEl.textContent = `URL: ${gateway.url || "(none)"} | WS: ${gateway.wsState} | Connected: ${String(gateway.connected)}`;
-    }
-    if (logEl) {
-      const html = gateway.debugLog.length === 0
-        ? '<span style="color:#6b7280">No messages yet...</span>'
-        : gateway.debugLog.map((line) => {
-            const cls = (line.includes("ERROR") || line.includes("error") || line.includes("FAILED"))
-              ? "line-error"
-              : (line.includes("EVENT chat") || line.includes("EVENT agent"))
-                ? "line-event"
-                : "";
-            const escaped = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            return cls ? `<div class="${cls}">${escaped}</div>` : `<div>${escaped}</div>`;
-          }).join("");
-      logEl.innerHTML = html;
-      w.scrollTo(0, w.document.body.scrollHeight);
-    }
-  };
-
-  render();
-  gateway.setDebugCallback(render);
-
-  w.addEventListener("beforeunload", () => {
-    debugWindow = null;
-    gateway.setDebugCallback(() => {});
-  });
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function GatewayStatus() {
   const { t } = useTranslation();
   const connected = useAppStore((s) => s.gatewayConnected);
   const prevConnectedRef = useRef(connected);
+  const [open, setOpen] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [wsState, setWsState] = useState(gateway.wsState);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const updateDebugStatus = useCallback(() => {
-    if (debugWindow && !debugWindow.closed) {
-      const statusEl = debugWindow.document.getElementById("status");
-      if (statusEl) {
-        statusEl.textContent = `URL: ${gateway.url || "(none)"} | WS: ${gateway.wsState} | Connected: ${String(gateway.connected)}`;
-      }
-    }
+  const refresh = useCallback(() => {
+    setLogs([...gateway.debugLog]);
+    setWsState(gateway.wsState);
   }, []);
 
   useEffect(() => {
     if (prevConnectedRef.current !== connected) {
       prevConnectedRef.current = connected;
-      updateDebugStatus();
+      setWsState(gateway.wsState);
     }
-  }, [connected, updateDebugStatus]);
+  }, [connected]);
+
+  useEffect(() => {
+    if (!open) {
+      gateway.setDebugCallback(() => {});
+      return;
+    }
+    refresh();
+    gateway.setDebugCallback(refresh);
+    return () => gateway.setDebugCallback(() => {});
+  }, [open, refresh]);
+
+  useEffect(() => {
+    if (open) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [logs, open]);
 
   return (
-    <div className="px-3 py-1">
-      <div className="flex items-center gap-1.5">
-        <div
-          className={`w-2 h-2 rounded-full ${
-            connected ? "bg-success" : "bg-destructive"
-          }`}
-        />
-        <Badge variant={connected ? "success" : "destructive"} className="text-[10px] px-1.5 py-0">
-          {connected ? t("common.connected") : t("common.disconnected")}
-        </Badge>
-        <span className="text-xs text-muted-foreground opacity-50 ml-1">
-          WS: {gateway.wsState}
-        </span>
-        <Button
-          variant="link"
-          size="xs"
-          onClick={openDebugWindow}
-          className="ml-auto p-0 h-auto"
-        >
-          {t("common.debug")}
-        </Button>
+    <>
+      <div className="px-3 py-1">
+        <div className="flex items-center gap-1.5">
+          <div
+            className={`w-2 h-2 rounded-full ${
+              connected ? "bg-success" : "bg-destructive"
+            }`}
+          />
+          <Badge variant={connected ? "success" : "destructive"} className="text-[10px] px-1.5 py-0">
+            {connected ? t("common.connected") : t("common.disconnected")}
+          </Badge>
+          <span className="text-xs text-muted-foreground opacity-50 ml-1">
+            WS: {wsState}
+          </span>
+          <Button
+            variant="link"
+            size="xs"
+            onClick={() => setOpen(true)}
+            className="ml-auto p-0 h-auto"
+          >
+            {t("common.debug")}
+          </Button>
+        </div>
       </div>
-    </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl h-[500px] flex flex-col gap-0 p-0">
+          <DialogHeader className="px-4 pt-4 pb-2 border-b border-border">
+            <DialogTitle className="text-sm font-mono">
+              {t("common.debug")} — URL: {gateway.url || "(none)"} | WS: {wsState} | Connected: {String(connected)}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 px-4 py-2">
+            <div className="font-mono text-[11px] leading-relaxed space-y-0.5">
+              {logs.length === 0 ? (
+                <span className="text-muted-foreground">No messages yet...</span>
+              ) : (
+                logs.map((line, i) => {
+                  const isError = line.includes("ERROR") || line.includes("error") || line.includes("FAILED");
+                  const isEvent = line.includes("EVENT chat") || line.includes("EVENT agent");
+                  return (
+                    <div
+                      key={i}
+                      className={
+                        isError
+                          ? "text-destructive"
+                          : isEvent
+                            ? "text-cyan-400"
+                            : "text-green-400"
+                      }
+                    >
+                      {line}
+                    </div>
+                  );
+                })
+              )}
+              <div ref={bottomRef} />
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
