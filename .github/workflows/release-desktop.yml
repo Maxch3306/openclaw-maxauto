@@ -22,6 +22,9 @@ jobs:
           - platform: windows-latest
             args: ""
             rust-targets: ""
+          - platform: windows-latest
+            args: "--target i686-pc-windows-msvc"
+            rust-targets: "i686-pc-windows-msvc"
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Disable symlinks (Windows)
