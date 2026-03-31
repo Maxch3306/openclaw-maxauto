@@ -40,40 +40,19 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-
-      - name: Get pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: pnpm-${{ matrix.platform }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ matrix.platform }}-
+          cache: pnpm
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.rust-targets }}
 
-      - name: Cache Rust build
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            src-tauri/target
-          key: rust-${{ matrix.platform }}-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: rust-${{ matrix.platform }}-
+          workspaces: src-tauri -> target
+          cache-targets: "false"
 
       - name: Install frontend deps
         run: pnpm install --frozen-lockfile
-
-      - name: Install macOS DMG dependencies
-        if: runner.os == 'macOS'
-        run: brew install create-dmg
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -86,7 +65,7 @@ jobs:
           releaseBody: "Desktop installer for MaxAuto v${{ steps.pkg.outputs.version }}"
           releaseDraft: false
           prerelease: false
-          args: ${{ matrix.args }} --verbose
+          args: ${{ matrix.args }}
 
   bump-version:
     needs: build
