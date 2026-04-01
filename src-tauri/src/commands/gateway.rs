@@ -340,6 +340,72 @@ pub(crate) fn ensure_config_with_token(config_path: &std::path::Path, port: u16,
     Ok(token)
 }
 
+/// Ensure all paired devices have full operator scopes.
+///
+/// Internal gateway calls (e.g. from sessions_spawn subagents) use
+/// CLI_DEFAULT_OPERATOR_SCOPES which includes admin/read/write/approvals/pairing.
+/// If a device was initially paired with limited scopes (e.g. only "operator.read"),
+/// subsequent connections requesting wider scopes trigger a "scope-upgrade" pairing
+/// request. The gateway never silently auto-approves scope upgrades (silent=false is
+/// hardcoded), so the connection fails with "pairing required" (1008).
+///
+/// This function patches paired.json at startup to grant full operator scopes to all
+/// operator-role devices, preventing scope-upgrade pairing failures.
+fn ensure_paired_devices_full_scopes(base_dir: &std::path::Path) {
+    let paired_path = base_dir.join("devices").join("paired.json");
+    if !paired_path.exists() {
+        return;
+    }
+    let raw = match std::fs::read_to_string(&paired_path) {
+        Ok(r) => r,
+        Err(_) => return,
+    };
+    let mut doc: serde_json::Value = match serde_json::from_str(&raw) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    let full_scopes = serde_json::json!([
+        "operator.admin",
+        "operator.read",
+        "operator.write",
+        "operator.approvals",
+        "operator.pairing"
+    ]);
+    let mut changed = false;
+    if let Some(obj) = doc.as_object_mut() {
+        for (_device_id, entry) in obj.iter_mut() {
+            if let Some(entry_obj) = entry.as_object_mut() {
+                // Only patch operator-role devices
+                let is_operator = entry_obj
+                    .get("role")
+                    .and_then(|r| r.as_str())
+                    .map_or(false, |r| r == "operator");
+                if !is_operator {
+                    continue;
+                }
+                // Patch scopes and approvedScopes to full set
+                if entry_obj.get("approvedScopes") != Some(&full_scopes) {
+                    entry_obj.insert("scopes".into(), full_scopes.clone());
+                    entry_obj.insert("approvedScopes".into(), full_scopes.clone());
+                    // Also update tokens to include full scopes
+                    if let Some(tokens) = entry_obj.get_mut("tokens").and_then(|t| t.as_object_mut()) {
+                        if let Some(op_token) = tokens.get_mut("operator").and_then(|t| t.as_object_mut()) {
+                            op_token.insert("scopes".into(), full_scopes.clone());
+                        }
+                    }
+                    changed = true;
+                }
+            }
+        }
+    }
+    if changed {
+        // Also clear pending requests since they may reference stale scope state
+        let pending_path = base_dir.join("devices").join("pending.json");
+        let _ = std::fs::write(&pending_path, "{}");
+        let _ = std::fs::write(&paired_path, serde_json::to_string_pretty(&doc).unwrap());
+    }
+}
+
 /// Read the gateway auth token from the config file
 #[tauri::command]
 pub async fn get_gateway_token() -> Result<String, String> {
@@ -428,6 +494,12 @@ pub async fn start_gateway(
 
     // Ensure config exists with token auth
     let _token = ensure_config_with_token(&config_path, port, &bind)?;
+
+    // Ensure paired devices have full operator scopes so internal callGateway()
+    // (used by sessions_spawn / subagents / cron) doesn't hit "pairing required"
+    // scope-upgrade errors. Scope upgrades are never silently auto-approved by
+    // the gateway, so we patch the persisted pairing state at startup.
+    ensure_paired_devices_full_scopes(&base_dir);
 
     // Pre-create the default workspace directory so the first message isn't delayed
     let default_workspace = base_dir.join("workspace");

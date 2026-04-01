@@ -141,12 +141,24 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
     ],
   },
   "maxauto-crs-openai": {
-    displayName: "MaxAuto Claude Proxy",
+    displayName: "MaxAuto OpenAI Proxy",
     description: "Claude proxy via OpenAI-compatible API",
     baseUrl: "https://claude-proxy.bsoltest.com/openai",
     api: "openai-responses",
     models: [
       { id: "gpt-5.4", name: "GPT-5.4", reasoning: true, input: ["text","image"], cost: ZERO_COST, contextWindow: 1050000, maxTokens: 272000 },
+    ],
+  },
+  "maxauto-crs-anthropic": {
+    displayName: "MaxAuto Anthropic Proxy",
+    description: "Anthropic proxy via Anthropic-compatible API",
+    baseUrl: "https://claude-proxy.bsoltest.com/api",
+    api: "anthropic-messages",
+    models: [
+      { id: "MiniMax-M2.7", name: "MiniMax M2.7", reasoning: true, input: ["text","image"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 8192 },
+      { id: "MiniMax-M2.7-highspeed", name: "MiniMax M2.7 Highspeed", reasoning: true, input: ["text","image"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 8192 },
+      { id: "glm-5-turbo", name: "GLM-5 Turbo", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 200000, maxTokens: 128000 },
+      { id: "glm-5.1", name: "GLM-5.1", reasoning: true, input: ["text"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 131072 },
     ],
   },
   "minimax-cn": {
