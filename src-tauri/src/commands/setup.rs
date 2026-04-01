@@ -361,7 +361,7 @@ pub async fn install_git(app: tauri::AppHandle) -> Result<String, String> {
         #[cfg(windows)]
         refresh_path_from_registry();
 
-        let mut git_ok = tokio::process::Command::new("git.exe")
+        let git_ok = tokio::process::Command::new("git.exe")
             .arg("--version")
             .output()
             .await
@@ -554,7 +554,10 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
                 "install",
                 "--prefix",
                 openclaw_prefix.to_str().unwrap(),
-                "openclaw",
+                // Pin to 2026.3.28: version 2026.3.31 broke bundled channel plugin
+                // runtime loading (Telegram etc. fail to register). Remove pin once
+                // upstream fix #58782 ships in a release.
+                "openclaw@2026.3.28",
             ])
             .output()
             .await
@@ -572,7 +575,10 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
                 "install",
                 "--prefix",
                 openclaw_prefix.to_str().unwrap(),
-                "openclaw",
+                // Pin to 2026.3.28: version 2026.3.31 broke bundled channel plugin
+                // runtime loading (Telegram etc. fail to register). Remove pin once
+                // upstream fix #58782 ships in a release.
+                "openclaw@2026.3.28",
             ])
             .output()
             .await
