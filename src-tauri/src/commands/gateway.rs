@@ -14,6 +14,10 @@ pub struct GatewayStatus {
     pub pid: Option<u32>,
 }
 
+/// Pinned OpenClaw version. 2026.3.31 broke bundled channel plugin loading
+/// (Telegram etc. fail to register). Remove pin once upstream fix #58782 ships.
+pub const REQUIRED_OPENCLAW_VERSION: &str = "2026.3.28";
+
 pub(crate) fn maxauto_dir() -> PathBuf {
     dirs::home_dir()
         .expect("Could not determine home directory")
@@ -41,6 +45,125 @@ fn node_binary() -> PathBuf {
 
     // Fallback to system node
     PathBuf::from(if cfg!(windows) { "node.exe" } else { "node" })
+}
+
+/// Read the installed OpenClaw version from its package.json.
+fn installed_openclaw_version() -> Option<String> {
+    let pkg = maxauto_dir()
+        .join("openclaw")
+        .join("node_modules")
+        .join("openclaw")
+        .join("package.json");
+    let raw = std::fs::read_to_string(pkg).ok()?;
+    let parsed: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    parsed.get("version")?.as_str().map(|s| s.to_string())
+}
+
+/// Ensure the installed OpenClaw version matches `REQUIRED_OPENCLAW_VERSION`.
+/// If it doesn't (or isn't installed), reinstall the correct version via npm.
+async fn ensure_openclaw_version(app: &AppHandle) -> Result<(), String> {
+    if let Some(v) = installed_openclaw_version() {
+        if v == REQUIRED_OPENCLAW_VERSION {
+            return Ok(());
+        }
+        let _ = app.emit("gateway-log", &format!(
+            "OpenClaw version mismatch: installed {} but require {}. Reinstalling...",
+            v, REQUIRED_OPENCLAW_VERSION
+        ));
+    } else {
+        let _ = app.emit("gateway-log", &format!(
+            "OpenClaw version unknown. Installing {}...",
+            REQUIRED_OPENCLAW_VERSION
+        ));
+    }
+
+    let base_dir = maxauto_dir();
+    let openclaw_prefix = base_dir.join("openclaw");
+    std::fs::create_dir_all(&openclaw_prefix)
+        .map_err(|e| format!("Failed to create openclaw dir: {}", e))?;
+
+    let node = node_binary();
+
+    // Build PATH with local node/git bin dirs
+    let node_bin_dir = if cfg!(windows) {
+        base_dir.join("node")
+    } else {
+        base_dir.join("node").join("bin")
+    };
+    let git_bin_dir = if cfg!(windows) {
+        base_dir.join("git").join("cmd")
+    } else {
+        base_dir.join("git").join("bin")
+    };
+    let path_sep = if cfg!(windows) { ";" } else { ":" };
+    let new_path = {
+        let mut parts = vec![node_bin_dir.to_string_lossy().to_string()];
+        if git_bin_dir.exists() {
+            parts.push(git_bin_dir.to_string_lossy().to_string());
+        }
+        if let Ok(existing) = std::env::var("PATH") {
+            parts.push(existing);
+        }
+        parts.join(path_sep)
+    };
+
+    let npm_cache = base_dir.join("npm-cache");
+    std::fs::create_dir_all(&npm_cache).ok();
+
+    let pkg_spec = format!("openclaw@{}", REQUIRED_OPENCLAW_VERSION);
+
+    // Find npm-cli.js for local node
+    let local_npm_cli = if cfg!(windows) {
+        base_dir.join("node").join("node_modules").join("npm").join("bin").join("npm-cli.js")
+    } else {
+        base_dir.join("node").join("lib").join("node_modules").join("npm").join("bin").join("npm-cli.js")
+    };
+
+    let output = if local_npm_cli.exists() {
+        tokio::process::Command::new(&node)
+            .env("PATH", &new_path)
+            .env("npm_config_cache", npm_cache.to_str().unwrap())
+            .env("GIT_CONFIG_COUNT", "1")
+            .env("GIT_CONFIG_KEY_0", "url.https://github.com/.insteadOf")
+            .env("GIT_CONFIG_VALUE_0", "ssh://git@github.com/")
+            .arg(local_npm_cli.to_str().unwrap())
+            .args(["install", "--prefix", openclaw_prefix.to_str().unwrap(), &pkg_spec])
+            .output()
+            .await
+            .map_err(|e| format!("npm install failed: {}", e))?
+    } else {
+        let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
+        tokio::process::Command::new(npm_cmd)
+            .env("PATH", &new_path)
+            .env("npm_config_cache", npm_cache.to_str().unwrap())
+            .env("GIT_CONFIG_COUNT", "1")
+            .env("GIT_CONFIG_KEY_0", "url.https://github.com/.insteadOf")
+            .env("GIT_CONFIG_VALUE_0", "ssh://git@github.com/")
+            .args(["install", "--prefix", openclaw_prefix.to_str().unwrap(), &pkg_spec])
+            .output()
+            .await
+            .map_err(|e| format!("npm install failed: {}", e))?
+    };
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let errors: String = stderr
+            .lines()
+            .filter(|l| !l.trim_start().starts_with("npm notice"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Err(format!(
+            "Failed to install OpenClaw {}: {}",
+            REQUIRED_OPENCLAW_VERSION,
+            errors.trim()
+        ));
+    }
+
+    let _ = app.emit("gateway-log", &format!(
+        "OpenClaw {} installed successfully",
+        REQUIRED_OPENCLAW_VERSION
+    ));
+    Ok(())
 }
 
 pub(crate) fn generate_token() -> String {
@@ -321,6 +444,9 @@ pub async fn start_gateway(
             entry.display()
         ));
     }
+
+    // Ensure installed version matches the pinned version before launching
+    ensure_openclaw_version(&app).await?;
 
     let mut cmd = tokio::process::Command::new(&node);
     cmd.arg(&entry)

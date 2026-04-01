@@ -541,6 +541,8 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
     let git_config_key = "url.https://github.com/.insteadOf";
     let git_config_val = "ssh://git@github.com/";
 
+    let pkg_spec = format!("openclaw@{}", super::gateway::REQUIRED_OPENCLAW_VERSION);
+
     let output = if use_system_npm {
         // Use system npm directly
         let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
@@ -554,10 +556,7 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
                 "install",
                 "--prefix",
                 openclaw_prefix.to_str().unwrap(),
-                // Pin to 2026.3.28: version 2026.3.31 broke bundled channel plugin
-                // runtime loading (Telegram etc. fail to register). Remove pin once
-                // upstream fix #58782 ships in a release.
-                "openclaw@2026.3.28",
+                &pkg_spec,
             ])
             .output()
             .await
@@ -575,10 +574,7 @@ pub async fn install_openclaw(app: tauri::AppHandle) -> Result<String, String> {
                 "install",
                 "--prefix",
                 openclaw_prefix.to_str().unwrap(),
-                // Pin to 2026.3.28: version 2026.3.31 broke bundled channel plugin
-                // runtime loading (Telegram etc. fail to register). Remove pin once
-                // upstream fix #58782 ships in a release.
-                "openclaw@2026.3.28",
+                &pkg_spec,
             ])
             .output()
             .await
