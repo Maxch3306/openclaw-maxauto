@@ -361,7 +361,8 @@ pub async fn install_git(app: tauri::AppHandle) -> Result<String, String> {
         #[cfg(windows)]
         refresh_path_from_registry();
 
-        let git_ok = tokio::process::Command::new("git.exe")
+        #[allow(unused_mut)]
+        let mut git_ok = tokio::process::Command::new("git.exe")
             .arg("--version")
             .output()
             .await
