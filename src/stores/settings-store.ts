@@ -199,6 +199,16 @@ export const PROVIDER_DEFAULTS: Record<string, ProviderDefaults> = {
       { id: "kimi-k2.5", name: "Kimi K2.5", reasoning: false, input: ["text", "image"], cost: ZERO_COST, contextWindow: 256000, maxTokens: 8192 },
     ],
   },
+  nvidia: {
+    displayName: "NVIDIA",
+    description: "NVIDIA API Platform",
+    signupUrl: "https://integrate.api.nvidia.com/v1",
+    baseUrl: "https://integrate.api.nvidia.com/v1",
+    api: "openai-completions",
+    models: [
+      { id: "minimaxai/minimax-m2.7", name: "MiniMax M2.7 (NVIDIA)", reasoning: true, input: ["text", "image"], cost: ZERO_COST, contextWindow: 204800, maxTokens: 8192 },
+    ],
+  },
 };
 
 /** GLM Coding provider key and MCP server key */
