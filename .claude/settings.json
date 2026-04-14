@@ -4,7 +4,9 @@
       "Bash(netstat -ano)",
       "Bash(findstr 51789)",
       "Read(//e/working/openclaw-auto/$USERPROFILE/**)",
-      "Read(//e/working/openclaw-auto/$USERPROFILE/.openclaw-maxauto/openclaw/**)"
+      "Read(//e/working/openclaw-auto/$USERPROFILE/.openclaw-maxauto/openclaw/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
